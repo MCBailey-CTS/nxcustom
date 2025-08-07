@@ -1,0 +1,136 @@
+﻿NX 2306
+Macro File: H:\Macros\- 2306\Active\Measure2306 - Weight - Body - Object Set.macro
+Macro Version 7.50
+Macro List Language and Codeset: english 17
+Created by jsochanek on Wed Jul 30 09:41:59 2025
+Part Name Display Style: $FILENAME
+Selection Parameters 1 2 0.229167 1
+Display Parameters 0.900000 18.854167 8.395833 -1.000000 -0.445304 1.000000 0.445304
+*****************
+RESET
+MENU, 0, UG_INFO_GEOMETRIC_MEASUREMENT UG_GATEWAY_MAIN_MENUBAR < Shift F1> ## ! 
+ASK_ITEM 1048576 (1 BOOL 0) = 1  ! Show Previous State
+ASK_ITEM 1048576 (1 BOOL 0) = 0  ! Show Previous State
+ASK_ITEM 1835008 (1 BOOL 0) = 1  ! Show Previous State
+ASK_ITEM 1835008 (1 BOOL 0) = 0  ! Show Previous State
+ASK_ITEM 3342336 (1 OPTT 0) = 0 0 ! Inferred Point
+ASK_ITEM 3342336 (1 OPTT 0) = 0 1 ! Inferred Point
+ASK_ITEM 3342336 (1 OPTT 0) = 0 1 ! Inferred Point
+ASK_ITEM 3342336 (1 OPTT 0) = 0 0 ! Inferred Point
+ASK_ITEM 3342336 (1 OPTT 0) = 0 0 ! Inferred Point
+ASK_ITEM 3342336 (1 OPTT 0) = 0 0 ! Inferred Point
+ASK_ITEM 5111808 (1 OPTT 0) = 0 0 ! Inferred Vector
+ASK_ITEM 5111808 (1 OPTT 0) = 0 1 ! Inferred Vector
+ASK_ITEM 5111808 (1 OPTT 0) = 0 1 ! Inferred Vector
+ASK_ITEM 5111808 (1 OPTT 0) = 0 0 ! Inferred Vector
+ASK_ITEM 6684672 (1 OPTT 0) = 1 0 ! Inferred
+ASK_ITEM 6684672 (1 OPTT 0) = 1 1 ! Inferred
+ASK_ITEM 7274498 (1 TOOL 0) = 0  ! Dynamic
+ASK_ITEM 6684672 (1 OPTT 0) = 1 1 ! Inferred
+ASK_ITEM 6684672 (1 OPTT 0) = 1 0 ! Inferred
+ASK_ITEM 10747904 (1 BOOL 0) = 1  ! Distance (0)
+ASK_ITEM 10944512 (1 BOOL 0) = 1  ! Curve/Edge (0)
+ASK_ITEM 11141120 (1 BOOL 0) = 1  ! Angle (0)
+ASK_ITEM 11337728 (1 BOOL 0) = 1  ! Face (0)
+ASK_ITEM 11534336 (1 BOOL 0) = 1  ! Body (0)
+ASK_ITEM 11730944 (1 BOOL 0) = 1  ! Extreme (0)
+ASK_ITEM 11730944 (1 BOOL 0) = 0  ! Extreme (0)
+ASK_ITEM 11927552 (1 BOOL 0) = 1  ! Others (0)
+ASK_ITEM 11927552 (1 BOOL 0) = 0  ! Others (0)
+ASK_ITEM 13238272 (1 BOOL 0) = 1  ! Associative
+ASK_ITEM 13238272 (1 BOOL 0) = 0  ! Associative
+ASK_ITEM 13434880 (1 BOOL 0) = 1  ! Display Annotation
+ASK_ITEM 13434880 (1 BOOL 0) = 0  ! Display Annotation
+ASK_ITEM 13631488 (1 BOOL 0) = 1  ! Create Geometry
+ASK_ITEM 13631488 (1 BOOL 0) = 0  ! Create Geometry
+ASK_ITEM 13828096 (1 BOOL 0) = 1  ! Fix at Current Timestamp
+ASK_ITEM 13828096 (1 BOOL 0) = 0  ! Fix at Current Timestamp
+ASK_ITEM 14221312 (1 BOOL 0) = 1  ! Send Results to Console
+ASK_ITEM 14221312 (1 BOOL 0) = 0  ! Send Results to Console
+ASK_ITEM 14417920 (1 BOOL 0) = 1  ! Show Results in the Information Window
+ASK_ITEM 14614528 (1 BOOL 0) = 1  ! Measure in View Plane
+ASK_ITEM 14614528 (1 BOOL 0) = 0  ! Measure in View Plane
+ASK_ITEM 14811136 (1 BOOL 0) = 1  ! Present Hints
+ASK_ITEM 14811136 (1 BOOL 0) = 0  ! Present Hints
+ASK_ITEM 15007744 (1 BOOL 0) = 1  ! Value Only Scene Dialog
+ASK_ITEM 15007744 (1 BOOL 0) = 0  ! Value Only Scene Dialog
+ASK_ITEM 13828096 (1 BOOL 0) = 0  ! Fix at Current Timestamp
+EVENT FOCUS_IN -50 0, 327680, 0, 0, 0! Object
+ASK_ITEM 327680 (1 RADI 0) = 0  ! Object
+DIALOG_BEGIN "Measure" 0 ! ExSpecial
+BEG_ITEM 327680 (1 RADI 0) = 0  ! Object
+BEG_ITEM 524288 (1 BOOL 0) = 0  ! Select Object
+BEG_ITEM 1048576 (1 BOOL 0) = 0  ! Show Previous State
+BEG_ITEM 1310720 (1 BOOL 0) = 0  ! Select Object
+BEG_ITEM 1835008 (1 BOOL 0) = 0  ! Show Previous State
+BEG_ITEM 2097152 (1 BOOL 0) = 0  ! Select Object
+BEG_ITEM 2686976 (1 BOOL 0) = 0  ! Select Object
+BEG_ITEM 3342336 (1 OPTT 0) = 0 0 ! Inferred Point
+BEG_ITEM 3932160 (1 OPTM 0) = 0  ! Inferred Point
+BEG_ITEM 3932162 (1 TOOL 0) = 0  ! Inferred Point
+BEG_ITEM 4456448 (1 BOOL 0) = 0  ! Select Points
+BEG_ITEM 5111808 (1 OPTT 0) = 0 0 ! Inferred Vector
+BEG_ITEM 6094848 (1 OPTM 0) = 0  ! Inferred Vector
+BEG_ITEM 6094850 (1 TOOL 0) = 0  ! Inferred Vector
+BEG_ITEM 6684672 (1 OPTT 0) = 1 0 ! Inferred
+BEG_ITEM 7274496 (1 OPTM 0) = 1  ! Inferred
+BEG_ITEM 7274498 (1 TOOL 0) = 0  ! Dynamic
+BEG_ITEM 9764864 (1 RADI 0) = 0  ! Free
+BEG_ITEM 9961472 (1 RADI 0) = 0  ! 1
+BEG_ITEM 10747904 (1 BOOL 0) = 1  ! Distance (0)
+BEG_ITEM 10944512 (1 BOOL 0) = 1  ! Curve/Edge (0)
+BEG_ITEM 11141120 (1 BOOL 0) = 1  ! Angle (0)
+BEG_ITEM 11337728 (1 BOOL 0) = 1  ! Face (0)
+BEG_ITEM 11534336 (1 BOOL 0) = 1  ! Body (0)
+BEG_ITEM 11730944 (1 BOOL 0) = 0  ! Extreme (0)
+BEG_ITEM 11927552 (1 BOOL 0) = 0  ! Others (0)
+BEG_ITEM 13238272 (1 BOOL 0) = 0  ! Associative
+BEG_ITEM 13434880 (1 BOOL 0) = 0  ! Display Annotation
+BEG_ITEM 13631488 (1 BOOL 0) = 0  ! Create Geometry
+BEG_ITEM 13828096 (1 BOOL 0) = 0  ! Fix at Current Timestamp
+BEG_ITEM 14024704 (1 OPTM 0) = 0  ! Absolute - Work Part
+BEG_ITEM 14221312 (1 BOOL 0) = 0  ! Send Results to Console
+BEG_ITEM 14417920 (1 BOOL 0) = 1  ! Show Results in the Information Window
+BEG_ITEM 14614528 (0 BOOL 0) = 0  ! Measure in View Plane
+BEG_ITEM 14811136 (1 BOOL 0) = 0  ! Present Hints
+BEG_ITEM 15007744 (1 BOOL 0) = 0  ! Value Only Scene Dialog
+BEG_ITEM 15728642 (1 BOOL 0) = 1  ! Preview
+ASK_ITEM 524288 (1 BOOL 0) = 0  ! Select Object
+ASK_ITEM 524288 (1 BOOL 0) = 1  ! Select Object
+EVENT FOCUS_IN -50 0, 11337728, 0, 0, 0! Face (0)
+ASK_ITEM 11337728 (1 BOOL 0) = 1  ! Face (0)
+EVENT VALUE_CHANGED -50 0, 11337728, 0, 0, 0! Face (0)
+ASK_ITEM 11337728 (1 BOOL 0) = 0  ! Face (0)
+ASK_ITEM 11337728 (1 BOOL 0) = 0  ! Face (0)
+ASK_ITEM 13828096 (1 BOOL 0) = 0  ! Fix at Current Timestamp
+EVENT FOCUS_IN -50 0, 11141120, 0, 0, 0! Angle (0)
+ASK_ITEM 11141120 (1 BOOL 0) = 1  ! Angle (0)
+EVENT VALUE_CHANGED -50 0, 11141120, 0, 0, 0! Angle (0)
+ASK_ITEM 11141120 (1 BOOL 0) = 0  ! Angle (0)
+ASK_ITEM 11141120 (1 BOOL 0) = 0  ! Angle (0)
+ASK_ITEM 13828096 (1 BOOL 0) = 0  ! Fix at Current Timestamp
+EVENT FOCUS_IN -50 0, 10747904, 0, 0, 0! Distance (0)
+ASK_ITEM 10747904 (1 BOOL 0) = 1  ! Distance (0)
+EVENT VALUE_CHANGED -50 0, 10747904, 0, 0, 0! Distance (0)
+ASK_ITEM 10747904 (1 BOOL 0) = 0  ! Distance (0)
+ASK_ITEM 10747904 (1 BOOL 0) = 0  ! Distance (0)
+ASK_ITEM 13828096 (1 BOOL 0) = 0  ! Fix at Current Timestamp
+EVENT FOCUS_IN -50 0, 10944512, 0, 0, 0! Curve/Edge (0)
+ASK_ITEM 10944512 (1 BOOL 0) = 1  ! Curve/Edge (0)
+EVENT VALUE_CHANGED -50 0, 10944512, 0, 0, 0! Curve/Edge (0)
+ASK_ITEM 10944512 (1 BOOL 0) = 0  ! Curve/Edge (0)
+ASK_ITEM 10944512 (1 BOOL 0) = 0  ! Curve/Edge (0)
+ASK_ITEM 13828096 (1 BOOL 0) = 0  ! Fix at Current Timestamp
+EVENT FOCUS_IN -50 0, 327680, 0, 0, 0! Object
+ASK_ITEM 327680 (1 RADI 0) = 0  ! Object
+EVENT VALUE_CHANGED -50 0, 327680, 3, 0, 0! Object Set
+ASK_ITEM 327680 (1 RADI 0) = 3  ! Object Set
+ASK_ITEM 327680 (1 RADI 0) = 3  ! Object Set
+ASK_ITEM 524288 (1 BOOL 0) = 1  ! Select Object
+ASK_ITEM 524288 (1 BOOL 0) = 0  ! Select Object
+ASK_ITEM 13828096 (1 BOOL 0) = 0  ! Fix at Current Timestamp
+ASK_ITEM 1310720 (1 BOOL 0) = 0  ! Select Object
+ASK_ITEM 1310720 (1 BOOL 0) = 1  ! Select Object
+TBR COMBO UG_SEL_TYPE_FILTER 4 -7 0
+TBR COMBO UG_SEL_TYPE_FILTER 1 10 1
+  LINE  "Solid Body"

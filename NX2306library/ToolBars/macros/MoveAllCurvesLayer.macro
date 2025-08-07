@@ -1,0 +1,233 @@
+﻿NX 1919
+Macro File: H:\Macros\- 1919\Active\Move ALL Curves to Layer1919 - Joshua.macro
+Macro Version 7.50
+Macro List Language and Codeset: english 17
+Created by jsochanek on Tue Feb 20 07:19:30 2024
+Part Name Display Style: $FILENAME
+Selection Parameters 1 2 0.229167 1
+Display Parameters 0.900000 18.854167 8.531250 -1.000000 -10.452486 1.000000 -9.547514
+*****************
+RESET
+MENU, 0, UG_SEL_CLASS_SELECTION UG_GATEWAY_MAIN_MENUBAR <RIBBON_TAB_07_21_2015_09_01_42_1919175889> ## ! 
+ASK_ITEM 2293760 (1 BOOL 0) = 1  !  
+ASK_ITEM 2293760 (1 BOOL 0) = 0  !  
+EVENT FOCUS_IN -10 0, 327680, 0, 0, 0! Select Objects
+ASK_ITEM 327680 (1 BOOL 0) = 0  ! Select Objects
+DIALOG_BEGIN "Class Selection" 0 ! Special
+BEG_ITEM 327680 (1 BOOL 0) = 0  ! Select Objects
+BEG_ITEM 1835009 (1 STRN 0) = ""  ! Select by Name
+BEG_ITEM 2293760 (0 BOOL 0) = 0  !  
+BEG_ITEM 3670016 (1 CTOL 0) = 1  !  
+BEG_ITEM 4718594 (1 BOOL 0) = 1  ! Preview
+ASK_ITEM 327680 (1 BOOL 0) = 0  ! Select Objects
+ASK_ITEM 327680 (1 BOOL 0) = 1  ! Select Objects
+EVENT FOCUS_IN -10 0, 327680, 0, 0, 0! Select Objects
+ASK_ITEM 327680 (1 BOOL 0) = 1  ! Select Objects
+EVENT FOCUS_IN -10 0, 3145728, 0, 0, 0! Type Filter
+EVENT ACTIVATE -10 0, 3145728, 0, 0, 0! <DLC> Type Filter
+DIALOG_BEGIN "Select by Type" 0 ! Special
+ BEG_ITEM  0 (1 MULT 0) = 61  ! List (Items selected)
+      POSITION = 0 "2D Component" ! Index/contents of selected item
+      POSITION = 1 "Analysis" ! Index/contents of selected item
+      POSITION = 2 "Assembly Constraint" ! Index/contents of selected item
+      POSITION = 3 "Body in White Datum" ! Index/contents of selected item
+      POSITION = 4 "Boundary" ! Index/contents of selected item
+      POSITION = 5 "Cage Edge" ! Index/contents of selected item
+      POSITION = 6 "Cage Face" ! Index/contents of selected item
+      POSITION = 7 "Cage Vertex" ! Index/contents of selected item
+      POSITION = 8 "Component" ! Index/contents of selected item
+      POSITION = 9 "Component Pattern" ! Index/contents of selected item
+      POSITION = 10 "Control Cage" ! Index/contents of selected item
+      POSITION = 11 "CSYS" ! Index/contents of selected item
+      POSITION = 12 "Curve" ! Index/contents of selected item
+      POSITION = 13 "Curve Feature" ! Index/contents of selected item
+      POSITION = 14 "Cutting Plane Symbol" ! Index/contents of selected item
+      POSITION = 15 "Datum Plane Grid" ! Index/contents of selected item
+      POSITION = 16 "Datums" ! Index/contents of selected item
+      POSITION = 17 "Dimension" ! Index/contents of selected item
+      POSITION = 18 "Dimension Set" ! Index/contents of selected item
+      POSITION = 19 "Drawing Image" ! Index/contents of selected item
+      POSITION = 20 "Drawing Template Region" ! Index/contents of selected item
+      POSITION = 21 "Edge" ! Index/contents of selected item
+      POSITION = 22 "Face" ! Index/contents of selected item
+      POSITION = 23 "Facet Body" ! Index/contents of selected item
+      POSITION = 24 "Feature" ! Index/contents of selected item
+      POSITION = 25 "Frame Bar" ! Index/contents of selected item
+      POSITION = 26 "Group" ! Index/contents of selected item
+      POSITION = 27 "Image" ! Index/contents of selected item
+      POSITION = 28 "Label" ! Index/contents of selected item
+      POSITION = 29 "Label on Parent" ! Index/contents of selected item
+      POSITION = 30 "Machining Feature" ! Index/contents of selected item
+      POSITION = 31 "Measurement Objects" ! Index/contents of selected item
+      POSITION = 32 "Note" ! Index/contents of selected item
+      POSITION = 33 "Pattern" ! Index/contents of selected item
+      POSITION = 34 "Pattern Point" ! Index/contents of selected item
+      POSITION = 35 "Planar Ship Grid" ! Index/contents of selected item
+      POSITION = 36 "Plane" ! Index/contents of selected item
+      POSITION = 37 "Point" ! Index/contents of selected item
+      POSITION = 38 "Point Cloud" ! Index/contents of selected item
+      POSITION = 39 "Product Definition" ! Index/contents of selected item
+      POSITION = 40 "Routing Objects" ! Index/contents of selected item
+      POSITION = 41 "Section Line" ! Index/contents of selected item
+      POSITION = 42 "Section Segment" ! Index/contents of selected item
+      POSITION = 43 "Sheet Body" ! Index/contents of selected item
+      POSITION = 44 "Ship Objects" ! Index/contents of selected item
+      POSITION = 45 "Ship Tic" ! Index/contents of selected item
+      POSITION = 46 "Sketch" ! Index/contents of selected item
+      POSITION = 47 "Sketch Constraint" ! Index/contents of selected item
+      POSITION = 48 "Solid Body" ! Index/contents of selected item
+      POSITION = 49 "Supplemental Geometry" ! Index/contents of selected item
+      POSITION = 50 "Symbol" ! Index/contents of selected item
+      POSITION = 51 "Tabular Note/Parts List" ! Index/contents of selected item
+      POSITION = 52 "Title Block" ! Index/contents of selected item
+      POSITION = 53 "Tolerance Feature" ! Index/contents of selected item
+      POSITION = 54 "Tool Path" ! Index/contents of selected item
+      POSITION = 55 "Traceline" ! Index/contents of selected item
+      POSITION = 56 "Translate Weld" ! Index/contents of selected item
+      POSITION = 57 "View" ! Index/contents of selected item
+      POSITION = 58 "View Break" ! Index/contents of selected item
+      POSITION = 59 "Wall Thickness Analysis" ! Index/contents of selected item
+      POSITION = 60 "Welding Objects" ! Index/contents of selected item
+  EVENT VALUE_CHANGED -10 0, 0, 0, 0, 0!  
+  ASK_ITEM  0 (1 MULT 0) = 1  ! List
+       POSITION = 12 "Curve" ! Index/contents of selected item
+ END_ITEM  0 (1 MULT 0) = 1  ! List (Items selected)
+      POSITION = 12 "Curve" ! Index/contents of selected item
+DIALOG_END 1, 1 ! Select by Type: Detail Filtering
+DIALOG_BEGIN "Curve" 0 ! Special
+ BEG_ITEM  0 (1 MULT 0) = 8  ! List (Items selected)
+      POSITION = 0 "Arc" ! Index/contents of selected item
+      POSITION = 1 "Arrow" ! Index/contents of selected item
+      POSITION = 2 "Ellipse" ! Index/contents of selected item
+      POSITION = 3 "Hyperbola" ! Index/contents of selected item
+      POSITION = 4 "Line" ! Index/contents of selected item
+      POSITION = 5 "Parabola" ! Index/contents of selected item
+      POSITION = 6 "Polyline" ! Index/contents of selected item
+      POSITION = 7 "Spline" ! Index/contents of selected item
+  EVENT VALUE_CHANGED -10 0, 0, 0, 0, 0!  
+  ASK_ITEM  0 (1 MULT 0) = 7  ! List
+       POSITION = 0 "Arc" ! Index/contents of selected item
+       POSITION = 2 "Ellipse" ! Index/contents of selected item
+       POSITION = 3 "Hyperbola" ! Index/contents of selected item
+       POSITION = 4 "Line" ! Index/contents of selected item
+       POSITION = 5 "Parabola" ! Index/contents of selected item
+       POSITION = 6 "Polyline" ! Index/contents of selected item
+       POSITION = 7 "Spline" ! Index/contents of selected item
+  EVENT VALUE_CHANGED -10 0, 0, 0, 0, 0!  
+  ASK_ITEM  0 (1 MULT 0) = 6  ! List
+       POSITION = 0 "Arc" ! Index/contents of selected item
+       POSITION = 2 "Ellipse" ! Index/contents of selected item
+       POSITION = 4 "Line" ! Index/contents of selected item
+       POSITION = 5 "Parabola" ! Index/contents of selected item
+       POSITION = 6 "Polyline" ! Index/contents of selected item
+       POSITION = 7 "Spline" ! Index/contents of selected item
+  EVENT VALUE_CHANGED -10 0, 0, 0, 0, 0!  
+  ASK_ITEM  0 (1 MULT 0) = 5  ! List
+       POSITION = 0 "Arc" ! Index/contents of selected item
+       POSITION = 2 "Ellipse" ! Index/contents of selected item
+       POSITION = 4 "Line" ! Index/contents of selected item
+       POSITION = 6 "Polyline" ! Index/contents of selected item
+       POSITION = 7 "Spline" ! Index/contents of selected item
+  OK -10 0 ! OK Callback  
+ END_ITEM  0 (1 MULT 0) = 5  ! List (Items selected)
+      POSITION = 0 "Arc" ! Index/contents of selected item
+      POSITION = 2 "Ellipse" ! Index/contents of selected item
+      POSITION = 4 "Line" ! Index/contents of selected item
+      POSITION = 6 "Polyline" ! Index/contents of selected item
+      POSITION = 7 "Spline" ! Index/contents of selected item
+DIALOG_END -2, 0 ! Curve: OK
+DIALOG_BEGIN "Select by Type" 0 ! Special
+ BEG_ITEM  0 (1 MULT 0) = 1  ! List (Items selected)
+      POSITION = 12 "Curve" ! Index/contents of selected item
+  OK -10 0 ! OK Callback  
+ END_ITEM  0 (1 MULT 0) = 1  ! List (Items selected)
+      POSITION = 12 "Curve" ! Index/contents of selected item
+DIALOG_END -2, 0 ! Select by Type: OK
+EVENT FOCUS_IN -10 0, 3932160, 0, 0, 0! Attribute Filter
+EVENT ACTIVATE -10 0, 3932160, 0, 0, 0! <DLC> Attribute Filter
+DIALOG_BEGIN "Select by Attribute" 0 ! Special
+ BEG_ITEM  0 (1 MULT 0) = 11  ! List (Items selected)
+      POSITION = 0 "Solid" ! Index/contents of selected item
+      POSITION = 1 "Dashed" ! Index/contents of selected item
+      POSITION = 2 "Phantom" ! Index/contents of selected item
+      POSITION = 3 "Centerline" ! Index/contents of selected item
+      POSITION = 4 "Dotted" ! Index/contents of selected item
+      POSITION = 5 "Long Dashed" ! Index/contents of selected item
+      POSITION = 6 "Dotted Dashed" ! Index/contents of selected item
+      POSITION = 7 "Long Dashed Double Dotted" ! Index/contents of selected item
+      POSITION = 8 "Long Dashed Dotted" ! Index/contents of selected item
+      POSITION = 9 "Long Dashed Triplicate Dotted" ! Index/contents of selected item
+      POSITION = 10 "Long Dashed Double Short Dashed" ! Index/contents of selected item
+ BEG_ITEM  2 (1 MULT 0) = 9  ! List (Items selected)
+      POSITION = 0 "0.13 mm" ! Index/contents of selected item
+      POSITION = 1 "0.18 mm" ! Index/contents of selected item
+      POSITION = 2 "0.25 mm" ! Index/contents of selected item
+      POSITION = 3 "0.35 mm" ! Index/contents of selected item
+      POSITION = 4 "0.50 mm" ! Index/contents of selected item
+      POSITION = 5 "0.70 mm" ! Index/contents of selected item
+      POSITION = 6 "1.00 mm" ! Index/contents of selected item
+      POSITION = 7 "1.40 mm" ! Index/contents of selected item
+      POSITION = 8 "2.00 mm" ! Index/contents of selected item
+  OK -10 0 ! OK Callback  
+  ASK_ITEM  0 (1 MULT 0) = 10  ! List
+       POSITION = 0 "Solid" ! Index/contents of selected item
+       POSITION = 1 "Dashed" ! Index/contents of selected item
+       POSITION = 3 "Centerline" ! Index/contents of selected item
+       POSITION = 4 "Dotted" ! Index/contents of selected item
+       POSITION = 5 "Long Dashed" ! Index/contents of selected item
+       POSITION = 6 "Dotted Dashed" ! Index/contents of selected item
+       POSITION = 7 "Long Dashed Double Dotted" ! Index/contents of selected item
+       POSITION = 8 "Long Dashed Dotted" ! Index/contents of selected item
+       POSITION = 9 "Long Dashed Triplicate Dotted" ! Index/contents of selected item
+       POSITION = 10 "Long Dashed Double Short Dashed" ! Index/contents of selected item
+  ASK_ITEM  2 (1 MULT 0) = 9  ! List
+       POSITION = 0 "0.13 mm" ! Index/contents of selected item
+       POSITION = 1 "0.18 mm" ! Index/contents of selected item
+       POSITION = 2 "0.25 mm" ! Index/contents of selected item
+       POSITION = 3 "0.35 mm" ! Index/contents of selected item
+       POSITION = 4 "0.50 mm" ! Index/contents of selected item
+       POSITION = 5 "0.70 mm" ! Index/contents of selected item
+       POSITION = 6 "1.00 mm" ! Index/contents of selected item
+       POSITION = 7 "1.40 mm" ! Index/contents of selected item
+       POSITION = 8 "2.00 mm" ! Index/contents of selected item
+ END_ITEM  0 (1 MULT 0) = 10  ! List (Items selected)
+      POSITION = 0 "Solid" ! Index/contents of selected item
+      POSITION = 1 "Dashed" ! Index/contents of selected item
+      POSITION = 3 "Centerline" ! Index/contents of selected item
+      POSITION = 4 "Dotted" ! Index/contents of selected item
+      POSITION = 5 "Long Dashed" ! Index/contents of selected item
+      POSITION = 6 "Dotted Dashed" ! Index/contents of selected item
+      POSITION = 7 "Long Dashed Double Dotted" ! Index/contents of selected item
+      POSITION = 8 "Long Dashed Dotted" ! Index/contents of selected item
+      POSITION = 9 "Long Dashed Triplicate Dotted" ! Index/contents of selected item
+      POSITION = 10 "Long Dashed Double Short Dashed" ! Index/contents of selected item
+ END_ITEM  2 (1 MULT 0) = 9  ! List (Items selected)
+      POSITION = 0 "0.13 mm" ! Index/contents of selected item
+      POSITION = 1 "0.18 mm" ! Index/contents of selected item
+      POSITION = 2 "0.25 mm" ! Index/contents of selected item
+      POSITION = 3 "0.35 mm" ! Index/contents of selected item
+      POSITION = 4 "0.50 mm" ! Index/contents of selected item
+      POSITION = 5 "0.70 mm" ! Index/contents of selected item
+      POSITION = 6 "1.00 mm" ! Index/contents of selected item
+      POSITION = 7 "1.40 mm" ! Index/contents of selected item
+      POSITION = 8 "2.00 mm" ! Index/contents of selected item
+DIALOG_END -2, 0 ! Select by Attribute: OK
+MENU, 0, UG_SEL_SELECT_ALL UG_GATEWAY_MAIN_MENUBAR <Ctrl A> ## ! 
+CURSOR_EVENT 1001 106,0,201,0 ! motion_pb, mb0/0+0, , nn
+CPOS -0.1816177358722,4.41754882633543,-0.586687152058529
+OK -10 0 ! OK Callback  
+ASK_ITEM 327680 (1 BOOL 0) = 1  ! Select Objects
+ASK_ITEM 327680 (1 BOOL 0) = 0  ! Select Objects
+END_ITEM 327680 (1 BOOL 0) = 0  ! Select Objects
+END_ITEM 1835009 (1 STRN 0) = ""  ! Select by Name
+END_ITEM 2293760 (0 BOOL 0) = 0  !  
+END_ITEM 3670016 (1 CTOL 0) = 1  !  
+END_ITEM 4718594 (1 BOOL 0) = 1  ! Preview
+DIALOG_END -2, 0 ! Class Selection: OK
+MENU, 0, UG_LAYER_MOVE UG_GATEWAY_MAIN_MENUBAR <TopBorderBar> ## ! 
+DIALOG_BEGIN "Layer Move" 0 ! DA2
+  BEG_ITEM  0 (1 WIDE 0) = ""  ! Destination Layer or Category
+  BEG_ITEM  2 (1 STRN 0) = "*"  ! Filter
+ BEG_ITEM  3 (1 LIST 0) = 0  ! List (Items selected)
+ BEG_ITEM  5 (1 LIST 0) = 0  ! List (Items selected)
+  BEG_ITEM  7 (1 BLO  0) = 0  ! Re-highlight Objects

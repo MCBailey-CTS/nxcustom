@@ -1,0 +1,12 @@
+﻿NX 1919
+Macro File: P:\CTS_Programs\NXcustom\NX1899\NXcustom\NX1899library\ToolBars\macros\RefSet.macro
+Macro Version 7.50
+Macro List Language and Codeset: english 17
+Created by dvanderwerf on Wed Feb  3 12:30:52 2021
+Part Name Display Style: $FILENAME
+Selection Parameters 0 2 0.229167 1
+Display Parameters 0.900000 19.218750 8.177083 -1.000000 -0.425474 1.000000 0.425474
+*****************
+RESET
+MENU, 0, UG_ASSY_REFERENCE_SETS UG_GATEWAY_MAIN_MENUBAR <TopBorderBar->MenuBar->UG_ARRANGE> ## ! 
+DIALOG_BEGIN "Reference Sets" 0 ! DA2

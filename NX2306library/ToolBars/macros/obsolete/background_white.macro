@@ -1,0 +1,36 @@
+NX 7.5.5.4
+Macro File: G:\junk\Duane\nx7.5\white_background.macro
+Macro Version 7.50
+Macro List Language and Codeset: english 17
+Created by dvanderwerf on Thu May 10 11:21:59 2012
+Part Name Display Style: $FILENAME
+Selection Parameters 1 2 0.229167 1
+Display Parameters 0.800000 18.729167 8.312500 -1.000000 -0.443826 1.000000 0.443826
+*****************
+RESET
+MENU, 0, UG_PREFERENCES_BACKGROUND UG_GATEWAY_MAIN_MENUBAR ! <MB/Toolbar> 
+DIALOG_BEGIN "Edit Background" 0 ! ExSpecial
+ BEG_ITEM  1 (1 RADI 0) = 0  ! Plain
+ BEG_ITEM  3 (0 CTOL 0) = 14211288  !  
+ BEG_ITEM  5 (0 CTOL 0) = 14211288  !  
+ BEG_ITEM  8 (1 RADI 0) = 0  ! Plain
+ BEG_ITEM 10 (0 CTOL 0) = 14211288  !  
+ BEG_ITEM 12 (0 CTOL 0) = 14211288  !  
+ BEG_ITEM 15 (1 CTOL 0) = 0  !  
+ EVENT VALUE_CHANGED -50 0, 1, 0, 0, 0! Plain
+ ASK_ITEM  1 (1 RADI 0) = 0  ! Plain
+ EVENT VALUE_CHANGED -50 0, 8, 0, 0, 0! Plain
+ ASK_ITEM  8 (1 RADI 0) = 0  ! Plain
+ EVENT VALUE_CHANGED -50 0, 15, 0, 1, 0!  
+ ASK_ITEM 15 (1 CTOL 0) = 16777215  !  
+ MESSAGE_GENERAL Standard_Color_Palette -2 1.000000 1.000000 1.000000
+ OK -50 0 ! OK Callback  
+ END_ITEM  1 (1 RADI 0) = 0  ! Plain
+ END_ITEM  3 (0 CTOL 0) = 14211288  !  
+ END_ITEM  5 (0 CTOL 0) = 14211288  !  
+ END_ITEM  8 (1 RADI 0) = 0  ! Plain
+ END_ITEM 10 (0 CTOL 0) = 14211288  !  
+ END_ITEM 12 (0 CTOL 0) = 14211288  !  
+ END_ITEM 15 (1 CTOL 0) = 16777215  !  
+DIALOG_END -2, 0 ! Edit Background: OK
+FOCUS CHANGE IN 1

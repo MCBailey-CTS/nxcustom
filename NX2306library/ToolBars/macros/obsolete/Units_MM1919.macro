@@ -1,0 +1,92 @@
+﻿NX 1919
+Macro File: H:\Macros\- 1919\Active\MM1919 - Measure and Feature.macro
+Macro Version 7.50
+Macro List Language and Codeset: english 17
+Created by jsochanek on Wed Jun  2 08:45:36 2021
+Part Name Display Style: $FILENAME
+Selection Parameters 1 2 0.229167 1
+Display Parameters 0.900000 18.854167 8.531250 -1.000000 -0.452486 1.000000 0.452486
+*****************
+RESET
+FOCUS CHANGE IN 1
+WINDOW RESIZE 0.900000 18.854167 8.531250 -1.000000 -0.452486 1.000000 0.452486
+FOCUS CHANGE IN 1
+WINDOW RESIZE 0.900000 18.854167 8.531250 -1.000000 -0.452486 1.000000 0.452486
+MENU, 0, UG_TOOLBOX_UNITS_MANAGER UG_GATEWAY_MAIN_MENUBAR <QuickAccessBar->MenuBar->UG_TOOLBOX> ## ! 
+DIALOG_BEGIN "Units Manager" 6918 ! DA2
+  BEG_ITEM  1 (1 OPTM 6918) = 1  ! English - lbm/in/lbf/deg/F
+  BEG_ITEM  2 (1 OPTM 6918) = 0  ! English - lbm/in/lbf/deg/F
+  BEG_ITEM  5 (1 OPTM 6918) = 0  ! Length
+  BEG_ITEM  8 (1 COMB 6918) = "Meter"  ! Unit Name
+  BEG_ITEM  9 (0 STRN 6918) = "m"  ! Unit Symbol
+  BEG_ITEM 10 (0 STRN 6918) = "m"  ! Unit Localized Symbol
+  BEG_ITEM 11 (0 WIDE 6918) = "meters"  ! Unit Description
+  BEG_ITEM 14 (0 REAL 6918) = 1000.0000000000000000  ! Conversion Factor (a)
+  BEG_ITEM 15 (0 REAL 6918) = 0.0000000000000000  ! Conversion Addend (b)
+  BEG_ITEM 16 (1 BOOL 6918) = 0  ! Use as Preferred Data Entry Unit Override
+  BEG_ITEM 17 (1 BOOL 6918) = 0  ! Use as Object Information Unit Override
+  BEG_ITEM 18 (0 BOOL 6918) = 1  ! Unit Is Metric
+  BEG_ITEM 19 (0 BOOL 6918) = 0  ! Unit Is English
+  EVENT ACTIVATE 0 6918, 1, 0, 0, 0! Metric - kg/mm/N/deg/C
+  ASK_ITEM  1 (1 OPTM 6918) = 0  ! Metric - kg/mm/N/deg/C
+  ASK_ITEM  1 (1 OPTM 6918) = 0  ! Metric - kg/mm/N/deg/C
+  END_ITEM  1 (1 OPTM 6918) = 0  ! Metric - kg/mm/N/deg/C
+  END_ITEM  2 (1 OPTM 6918) = 0  ! English - lbm/in/lbf/deg/F
+  END_ITEM  5 (1 OPTM 6918) = 0  ! Length
+  END_ITEM  8 (1 COMB 6918) = "Meter"  ! Unit Name
+  END_ITEM  9 (0 STRN 6918) = "m"  ! Unit Symbol
+  END_ITEM 10 (0 STRN 6918) = "m"  ! Unit Localized Symbol
+  END_ITEM 11 (0 WIDE 6918) = "meters"  ! Unit Description
+  END_ITEM 14 (0 REAL 6918) = 1000.0000000000000000  ! Conversion Factor (a)
+  END_ITEM 15 (0 REAL 6918) = 0.0000000000000000  ! Conversion Addend (b)
+  END_ITEM 16 (1 BOOL 6918) = 0  ! Use as Preferred Data Entry Unit Override
+  END_ITEM 17 (1 BOOL 6918) = 0  ! Use as Object Information Unit Override
+  END_ITEM 18 (0 BOOL 6918) = 1  ! Unit Is Metric
+  END_ITEM 19 (0 BOOL 6918) = 0  ! Unit Is English
+DIALOG_END 1, -1 ! Units Manager: mtEndEventLoop
+DIALOG_BEGIN "Units Manager" 6918 ! DA2
+  BEG_ITEM  1 (1 OPTM 6918) = 0  ! Metric - kg/mm/N/deg/C
+  BEG_ITEM  2 (1 OPTM 6918) = 0  ! English - lbm/in/lbf/deg/F
+  BEG_ITEM  5 (1 OPTM 6918) = 0  ! Length
+  BEG_ITEM  8 (1 COMB 6918) = "Meter"  ! Unit Name
+  BEG_ITEM  9 (0 STRN 6918) = "m"  ! Unit Symbol
+  BEG_ITEM 10 (0 STRN 6918) = "m"  ! Unit Localized Symbol
+  BEG_ITEM 11 (0 WIDE 6918) = "meters"  ! Unit Description
+  BEG_ITEM 14 (0 REAL 6918) = 1000.0000000000000000  ! Conversion Factor (a)
+  BEG_ITEM 15 (0 REAL 6918) = 0.0000000000000000  ! Conversion Addend (b)
+  BEG_ITEM 16 (1 BOOL 6918) = 0  ! Use as Preferred Data Entry Unit Override
+  BEG_ITEM 17 (1 BOOL 6918) = 0  ! Use as Object Information Unit Override
+  BEG_ITEM 18 (0 BOOL 6918) = 1  ! Unit Is Metric
+  BEG_ITEM 19 (0 BOOL 6918) = 0  ! Unit Is English
+  EVENT ACTIVATE 0 6918, 2, 2, 0, 0! Metric - g/mm/N/deg/C
+  ASK_ITEM  2 (1 OPTM 6918) = 2  ! Metric - g/mm/N/deg/C
+  ASK_ITEM  2 (1 OPTM 6918) = 2  ! Metric - g/mm/N/deg/C
+  END_ITEM  1 (1 OPTM 6918) = 0  ! Metric - kg/mm/N/deg/C
+  END_ITEM  2 (1 OPTM 6918) = 2  ! Metric - g/mm/N/deg/C
+  END_ITEM  5 (1 OPTM 6918) = 0  ! Length
+  END_ITEM  8 (1 COMB 6918) = "Meter"  ! Unit Name
+  END_ITEM  9 (0 STRN 6918) = "m"  ! Unit Symbol
+  END_ITEM 10 (0 STRN 6918) = "m"  ! Unit Localized Symbol
+  END_ITEM 11 (0 WIDE 6918) = "meters"  ! Unit Description
+  END_ITEM 14 (0 REAL 6918) = 1000.0000000000000000  ! Conversion Factor (a)
+  END_ITEM 15 (0 REAL 6918) = 0.0000000000000000  ! Conversion Addend (b)
+  END_ITEM 16 (1 BOOL 6918) = 0  ! Use as Preferred Data Entry Unit Override
+  END_ITEM 17 (1 BOOL 6918) = 0  ! Use as Object Information Unit Override
+  END_ITEM 18 (0 BOOL 6918) = 1  ! Unit Is Metric
+  END_ITEM 19 (0 BOOL 6918) = 0  ! Unit Is English
+DIALOG_END 2, -1 ! Units Manager: mtEndEventLoop
+DIALOG_BEGIN "Units Manager" 6918 ! DA2
+  BEG_ITEM  1 (1 OPTM 6918) = 0  ! Metric - kg/mm/N/deg/C
+  BEG_ITEM  2 (1 OPTM 6918) = 2  ! Metric - g/mm/N/deg/C
+  BEG_ITEM  5 (1 OPTM 6918) = 0  ! Length
+  BEG_ITEM  8 (1 COMB 6918) = "Meter"  ! Unit Name
+  BEG_ITEM  9 (0 STRN 6918) = "m"  ! Unit Symbol
+  BEG_ITEM 10 (0 STRN 6918) = "m"  ! Unit Localized Symbol
+  BEG_ITEM 11 (0 WIDE 6918) = "meters"  ! Unit Description
+  BEG_ITEM 14 (0 REAL 6918) = 1000.0000000000000000  ! Conversion Factor (a)
+  BEG_ITEM 15 (0 REAL 6918) = 0.0000000000000000  ! Conversion Addend (b)
+  BEG_ITEM 16 (1 BOOL 6918) = 0  ! Use as Preferred Data Entry Unit Override
+  BEG_ITEM 17 (1 BOOL 6918) = 0  ! Use as Object Information Unit Override
+  BEG_ITEM 18 (0 BOOL 6918) = 1  ! Unit Is Metric
+  BEG_ITEM 19 (0 BOOL 6918) = 0  ! Unit Is English
+DIALOG_END -4, 0 ! Units Manager: BACK

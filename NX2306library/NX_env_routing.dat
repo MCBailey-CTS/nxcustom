@@ -1,0 +1,289 @@
+# ******** NXcustom NX1899 Routing Environment Variable Customization File ********
+
+# Last Modified: 5Feb2019
+
+# *** This file overrides variables in the $UGII_BASE_DIR/ugii/ugii_env_ug.dat file
+
+# Routing files can be used in the NX base folder or copied to the NX1899custom\NX1899library\Routing folder
+
+# *** Set to UGII_BASE_DIR or NXCUSTOM_LIB\Routing ***
+NXCUSTOM_ROUTING_DIR=${UGII_BASE_DIR}\Routing
+# NXCUSTOM_ROUTING_DIR=${NXCUSTOM_LIB}\Routing
+
+########################################################################
+#
+#  ROUTING Application Environment Variables
+#
+#  The Routing Applications are  Routing Electrical, Routing Mechanical,
+#  and Routing Logical.
+#  The environment variables in this section apply to one or all of
+#  these applications.
+#
+#  Variables that apply to a single application include the name
+#  of the application in the variable name.  Variables that apply to
+#  all applications have ROUTING or ROUTE in their names.
+#
+#  The UGII_ROUTE_UGMANAGER_MODE variables specifies if the Routing
+#  administrative files should be loaded from Teamcenter or not.  It
+#  can have values of TRUE or FALSE.
+#
+#  If set to TRUE then the Routing administrative files will be loaded
+#  from Teamcenter. If FALSE then the default mechanism of looking for
+#  these files in the kits or in the directory specified by environment
+#  variables will be used.
+#
+#  The Routing administrative files are loaded upon entering a Routing
+#  application.  It consists of the following files:
+#       1. Application view         - .xml
+#       2. XML Schema file          - .xsd
+#       3. Part Library View        - .plv
+#       4. Part Tables              - .ptb
+#       5. Routing Configuration    - .cfg
+#
+#  These files will only be searched in one place, i.e. either in
+#  Teamcenter or in the kits, based on the value of this variable.
+#  An error will be raised if any of these files are not found.
+#
+#  Additionaly, if this variable is set to TRUE then users who want to
+#  select a Routing Harness (.hrn), Routing Component (.cmp) Routing
+#  Format (.fmt) or Routing Filter (.flt) file in Routing Electrical
+#  will have to do it from Teamcenter.
+#
+#      UGII_ROUTE_UGMANAGER_MODE      Variable indicating if Routing
+#                                     administrative files (.xml, .xsd,
+#                                     .plv, etc) should be loaded from
+#                                     Teamcenter or not.
+#
+#  The following variables define the application view file (.apv) for
+#  each Routing application.  The variable provides either the file
+#  name only or the full path specification.
+#
+#      UGII_ROUTE_ELEC_APP_VIEW       Electrical APV
+#      UGII_ROUTE_MECH_APP_VIEW       Mechanical APV
+#      UGII_ROUTE_LGCL_APP_VIEW       Logical APV
+#
+#  If the APP_VIEW variable specifies only the APV file name, then the
+#  APV file must be in the directory specified by the variable
+#  UGII_ROUTING_APP_VIEW_DIR.
+#
+#      UGII_ROUTING_APP_VIEW_DIR      Directory containing APV files
+#
+# The Part Library View (.plv) file for each application determines the
+# part selection hierarchy when using Routing's Place Part.  The APV
+# file specifies the PLV file used for a particular application.  If the
+# APV file does not provide the complete path specification, then the
+# PLV file must reside in one of the directories specified by
+# UGII_EPLIB_PART_LIB_VIEW_PATH.
+#
+#      UGII_EPLIB_PART_LIB_VIEW_PATH  Directory paths of PLV files
+#
+# Part Table files (.ptb) define Routing Characteristics for parts and
+# stock used by Routing.  The PLV file of the application references the
+# PTB files.  If the PLV file does not provide the complete file path
+# specification of a PTB file, then the PTB file must reside in one of
+# the directories specified by UGII_EPLIB_TABLE_PATH.
+#
+#      UGII_EPLIB_TABLE_PATH          Directory paths of PTB files.
+#
+# The PTB files reference existing part files, which may be part family
+# template parts or individual part files.  Any part referenced by a PTB
+# must reside in one of the directories specified by the Part Path
+# variable for that application.
+#
+#      UGII_ROUTE_ELEC_PART_PATH      Electrical Part Path
+#      UGII_ROUTE_MECH_PART_PATH      Mechanical Part Path
+#      UGII_ROUTE_LGCL_PART_PATH      Logical Part(symbol)Path
+#
+# If the PTB files reference Part Family template files, then Place Part
+# generates the member parts as needed.  Member part files are generated
+# in the same directory as those created by standard Part Family unless
+# the following variable is defined, which provides the Routing specific
+# destination directory.
+#
+#      UGII_ROUTING_MEMBER_SAVE_DIR   Directory in which Routing creates
+#                                     part family members from template
+#                                     files during Place Part
+#                                     operation (no default value)
+#
+# Design Rule files (.dr) and TCL files (.tcl)define the design rules
+# for each application. Routing locates these files by the following
+# variables.
+#
+#      UGII_ROUTING_DESIGN_RULES_PATH Directory path of all DR files for
+#                                     Routing Mechanical/Electrical
+#
+#      UGII_ROUTE_ELEC_TCL_DIR        Electrical TCL directory
+#      UGII_ROUTE_MECH_TCL_DIR        Mechanical TCL directory
+#      UGII_ROUTE_LGCL_TCL_DIR        Logical TCL directory
+#
+#  Routing Electrical Specific Variables
+#      UGII_RLIST_PATH                The directory paths containing
+#                                     Routing List (RLIST) configuration
+#                                     files (such as ugroute_elec.cfg.
+#
+#      UGII_FMBD_FORMATS_FILE         The file containing formats for
+#                                     the Formboard annotation functions.
+#
+#      UGII_FMBD_USE_LAYOUTS          Switch that controls whether to
+#                                     use a split screen layout to
+#                                     display the harness and formboard
+#                                     assemblies in Formboard Sync. If
+#                                     TRUE then split screen is used.
+#
+#      UGII_FMBD_PATTERN_DIR          Directory that contains pattern
+#                                     part files for use in Formboard
+#                                     Frame Tool.
+#
+#      UGII_FMBD_CGM_DIR              Directory that contains CGM (.cgm)
+#                                     files for use in Formboard Frame.
+#
+#      UGII_FMBD_DISABLE_ROTATION_VECTOR_ALIGNMENT          Switch that controls whether to
+#                                                           use rotation vector defined on ports
+#                                                           for orientation of components during
+#                                                           create formboard layout.
+#
+#  Routing Mechanical Specific Variables
+#
+#      UGII_ROUTING_BOM_PATH          Directory paths containing Routing
+#                                     Bill of Materials part list format
+#                                     part files.
+#
+#      UGII_ROUTING_BEND_TABLES_PATH  Directory paths that Routing
+#                                     searches to locate Bend Table
+#                                     files referenced in the
+#                                     Application View file.
+#
+#      UGII_ROUTE_SKIP_ENGAGE_CHARX=TRUE  Causes system to skip the check
+#                                         for the ENGAGE characteristic on a
+#                                         port, which can significantly
+#                                         improve the performance of the
+#                                         Place Part operation.
+#
+####################################################################################
+
+#     Should Routing Administrative files be loaded from Teamcenter
+UGII_ROUTE_UGMANAGER_MODE=FALSE
+
+#   Routing Kit directories
+UGII_ROUTE_ELEC_KIT_DIR=${NXCUSTOM_ROUTING_DIR}\ugroute_elec
+UGII_ROUTE_MECH_KIT_DIR=${NXCUSTOM_ROUTING_DIR}\ugroute_mech
+UGII_ROUTE_LGCL_KIT_DIR=${NXCUSTOM_ROUTING_DIR}\ugroute_mech
+
+#     Application View File Locations
+UGII_ROUTING_APP_VIEW_DIR=${UGII_ROUTE_MECH_KIT_DIR}\appview\;${UGII_ROUTE_ELEC_KIT_DIR}\appview\
+
+#     Application View Files
+UGII_ROUTE_ELEC_APP_VIEW=${UGII_ROUTE_ELEC_KIT_DIR}\appview\ugroute_elec_${UGII_ROUTING_KIT_UNITS}.xml
+UGII_ROUTE_MECH_APP_VIEW=${UGII_ROUTE_MECH_KIT_DIR}\appview\ugroute_mech_${UGII_ROUTING_KIT_UNITS}.xml
+UGII_ROUTE_LGCL_APP_VIEW=${UGII_ROUTE_LGCL_KIT_DIR}\appview\ugroute_lgcl_${UGII_ROUTING_KIT_UNITS}.xml
+
+#     Part Library View Locations
+UGII_EPLIB_PART_LIB_VIEW_PATH=${UGII_ROUTE_MECH_KIT_DIR}\appview\;${UGII_ROUTE_ELEC_KIT_DIR}\appview\
+
+#     Part Table Locations
+UGII_EPLIB_TABLE_PATH=${UGII_ROUTE_MECH_KIT_DIR}\${UGII_ROUTING_KIT_UNITS}\tables\;${UGII_ROUTE_ELEC_KIT_DIR}\${UGII_ROUTING_KIT_UNITS}\tables\
+
+#     Library Part File Locations
+UGII_ROUTE_ELEC_PART_PATH=${UGII_ROUTE_ELEC_KIT_DIR}\${UGII_ROUTING_KIT_UNITS}\parts
+UGII_ROUTE_MECH_PART_PATH=${UGII_ROUTE_MECH_KIT_DIR}\${UGII_ROUTING_KIT_UNITS}\parts
+UGII_ROUTE_LGCL_PART_PATH=${UGII_ROUTE_LGCL_KIT_DIR}\${UGII_ROUTING_KIT_UNITS}\parts
+
+#     Part Family Member Save Location
+#UGII_ROUTING_MEMBER_SAVE_DIR
+
+#     Design Rule File Locations
+UGII_ROUTING_DESIGN_RULES_PATH=${UGII_ROUTE_MECH_KIT_DIR}\rules\;${UGII_ROUTE_ELEC_KIT_DIR}\rules\
+UGII_ROUTE_ELEC_TCL_DIR=${UGII_ROUTE_ELEC_KIT_DIR}\rules\tcl\
+UGII_ROUTE_MECH_TCL_DIR=${UGII_ROUTE_MECH_KIT_DIR}\rules\tcl\
+UGII_ROUTE_LGCL_TCL_DIR=${UGII_ROUTE_LGCL_KIT_DIR}\rules\tcl\
+
+#     Electrical Specific Variables
+UGII_RLIST_PATH=${UGII_ROUTE_ELEC_KIT_DIR}\rlist\
+UGII_FMBD_FORMATS_FILE=${UGII_ROUTE_ELEC_KIT_DIR}\rlist\fmbd_annotation.fmt
+UGII_FMBD_USE_LAYOUTS=FALSE
+UGII_FMBD_PATTERN_DIR=${UGII_ROUTE_ELEC_PART_PATH}
+UGII_FMBD_CGM_DIR=${UGII_ROUTE_ELEC_PART_PATH}
+UGII_FMBD_DISABLE_ROTATION_VECTOR_ALIGNMENT=FALSE
+UGII_RLIST_SCHEMA_FILE=${UGII_ROUTE_ELEC_KIT_DIR}\rlist\routelist.xsd
+
+#     Mechanical Specific Variables
+
+#         Bill of Materials
+UGII_ROUTING_BOM_PATH=${UGII_ROUTE_MECH_KIT_DIR}\${UGII_ROUTING_KIT_UNITS}\parts\
+
+#         Bend Tables
+UGII_ROUTING_BEND_TABLES_PATH=${UGII_ROUTE_MECH_KIT_DIR}\${UGII_ROUTING_KIT_UNITS}\tables\
+
+# Comment out the following environment variable if you want to use ENGAGE
+# attributes to override the engagement values on ports or in .ptb files.
+# This will slow down your peformance on larger assemblies.
+# See "Advanced Engagement Value Assignment" for more information on engagements.
+UGII_ROUTE_SKIP_ENGAGE_CHARX=TRUE
+
+# Comment the following environment variable if you want to use LENGTH_ADDITION
+# attributes to add additional wire lengths for wires attached to ports.
+# This can drastically affect peformance on larger assemblies for Routing Electrical
+# operations (Auto-Route, Manual Route, etc).
+# See "Routing Aware Characteristics" for more information on the LENGTH_ADDITION
+# characteristic.
+UGII_ROUTE_SKIP_LENGTH_ADDITION_CHARX=TRUE
+
+# Comment the following environment variable if you want to check ROUTING_LEVEL
+# attributes when comparing various object during Routing tasks.  Skipping these
+# checks can drastically improve performance on larger assemblies for Routing
+# Electrical operations (Auto-Route, Manual Route, etc).  Only the existence
+# of the environment variable is checked, not the value of the variable.
+# See "Routing Aware Characteristics" for more information on the ROUTING_LEVEL
+UGII_ROUTE_SKIP_ROUTING_LEVEL_CHECKING=TRUE
+
+# Routing doesn't support the use of load option revision rules such as "Precise",
+# where the user must manually specify the item revision.  To allow Routing operations
+# such as Place Part and Assign Stock to work with a "Precise" load option, the
+# following environment variable must be set to some fallback load option.  This
+# fallback revision rule will be used whenever a part fails to load because it's
+# currently configured revision cannot be found.
+# UGII_ROUTE_CONFIG_RULE="Latest Working"
+
+# Uncomment the following variable to for NX to use the same bundling
+# rules for cables that were used in NX2.  For NX2 the OD of the
+# bundle for the cable was just the OD of one of the cable's wires.  For
+# NX3 the bundle is computed using all of the wires of the cable.
+#UGII_ROUTE_NX2_CABLE_OD=TRUE
+
+# In some configurations the links between RCPs and components (such as clips)
+# may be lost or become invalid.  This affects formboard synchronization and
+# may result in many unneccessary missing/extra non-electrical component discrepancies.
+# Set the environment variable below if you believe that formboard synchronization
+# is incorrectly identifying clip discrepancies.
+#UGII_FMBD_LINK_PORTS=TRUE
+
+
+# When converting NX5 locked length splines to NX6 locked length splines, this variable
+# ensures that the splines are converted to "Lock Length" instead of "Lock Length With Slack"
+# splines.  This avoids major shape changes that will occur because multiple Routing segments
+# can no longer share a single follow curve.
+UGII_ROUTE_CONVERT_SLACK_TO_LOCK_LENGTH=TRUE
+
+# This variable force Assemblies Positioning to use tight tolerances when solving constraints that contain
+# Routing geometry.  This prevents inconsistent or strange behavior when the Assemblies Positioning
+# tolerances are set to very loose values. Only use this variable if you have modified the default
+# Assemblies Positioning tolerances and see inconsistent behavior when moving Routing geometry.
+#UGII_COMPOS_USE_ROUTING_DEFAULT_TOLS=TRUE
+
+# This variable forces Assemblies Positioning to skip searching for Routing geometry when determining which
+# drag mode to apply when dragging objects.  Setting this variable significantly affects the
+# dragging behavior of Routing objects.  Only set this variable if directly constraining Routing
+# work part geometry to components that require the default Assemblies drag mode to solve
+# properly.
+#UGII_COMPOS_DISABLE_ROUTING_MOVE_MODE=TRUE
+
+# This variable points to the directory containing the ISOGEN engine for creating 2D isometric drawings
+# from mechanical routing parts.
+UGII_MECH_ROUTE_ISOGEN_DIR=${UGII_ROUTE_MECH_KIT_DIR}\isogen\
+
+# This variable points to the directory containing the configuration files for the ISOGEN engine. These
+# files define the options for the various drawing types available from the Isometric Drawing command
+# and the template DWG files containg the frames for the final drawings.
+UGII_MECH_ROUTE_ISOGEN_DATA_DIR=${UGII_MECH_ROUTE_ISOGEN_DIR}\data\
+
+############# End Routing Variables ##############

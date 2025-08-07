@@ -1,0 +1,496 @@
+!
+!  NX CTS Custom ribbon tab
+!
+!
+
+TITLE  CTS Custom
+VERSION 170
+
+BEGIN_GROUP CTS_SIMULATION
+    LABEL Simulation
+
+    BUTTON SimulationDataBuilder
+        LABEL  Simulation Data Builder
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\simulation-data-builder.dll("simulation-data-builder")
+
+    BUTTON SimRefSets
+        LABEL  Sim Ref Sets
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimRefSets.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\sim-ref-sets.dll("UFUNC", "SimRefSets")
+
+    BUTTON ExtractFreeEdgeCurves
+        LABEL  Extract Free Edge Curves
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\ExtractFreeEdgeCurves.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\extract-free-edge-curves.dll("extract-free-edge-curves")
+
+    BUTTON ProposalDataWizard
+        LABEL  Proposal Data Wizard
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\ProposalDataWizard.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\proposal-data-wizard.dll("proposal-data-wizard")
+
+    BUTTON F-ShapeExporter
+        LABEL  F-Shape Exporter
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\F-ShapeExporter.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\f-shape-exporter.dll("UFUNC", "F_ShapeExporter")
+
+    BUTTON ExportSimPackage
+        LABEL  Export Sim Package
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\ExportSimPackage.bmp        
+        ACTION ${NXCUSTOM_LIB}\ufunc\export-sim-package.dll("export-sim-package")
+
+END_GROUP
+
+BEGIN_GROUP CTS_LAYOUT
+    LABEL Layout
+
+    BUTTON LayoutRefSets
+        LABEL  Layout Ref Sets
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\Toolbars\bitmaps\LayoutRefSets.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\layout-ref-sets.dll("layout-ref-sets")
+
+    BUTTON ProfileTrimAndForm
+        LABEL  Profile Trim And Form
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\Toolbars\bitmaps\ProfileTrimAndForm.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\profile-trim-and-form.dll("profile-trim-and-form")
+
+    BUTTON BlankDevelopment
+        LABEL  Blank Development
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\Toolbars\bitmaps\BlankDevelopment.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\blank-development.dll("blank-development")
+
+    BUTTON BlankDataBuilder
+        LABEL  Blank Data Builder
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\Toolbars\bitmaps\BlankDataBuilder.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\blank-data-builder.dll("blank-data-builder")
+
+    BUTTON ExportStrip
+        LABEL  Export Strip
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\Toolbars\bitmaps\ExportStrip.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\export-strip.dll("export-strip")
+
+    BUTTON StripRefSetter
+        LABEL  Strip Ref Setter
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\Toolbars\bitmaps\StripRefSetter.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\strip-ref-setter.dll("strip-ref-setter")
+
+    BUTTON SplineToCurves
+        LABEL  Spline To Curves
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\Toolbars\bitmaps\SplineToCurves.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\spline-to-curves.dll("spline-to-curves")
+
+END_GROUP
+
+BEGIN_GROUP CTS_DESIGN
+    LABEL Design
+
+    BUTTON CloneAssembly
+        LABEL  Clone Assembly
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CloneAssembly.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\clone-assembly.dll("clone-assembly")
+
+    BUTTON CloneStrip
+        LABEL  Clone Strip
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CloneStrip.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\clone-strip.dll("clone-strip")
+
+    BUTTON ComponentBuilder
+        LABEL  Component Builder
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\ComponentBuilder.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\component-builder.dll("component-builder")
+
+    BUTTON DrawDieCreator
+        LABEL  Draw Die Creator
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\DrawDieCreator.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\draw-die-creator.dll("UFUNC", "DrawDieCreator")
+
+    BUTTON AddPierceComponents
+        LABEL  Add Pierce Components
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AddPierceComponents.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\add-pierce-components.dll("add-pierce-components")
+
+    BUTTON CategoryRefSets
+        LABEL  Category Ref Sets
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CategoryRefSets.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\category-ref-sets.dll("category-ref-sets")
+
+    BUTTON CopyAttributes
+        LABEL  Copy Attributes
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CopyAttributes.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\copy-attributes.dll("copy-attributes")
+
+    BUTTON TapReamControl
+        LABEL  Tap Ream Control
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\TapReamControl.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\tap-ream-contro.dll("UFUNC", "TapReamControl")
+
+    BUTTON DesignCheck
+        LABEL  Design Check
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\DesignCheck.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\design-check.dll("UFUNC", "DesignCheck")
+
+    BUTTON CopyRefSets
+        LABEL  Copy Ref Sets
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CopyRefSets.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\copy-ref-sets.dll("UFUNC", "CopyRefsets")
+
+    BUTTON CopyToLayer50
+        LABEL  Copy To Layer 50
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CopyToLayer50.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\copy-to-layer-50.dll("copy-to-layer-50")
+
+    BUTTON DeleteLayer50
+        LABEL  Delete Layer 50
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\DeleteLayer50.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\delete-layer-50.dll("delete-layer-50")
+
+    BUTTON MirrorComponents
+        LABEL  Mirror Components
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\MirrorComponents.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\mirror-components.dll("UFUNC", "MirrorComponents")
+
+    BUTTON BlockAttributer
+        LABEL  Block Attributer
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\BlockAttributer.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\block-attributer.dll("block-attributer")
+
+    BUTTON CycleComponents
+        LABEL  Cycle Components
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CycleComponents.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\cycle-components.dll("cycle-components")
+
+    BUTTON DeleteUnusedCurves
+        LABEL  Delete Unused Curves
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\DeleteUnusedCurves.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\delete-unused-curves.dll("delete-unused-curves")
+
+    BUTTON SimplifyCurves
+        LABEL  Simplify Curves
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimplifyCurves.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\simplify-curves.dll("UFUNC", "SimplifyCurves")
+
+    BUTTON AddFasteners
+        LABEL  Add Fasteners
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AddFasteners.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\add-fasteners.dll("add-fasteners")
+
+    BUTTON DrainHoleCreator
+        LABEL  Drain Holes
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\DrainHoleCreator.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\drain-hole-creator.dll("UFUNC", "DrainHoleCreator")
+
+    BUTTON DetailNumberNote
+        LABEL  Detail Number Note
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\DetailNumberNote.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\DetailNumberNote\CTS_Library.dll("UFUNC", "DetailNumberNote")
+
+    BUTTON CreateBurnout
+        LABEL  Create Burnout
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CreateBurnout.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\create-burnout.dll("create-burnout")
+
+    BUTTON CreateResetDatumCsys
+        LABEL  Create Reset Datum Csys
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CreateResetDatumCsys.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\create-reset-datum-csys.dll("create-reset-datum-csys")
+
+    BUTTON PlotDetailDrawings
+        LABEL  Plot Detail Drawings
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\PlotDetailDrawings.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\plot-detail-drawings.dll("UFUNC", "PlotDetailDrawings")
+
+    BUTTON AssemblyAutoDetail
+        LABEL  Assembly Auto Detail
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyAutoDetail.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\assembly-auto-detail.dll("assembly-auto-detail")
+
+    BUTTON WireTaperTrimDevelopment
+        LABEL  Wire Taper Trim Development
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\WireTaperTrimDevelopment.bmp        
+        ACTION ${NXCUSTOM_LIB}\ufunc\wire-taper-development.dll("wire-taper-development")
+
+    BUTTON AssemblyExportDesignData
+        LABEL  Assembly Export Design Data
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyExportData.bmp       
+        ACTION ${NXCUSTOM_LIB}\ufunc\assembly-export-design-data.dll("assembly-export-design-data")
+
+    BUTTON CleanJobDirectory
+        LABEL  Clean Job Directory
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CleanJobDirectory.bmp       
+        ACTION ${NXCUSTOM_LIB}\ufunc\clean-job-directory.dll("clean-job-directory")
+
+    BUTTON AssemblyWaveLink
+        LABEL  Assembly Wave Link
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyWaveLink.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\assembly-wavelink.dll("assembly-wavelink")
+
+    BUTTON WireStartHole
+        LABEL Wire Start Hole
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\WireStartHole.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\wire-start-hole.dll("wire-start-hole")
+
+    BUTTON BillOfMaterial
+        LABEL  Bill Of Material
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\BillOfMaterial.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\bill-of-material.dll("bill-of-material")
+
+END_GROUP 
+
+BEGIN_GROUP CTS_UTILITY
+    LABEL Utility
+
+    BUTTON STARTUPUFUNCS
+        LABEL Start Up Ufuncs
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\StartUp.bmp
+
+    BUTTON BasicCurvesStringModeOff
+        LABEL String Mode Off
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\StartUp_curve.bmp
+        ACTION ${NXCUSTOM_LIB}\toolbars\macros\BasicCurvesStringModeOff.macro
+
+    BUTTON UG_INFO_DISPLAYED_PART
+        LABEL  List Attributes
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\ListAttributes.bmp
+        ACTION STANDARD
+
+    BUTTON background_white
+        LABEL White Background
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\background_white.bmp
+        ACTION ${NXCUSTOM_LIB}\toolbars\macros\background-white2306.macro
+
+    BUTTON background_black
+        LABEL Black Background
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\background_black.bmp
+        ACTION ${NXCUSTOM_LIB}\toolbars\macros\background-black2306.macro
+
+    BUTTON Regenerate
+        LABEL Regenerate
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\Regenerate.bmp
+        ACTION ${NXCUSTOM_LIB}\toolbars\macros\Regenerate.macro
+
+    BUTTON facetRegenerate
+        LABEL Facet Regenerate
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\facetRegenerate.bmp
+        ACTION ${NXCUSTOM_LIB}\toolbars\journal\facetRegenerate.cs
+
+    BUTTON OrientViewToCsys
+        LABEL Orient View To Csys
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\OrientViewToCsys.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\orient-view-to-csys.dll("UFUNC", "OrientViewToCsys")
+
+    BUTTON AssemblyColorCode
+        LABEL  Assembly Color Code
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyColorCode.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\assembly-color-code.dll("UFUNC", "AssemblyColorCode")
+
+    BUTTON Grid
+        LABEL Grid
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\Grid.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\grid.dll("UFUNC", "GridStandAlone")
+
+    BUTTON RefSet
+        LABEL Reference Set
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\RefSet.bmp
+        ACTION ${NXCUSTOM_LIB}\toolbars\macros\RefSet.macro
+
+    BUTTON MoveCurvesLayer
+        LABEL  Move Curves Layer
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\Toolbars\bitmaps\MoveCurvesLayer.bmp
+        ACTION ${NXCUSTOM_LIB}\ToolBars\macros\MoveCurvesLayer.macro
+
+    BUTTON MoveAllCurvesLayer
+        LABEL  Move All Curves Layer
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\Toolbars\bitmaps\MoveAllCurvesLayer.bmp
+        ACTION ${NXCUSTOM_LIB}\ToolBars\macros\MoveAllCurvesLayer.macro
+
+    BUTTON IdentifyAndDelete
+        LABEL Identify And Delete
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\IdentifyAndDelete.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\identify-and-delete.dll("UFUNC", "IdentifyAndDelete")
+
+    BUTTON DeleteFeature
+        LABEL Delete Feature
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\DeleteFeature.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\delete-feature.dll("UFUNC", "DeleteFeature")
+
+    BUTTON UnHighlight
+        LABEL UnHighlight
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\UnHighlight.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\("UFUNC", "UnHighlight").dll("unhighlight")
+
+    BUTTON InterferenceCheck
+        LABEL Interference Check
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\InterferenceCheck.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\assembly-clearance-check.dll("UFUNC", "AssemblyClearanceCheck")
+
+    BUTTON SplineToArc
+        LABEL Spline To Arc
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CircleFromSpline.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\circle-from-spline.dll("circle-from-spline")
+
+    BUTTON ConvertSplineToCircle
+        LABEL Convert Spline To Circle
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\ConvertSplineToCircle.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\convert-spline-to-circle.dll("UFUNC", "ConvertSplineToCircle")
+
+    BUTTON NitroTravels
+        LABEL Nitro Travels
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\NitroTravels.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\nitro-travels.dll("nitro-travels")
+
+    BUTTON UnloadSharedImage
+        LABEL Loaded Ufuncs
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\cts_logo.bmp
+        ACTION ${NXCUSTOM_LIB}\toolbars\macros\UnloadSharedImage.macro
+
+    BUTTON DataBaseImageExport
+        LABEL  DataBase Image Export
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\DataBaseImageExport.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\data-base-image-exporter.dll("data-base-image-exporter")
+
+    BUTTON NxWinZip
+        LABEL  NX WinZip
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\NxWinZip.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\nx-win-zip.dll("nx-win-zip")
+
+    BUTTON Nx7zip
+        LABEL  NX 7zip
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\Nx7zip.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\nx-7-zip.dll("nx-7-zip")
+
+    BUTTON CleanBodyRefSet
+        LABEL  Clean Body Ref Set
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\Clean_Layer_1.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\clean-body-ref-set.dll("clean-body-ref-set")
+
+    BUTTON CleanBrokenLinks
+        LABEL  Clean Broken Links
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CleanBrokenLinks.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\clean-broken-links.dll("clean-broken-links")
+
+    BUTTON FeatureNavigator
+        LABEL Feature Navigator
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\FeatureNavigator.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\feature-navigator.dll("feature-navigator")
+
+END_GROUP
+
+BEGIN_GROUP GRIP
+    LABEL Grip
+
+    BUTTON identify
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        LABEL Clean Unwanted Entities
+        ACTION P:\CTS_Programs\NXcustom\NX1899\NXcustom\NX1899library\Grip\identify.grx
+
+    BUTTON part_doctor
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        LABEL Delete Duplicate Entities
+        ACTION P:\CTS_Programs\NXcustom\NX1899\NXcustom\NX1899library\Grip\part_doctor.grx
+
+END_GROUP
+
+BEGIN_GROUP MACROS
+    LABEL Macros
+
+    BUTTON Units_IN1919
+        RIBBON_STYLE MEDIUM_IMAGE
+        LABEL Units_IN1919
+        BITMAP ${NXCUSTOM_LIB}\ToolBars\bitmaps\Units_IN1919.bmp
+        ACTION ${NXCUSTOM_LIB}\ToolBars\macros\units-in.macro
+
+    BUTTON Units_MM1919
+        RIBBON_STYLE MEDIUM_IMAGE
+        LABEL Units_MM1919
+        BITMAP ${NXCUSTOM_LIB}\ToolBars\bitmaps\Units_MM1919.bmp
+        ACTION ${NXCUSTOM_LIB}\ToolBars\macros\units-mm.macro
+
+END_GROUP
+
+
+BEGIN_GROUP MEASURE
+    LABEL Macros
+
+    BUTTON measuer-length
+        RIBBON_STYLE MEDIUM_IMAGE
+        LABEL measure-length
+        BITMAP ${NXCUSTOM_LIB}\ToolBars\bitmaps\Measure2306 - Length.bmp
+        ACTION ${NXCUSTOM_LIB}\ToolBars\macros\measure-length-tangent.macro
+
+    BUTTON measure-weight-body-objectset
+        RIBBON_STYLE MEDIUM_IMAGE
+        LABEL measure-weight-body-objectset
+        BITMAP ${NXCUSTOM_LIB}\ToolBars\bitmaps\Measure2306 - Body - Weight.bmp
+        ACTION ${NXCUSTOM_LIB}\ToolBars\macros\measure-weight-body-objectset.macro
+
+END_GROUP

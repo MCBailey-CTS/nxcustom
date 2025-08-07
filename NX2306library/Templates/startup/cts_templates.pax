@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<Palette xmlns="http://www.ugsolutions.com/Schemas/2001/UGPalettes" schemaVersion="1.0">
+
+  <Presentation name="CTS Templates (Inch)" bitmap="sheet_and_block.bmp" FileNewTab="CTS" application="All" UsesMasterModel="No"/>
+
+<PaletteEntry id="d1">
+    <References/>
+    <Presentation name="SeedComponent" description="CTS Seed Component">
+        <PreviewImage type="UGPart" location="cts_seed_component.jpg"/>
+    </Presentation>
+    <ObjectData class="ModelTemplate">
+        <Filename>seed-part-inch.prt</Filename>
+	<Units>English</Units>
+    </ObjectData>
+  </PaletteEntry>
+
+  <PaletteEntry id="d2">
+    <References/>
+    <Presentation name="SeedComponent" description="CTS Seed Component">
+        <PreviewImage type="UGPart" location="cts_seed_component.jpg"/>
+    </Presentation>
+    <ObjectData class="ModelTemplate">
+        <Filename>seed-part-metric.prt</Filename>
+	<Units>Metric</Units>
+    </ObjectData>
+  </PaletteEntry>
+
+
+</Palette>

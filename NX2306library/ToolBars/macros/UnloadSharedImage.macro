@@ -1,0 +1,14 @@
+﻿NX 1919
+Macro File: P:\CTS_Programs\NXcustom\NX1899\NXcustom\NX1899library\ToolBars\macros\UnloadSharedImage.macro
+Macro Version 7.50
+Macro List Language and Codeset: english 17
+Created by dvanderwerf on Wed Feb  3 12:36:48 2021
+Part Name Display Style: $FILENAME
+Selection Parameters 0 2 0.229167 1
+Display Parameters 0.900000 19.218750 8.177083 -1.000000 -0.425474 1.000000 0.425474
+*****************
+RESET
+MENU, 0, UG_FILE_UTILITIES_UNLOAD_SHARED_IMAGE UG_GATEWAY_MAIN_MENUBAR <RibbonFileBar->BackStageBar->LeftBackStageGroup->UG_FILE_UTILITIES_MENU> ## ! 
+DIALOG_BEGIN "Unload Shared Image" 0 ! Special
+ BEG_ITEM  0 (1 MULT 0) = 0  ! List (Items selected)
+  BEG_ITEM  1 (1 WIDE 0) = ""  ! Image Name

@@ -1,0 +1,11 @@
+﻿NX 1919
+Macro File: P:\CTS_Programs\NXcustom\NX1899\NXcustom\NX1899library\ToolBars\macros\Regenerate.macro
+Macro Version 7.50
+Macro List Language and Codeset: english 17
+Created by dvanderwerf on Wed Feb  3 07:46:38 2021
+Part Name Display Style: $FILENAME
+Selection Parameters 0 2 0.229167 1
+Display Parameters 0.900000 19.218750 8.177083 -1.000000 -0.425474 1.000000 0.425474
+*****************
+RESET
+MENU, 0, UG_VIEW_EDIT_REGEN_WORK UG_GATEWAY_MAIN_MENUBAR <TopBorderBar->MenuBar->UG_VIEW->UG_VIEW_EDIT> ## ! 
