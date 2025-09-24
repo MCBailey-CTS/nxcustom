@@ -277,6 +277,12 @@ BEGIN_GROUP CTS_DESIGN
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\BillOfMaterial.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\bill-of-material.dll("bill-of-material")
 
+    BUTTON ComponentBuilder1
+        LABEL  Component Builder1
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\ComponentBuilder.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\component-builder1.dll("component-builder")
+
 END_GROUP 
 
 BEGIN_GROUP CTS_UTILITY
@@ -493,4 +499,28 @@ BEGIN_GROUP MEASURE
         BITMAP ${NXCUSTOM_LIB}\ToolBars\bitmaps\Measure2306 - Body - Weight.bmp
         ACTION ${NXCUSTOM_LIB}\ToolBars\macros\measure-weight-body-objectset.macro
 
+END_GROUP
+
+
+
+BEGIN_GROUP DTS CUSTOM
+    LABEL Custom
+
+    BUTTON AssemblyColorCode
+        LABEL  Assembly Color Code
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyColorCode.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\assembly-color-code-dts.dll("UFUNC", "AssemblyColorCode")
+
+    BUTTON BlockAttributer
+        LABEL  Block Attributer
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\BlockAttributer.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\block-attributer-dts.dll("block-attributer")
+
+    BUTTON AssemblyExportDesignData
+        LABEL  Assembly Export Design Data
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyExportData.bmp       
+        ACTION ${NXCUSTOM_LIB}\ufunc\assembly-export-design-data-dts.dll("assembly-export-design-data")
 END_GROUP
