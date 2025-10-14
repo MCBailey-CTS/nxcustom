@@ -516,7 +516,7 @@ BEGIN_GROUP DTS CUSTOM
         LABEL  Block Attributer
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\BlockAttributer.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\block-attributer-dts.dll("block-attributer")
+        ACTION ${NXCUSTOM_LIB}\ufunc\block-attributer.dll("block-attributer")
 
     BUTTON AssemblyExportDesignData
         LABEL  Assembly Export Design Data
