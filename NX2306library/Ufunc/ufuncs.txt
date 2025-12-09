@@ -1,0 +1,4 @@
+copy-attributes
+component-builder
+add-fasteners
+block-attributer
