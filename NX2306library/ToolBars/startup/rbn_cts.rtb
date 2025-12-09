@@ -518,9 +518,4 @@ BEGIN_GROUP DTS CUSTOM
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\BlockAttributer.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\block-attributer.dll("block-attributer")
 
-    BUTTON AssemblyExportDesignData
-        LABEL  Assembly Export Design Data
-        RIBBON_STYLE MEDIUM_IMAGE
-        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyExportData.bmp       
-        ACTION ${NXCUSTOM_LIB}\ufunc\assembly-export-design-data-dts.dll("assembly-export-design-data")
 END_GROUP
