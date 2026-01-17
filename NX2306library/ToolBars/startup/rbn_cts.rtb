@@ -281,7 +281,7 @@ BEGIN_GROUP CTS_DESIGN
         LABEL  Component Builder1
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\ComponentBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\component-builder1.dll("component-builder")
+        ACTION ${NXCUSTOM_LIB}\ufunc\component-builder.dll("component-builder")
 
 END_GROUP 
 
