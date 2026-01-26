@@ -506,7 +506,7 @@ END_GROUP
 BEGIN_GROUP DTS CUSTOM
     LABEL Custom
 
-    BUTTON AssemblyColorCode
+    BUTTON AssemblyColorCodeDTS
         LABEL  Assembly Color Code
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyColorCode.bmp
@@ -518,4 +518,27 @@ BEGIN_GROUP DTS CUSTOM
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\BlockAttributer.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\block-attributer.dll("block-attributer")
 
+END_GROUP
+
+BEGIN_GROUP GM
+    BUTTON GMSeal
+        LABEL GM
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyExportData.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\gm-seal.dll
+    BUTTON AutoUpdatesOn
+        LABEL Auto Updates On
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyExportData.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\auto-updates-on.dll
+    BUTTON AutoUpdatesOff
+        LABEL Auto Updates Off
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyExportData.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\auto-updates-off.dll
+    BUTTON GM_BOM
+        LABEL GM BOM
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyExportData.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\gm-bom.dll
 END_GROUP
