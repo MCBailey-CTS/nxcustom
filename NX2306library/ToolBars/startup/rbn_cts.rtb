@@ -541,4 +541,9 @@ BEGIN_GROUP GM
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyExportData.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\gm-bom.dll
+    BUTTON GM_RESTRUCTURE
+        LABEL GM RESTRUCT
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyExportData.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\gm-restructure.dll
 END_GROUP
