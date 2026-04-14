@@ -449,6 +449,11 @@ BEGIN_GROUP CTS_UTILITY
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\FeatureNavigator.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\feature-navigator.dll("feature-navigator")
 
+    BUTTON Unblank Assembly
+        LABEL Unblank Assembly
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CloneAssembly.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\unblank-assembly.dll
 END_GROUP
 
 BEGIN_GROUP GRIP
