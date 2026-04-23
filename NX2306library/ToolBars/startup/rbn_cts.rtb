@@ -508,23 +508,6 @@ END_GROUP
 
 
 
-BEGIN_GROUP DTS CUSTOM
-    LABEL Custom
-
-    BUTTON AssemblyColorCodeDTS
-        LABEL  Assembly Color Code
-        RIBBON_STYLE MEDIUM_IMAGE
-        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyColorCode.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\assembly-color-code-dts.dll("UFUNC", "AssemblyColorCode")
-
-    BUTTON BlockAttributer
-        LABEL  Block Attributer
-        RIBBON_STYLE MEDIUM_IMAGE
-        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\BlockAttributer.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\block-attributer.dll("block-attributer")
-
-END_GROUP
-
 BEGIN_GROUP GM
     BUTTON GMSeal
         LABEL GM
@@ -546,9 +529,4 @@ BEGIN_GROUP GM
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyExportData.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\gm-bom.dll
-    BUTTON GM_RESTRUCTURE
-        LABEL GM RESTRUCT
-        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
-        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyExportData.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\gm-restructure.dll
 END_GROUP
