@@ -1,0 +1,90 @@
+!
+!  NX CTS Custom ribbon tab
+!
+!
+
+TITLE  Merlin
+VERSION 170
+
+BEGIN_GROUP MERLIN
+    LABEL MERLIN
+
+    BUTTON TIM_MAGIC_2D
+        LABEL Tim Magic 2D
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION G:\CTS\junk\merlin\tim-magic.dll
+
+    BUTTON Boss
+        LABEL Boss
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION G:\CTS\junk\merlin\boss.dll
+    
+    BUTTON GM_Trim_Pad
+        LABEL GM Trim Pad
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION G:\CTS\junk\merlin\trim-pad.dll
+
+    BUTTON Perfect
+        LABEL Perfect
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION G:\CTS\junk\merlin\perfect.dll
+
+    BUTTON GM_FORM_PAD
+        LABEL GM Form Pad
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION G:\CTS\junk\merlin\form-pad.dll
+
+    BUTTON GM_COMPONENT
+        LABEL GM Component
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION G:\CTS\junk\merlin\component.dll
+
+    BUTTON GM_POST
+        LABEL GM Post
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION G:\CTS\junk\merlin\gm-post.dll
+
+    BUTTON GM_SPLIT_COMPONENT
+        LABEL GM Split Component
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION G:\CTS\junk\merlin\split-component.dll
+
+    BUTTON GM_SPLIT_POST
+        LABEL GM Split Post
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION G:\CTS\junk\merlin\split-post.dll
+    
+    BUTTON GM_SPLIT_COMPONENT_BACKSIDE
+        LABEL GM Split Component Backside
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION G:\CTS\junk\merlin\gm-split-component-backside.dll
+
+    BUTTON GM_TIM_MAGIC_3D
+        LABEL GM Tim Magic 3D
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION G:\CTS\junk\merlin\tim-magic-3d.dll
+
+    BUTTON PIERCE
+        LABEL Pierce
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION G:\CTS\junk\merlin\pierce.dll
+
+    BUTTON PIERCE_SECONDARY
+        LABEL Pierce Secondary
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION G:\CTS\junk\merlin\pierce-secondary.dll
+
+END_GROUP
