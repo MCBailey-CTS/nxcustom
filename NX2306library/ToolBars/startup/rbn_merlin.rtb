@@ -115,3 +115,25 @@ BEGIN_GROUP PIERCE_GROUP
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
         ACTION G:\CTS\junk\merlin\gm-full-pierce.dll
 END_GROUP
+
+BEGIN_GROUP GM
+    LABEL GM
+
+    BUTTON GM_SEAL
+        LABEL Seal
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION G:\CTS\junk\merlin\gm-seal.dll
+
+    BUTTON GM_CHECK
+        LABEL Check
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION G:\CTS\junk\merlin\gm-check.dll
+
+    BUTTON GM_UNBLANK
+        LABEL Unblank
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION G:\CTS\junk\merlin\gm-unblank.dll
+END_GROUP
