@@ -524,9 +524,9 @@ BEGIN_GROUP GM
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyExportData.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\auto-updates-off.dll
-    BUTTON GM_BOM
-        LABEL GM BOM
+    BUTTON TSG_LIBRARY
+        LABEL tsg-library
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyExportData.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\gm-bom.dll
+        ACTION C:\Users\mcbailey\repos\tsg-library\bin\DebugSignDotNet\tsg_library.dll
 END_GROUP
