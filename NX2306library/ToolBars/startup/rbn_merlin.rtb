@@ -90,7 +90,7 @@ BEGIN_GROUP MERLIN
         LABEL Point Component
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION G:\CTS\junk\merlin\point-component.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\point-component.dll
 
 END_GROUP
 
@@ -119,21 +119,21 @@ END_GROUP
 BEGIN_GROUP GM
     LABEL GM
 
-    BUTTON GM_SEAL
-        LABEL Seal
+    BUTTON GM_UNBLANK
+        LABEL Unblank
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION G:\CTS\junk\merlin\gm-seal.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\gm-unblank.dll
 
     BUTTON GM_CHECK
         LABEL Check
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION G:\CTS\junk\merlin\gm-check.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\gm-check.dll
 
-    BUTTON GM_UNBLANK
-        LABEL Unblank
+    BUTTON GM_SEAL
+        LABEL Seal
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION G:\CTS\junk\merlin\gm-unblank.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\gm-seal.dll
 END_GROUP
