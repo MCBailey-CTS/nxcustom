@@ -137,3 +137,19 @@ BEGIN_GROUP GM
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\gm-seal.dll
 END_GROUP
+
+BEGIN_GROUP NITRO_PLATE
+    LABEL Nitro Plate
+
+    BUTTON NITRO_PLATE_LOWER
+        LABEL Lower
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\nitro-plate-lower.dll
+
+    BUTTON NITRO_PLATE_UPPER
+        LABEL Upper
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\nitro-plate-upper.dll
+END_GROUP
