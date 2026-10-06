@@ -1,0 +1,23 @@
+!
+!  NX Test ribbon tab
+!
+!
+
+TITLE  Test
+VERSION 170
+
+BEGIN_GROUP TEST
+    LABEL Test
+
+    BUTTON TSG_LIBRARY
+        LABEL tsg-library
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyExportData.bmp
+        ACTION C:\Users\mcbailey\repos\tsg-library\bin\DebugSignDotNet\tsg_library.dll
+
+    BUTTON BlockAttDialog
+        LABEL  Block Att Dialog
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\BlockAttributer.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\block-att-dialog.dll("block-att-dialog")
+END_GROUP
