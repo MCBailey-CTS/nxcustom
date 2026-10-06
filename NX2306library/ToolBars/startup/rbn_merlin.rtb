@@ -13,7 +13,7 @@ BEGIN_GROUP MERLIN_0
         LABEL GM Component
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION G:\CTS\junk\merlin\gm-component.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\gm-component.dll
 
     
 
@@ -21,19 +21,19 @@ BEGIN_GROUP MERLIN_0
         LABEL GM Split Form
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION G:\CTS\junk\merlin\gm-split-form.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\gm-split-form.dll
 
     BUTTON GM_SPLIT_FORM_PLATE
         LABEL GM Split Form With Plate
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION G:\CTS\junk\merlin\gm-split-form-with-plate.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\gm-split-form-with-plate.dll
     
     BUTTON GM_SPLIT_FORM_WITH_PLATE_BACKSIDE
         LABEL GM Split Form With Plate Backside
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION G:\CTS\junk\merlin\gm-split-form-with-plate-backside.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\gm-split-form-with-plate-backside.dll
 
 END_GROUP
 
@@ -44,19 +44,19 @@ BEGIN_GROUP MERLIN_CAST
             LABEL GM Cast Trim Pad
             RIBBON_STYLE SMALL_IMAGE_AND_TEXT
             BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-            ACTION G:\CTS\junk\merlin\gm-cast-trim-pad.dll
+            ACTION ${NXCUSTOM_LIB}\ufunc\gm-cast-trim-pad.dll
 
         BUTTON GM_CAST_FORM_PAD
             LABEL GM Cast Form Pad
             RIBBON_STYLE SMALL_IMAGE_AND_TEXT
             BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-            ACTION G:\CTS\junk\merlin\gm-cast-form-pad.dll
+            ACTION ${NXCUSTOM_LIB}\ufunc\gm-cast-form-pad.dll
 
         BUTTON GM_CAST_POST
             LABEL GM Cast Post
             RIBBON_STYLE SMALL_IMAGE_AND_TEXT
             BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-            ACTION G:\CTS\junk\merlin\gm-cast-post.dll
+            ACTION ${NXCUSTOM_LIB}\ufunc\gm-cast-post.dll
 END_GROUP
 
 BEGIN_GROUP MERLIN
@@ -66,25 +66,25 @@ BEGIN_GROUP MERLIN
         LABEL Perfect
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION G:\CTS\junk\merlin\gm-perfect.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\gm-perfect.dll
 
     BUTTON Boss
         LABEL Boss
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION G:\CTS\junk\merlin\gm-boss.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\gm-boss.dll
 
     BUTTON GM_BLANK_STATION
         LABEL GM Blank Station
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION G:\CTS\junk\merlin\gm-blank-station.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\gm-blank-station.dll
 
     BUTTON GM_SECONDARY_TRIM_STATION
         LABEL GM Secondary Trim Station
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION G:\CTS\junk\merlin\gm-secondary-trim-station.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\gm-secondary-trim-station.dll
 
     BUTTON POINT_COMPONENT
         LABEL Point Component
@@ -101,19 +101,19 @@ BEGIN_GROUP PIERCE_GROUP
         LABEL Pierce
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION G:\CTS\junk\merlin\gm-pierce.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\gm-pierce.dll
 
     BUTTON PIERCE_SECONDARY
         LABEL Pierce Secondary
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION G:\CTS\junk\merlin\gm-pierce-secondary.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\gm-pierce-secondary.dll
 
     BUTTON FULL_PIERCE
         LABEL Full Pierce
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION G:\CTS\junk\merlin\gm-full-pierce.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\gm-full-pierce.dll
 END_GROUP
 
 BEGIN_GROUP GM
