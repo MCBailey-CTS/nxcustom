@@ -181,6 +181,12 @@ BEGIN_GROUP CTS_DESIGN
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\BlockAttributer.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\block-attributer.dll("block-attributer")
 
+    BUTTON BlockAttDialog
+        LABEL  Block Att Dialog
+        RIBBON_STYLE MEDIUM_IMAGE
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\BlockAttributer.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\block-att-dialog.dll("block-att-dialog")
+
     BUTTON CycleComponents
         LABEL  Cycle Components
         RIBBON_STYLE MEDIUM_IMAGE
@@ -524,9 +530,4 @@ BEGIN_GROUP GM
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyExportData.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\auto-updates-off.dll
-    BUTTON TSG_LIBRARY
-        LABEL tsg-library
-        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
-        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyExportData.bmp
-        ACTION C:\Users\mcbailey\repos\tsg-library\bin\DebugSignDotNet\tsg_library.dll
 END_GROUP
