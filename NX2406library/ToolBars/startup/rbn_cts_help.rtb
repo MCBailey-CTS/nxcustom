@@ -1,0 +1,112 @@
+!
+!  CTS Help Ribbon
+!
+! 
+!
+
+TITLE   CTS Help
+VERSION 170
+
+BEGIN_GROUP CTS_UTILITY
+LABEL CTS Utility
+
+	BUTTON CTS-Customer-Clamp-Slot
+	LABEL Customer Clamp Slot
+	RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+
+	BUTTON convertprt
+	LABEL Convert Part Utility
+	RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+
+	BUTTON dadco_force_calculator
+	LABEL Dadco Force Calculator
+	RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+
+	BUTTON PunchButtonValidSizes
+	LABEL Punch Button Valid Sizes
+	RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+
+	BUTTON PierceSizeForExtrudes
+	LABEL Pierce Sizes for Extrudes
+	RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+
+	BUTTON ScrapDiscussionItems
+	LABEL Scrap Discussion Items
+	RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+		
+END_GROUP
+
+BEGIN_GROUP CTS_SIMULATION
+LABEL CTS Simulation
+
+	BUTTON PreparingFilesForaNewSimulation
+	LABEL New Simulation
+	RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+	
+	BUTTON SimulationLayerStructure
+	LABEL Simulation Layer Structure
+	RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+
+	BUTTON SimulationNamingAndProcedures
+	LABEL Simulation Naming
+	RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+
+	BUTTON CTSSimulationprocedures
+	LABEL Simulation Procedures
+	RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+
+	BUTTON CTSMathDataProposalprocedure
+	LABEL Math Data Proposal
+	RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+
+	BUTTON CTSMaterials
+	LABEL CTS Materials
+	RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+	
+END_GROUP
+
+	BUTTON CTS_CIT_PostedItems
+	LABEL CTS CIT Posted Items
+	RIBBON_STYLE LARGE_IMAGE_AND_TEXT
+	BITMAP copy.lc.white
+
+	BUTTON CTS_CIT_Instructions
+	LABEL CTS CIT Instructions
+	RIBBON_STYLE LARGE_IMAGE_AND_TEXT
+	BITMAP help.lc.white
+
+	BUTTON PressFlowchart
+	LABEL Press Flowchart
+	RIBBON_STYLE LARGE_IMAGE_AND_TEXT
+	BITMAP U:\NX110\Concept\NX110library\ToolBars\bitmaps\PressFlowchart.bmp
+
+	BUTTON PurchaseComponentStandards
+	LABEL Purchase Comp Stds
+	RIBBON_STYLE LARGE_IMAGE_AND_TEXT
+	BITMAP tt_standard.lc.white
+	
+	BUTTON CamPositiveReturns
+	LABEL Cam Positive Returns
+	RIBBON_STYLE LARGE_IMAGE_AND_TEXT
+	BITMAP copy.lc.white
+
+	BUTTON AddPalettes
+	LABEL CTS Palettes
+	RIBBON_STYLE LARGE_IMAGE_AND_TEXT
+	BITMAP tiles_palette.lc.white.bmp
+	
+	BUTTON NX_Help_Resources
+	LABEL NX Help Resources
+	RIBBON_STYLE LARGE_IMAGE_AND_TEXT
+	BITMAP help.lc.white	
+
+	BUTTON MeasureHelp
+	LABEL Measure Help
+	RIBBON_STYLE LARGE_IMAGE_AND_TEXT
+	BITMAP measure.lc.white
+
+!	BUTTON NX11UfuncHelp
+!	LABEL NX11 Ufunc Help
+!	RIBBON_STYLE LARGE_IMAGE_AND_TEXT
+!	BITMAP help_context.lc.white.bmp
+		

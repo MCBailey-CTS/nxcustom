@@ -1,0 +1,179 @@
+VERSION 120
+
+EDIT UG_GATEWAY_MAIN_MENUBAR
+
+BEFORE UG_HELP
+	CASCADE_BUTTON CTS_HELP
+	LABEL &CTS Help
+END_OF_BEFORE
+
+MENU CTS_HELP
+
+	BUTTON CTS-Customer-Clamp-Slot
+	LABEL CTS Customer Clamp Slot
+	ACTIONS "start excel.exe G:\0Library\seedFiles\CTS-Customer-Clamp-Slot.xlsx"
+
+	BUTTON convertprt
+	LABEL Convert Part
+	ACTIONS "U:\nxFiles\HelpFiles\convertprt.exe"
+		
+	BUTTON dadco_force_calculator
+	LABEL DADCO Force Calculator
+	ACTIONS "U:\DADCO-Force-Calculator-R1.3.3.1.exe"
+
+	BUTTON ctsDesignUtilities
+	LABEL CTS Design Utilities
+	ACTIONS "U:\ctsDesignUtilities.exe"
+
+	BUTTON PunchButtonValidSizes
+	LABEL Punch-Button Valid Sizes
+	ACTIONS "start excel.exe U:\nxFiles\CTS_help_documents\PunchButtonValidSizes.xlsx"
+
+	BUTTON PierceSizeForExtrudes
+	LABEL Pierce Size For Extrudes
+	ACTIONS "start excel.exe U:\nxFiles\CTS_help_documents\PierceSizeForExtrudes.xlsx"
+
+	BUTTON ScrapDiscussionItems
+	LABEL Scrap Removal Information
+	ACTIONS "start powerpnt.exe U:\nxFiles\CTS_help_documents\ScrapDiscussionItems.pptx"
+
+	BUTTON TSG_DB_CIT_Binder
+	LABEL TSG Desgin Build CIT
+	ACTIONS "start AcroRd32.exe U:\nxFiles\CTS_help_documents\TSG_DB_CIT_Binder.pdf"
+
+	BUTTON CTS_CIT_PostedItems
+	LABEL CTS CIT Posted Items
+	ACTIONS "start AcroRd32.exe U:\nxFiles\CTS_help_documents\PostedItems.pdf"
+
+	BUTTON CTS_CIT_Instructions
+	LABEL CTS CIT Instructions
+	ACTIONS "start AcroRd32.exe U:\nxFiles\CTS_help_documents\Instructions_for_submitting_CTS_CIT_form.pdf"
+	
+	BUTTON CamPositiveReturns
+	LABEL Cam Positive Returns
+	ACTIONS "start AcroRd32.exe G:\0Library\Documentation\CamPositiveReturns.pdf"
+
+	BUTTON PressFlowchart
+	LABEL Press Flowchart
+	ACTIONS "start AcroRd32.exe U:\nxFiles\HelpFiles\PressFlowchart.pdf"
+
+	BUTTON PurchaseComponentStandards
+	LABEL Purchase Comp Stds
+	ACTIONS "start AcroRd32.exe U:\nxFiles\HelpFiles\PurchaseComponentStandards.pdf"
+
+	BUTTON AddPalettes
+	LABEL CTS Palettes
+	ACTIONS U:\NX1899\NXcustom\NX1899library\ToolBars\macros\AddPalettes.macro
+	
+	BUTTON NX_Help_Resources
+	LABEL NX Help Resources
+	ACTIONS "start AcroRd32.exe U:\nxFiles\HelpFiles\NXHelpResources.pdf"
+
+	BUTTON NX11UfuncHelp
+	LABEL NX11 Ufunc Help
+	ACTIONS "start AcroRd32.exe U:\nxFiles\CTS_help_documents\CTS_UserFunctionHelp.pdf"
+	
+	BUTTON MeasureHelp
+	LABEL Measure Help
+	ACTIONS "start chrome.exe https://community.sw.siemens.com/s/article/nx12-0-2-measurement-commands-consolidation"	
+
+	CASCADE_BUTTON UFUNC
+	LABEL User Functions
+
+	CASCADE_BUTTON SIMULATION
+	LABEL Simulation
+
+END_OF_MENU
+
+MENU SIMULATION
+
+	BUTTON PreparingFilesForaNewSimulation
+	LABEL New Simulation
+	ACTIONS "start AcroRd32.exe U:\nxFiles\HelpFiles\PreparingFilesForaNewSimulation.pdf"
+
+	BUTTON SimulationLayerStructure
+	LABEL Layer Structure
+	ACTIONS "start AcroRd32.exe U:\nxFiles\HelpFiles\SimulationLayerStructure.pdf"
+
+	BUTTON SimulationNamingAndProcedures
+	LABEL Simulation Naming
+	ACTIONS "start AcroRd32.exe U:\nxFiles\HelpFiles\SimulationNamingAndProcedures.pdf"
+
+	BUTTON CTSSimulationprocedures
+	LABEL Simulation Procedures
+	ACTIONS "start AcroRd32.exe U:\nxFiles\HelpFiles\CTSSimulationprocedures.pdf"
+
+	BUTTON CTSMathDataProposalprocedure
+	LABEL Math Data Proposal
+	ACTIONS "start AcroRd32.exe U:\nxFiles\HelpFiles\CTSMathDataProposalprocedure.pdf"
+
+	BUTTON CTSMaterials
+	LABEL CTS Materials
+	ACTIONS "start excel.exe U:\nxFiles\CTS_help_documents\CTS_MATERIALS.xlsm"
+
+END_OF_MENU
+
+AFTER UG_FILE_CLOSE
+ BUTTON UG_FILE_REOPEN_ALL
+ LABEL Close/Reopen Modified Parts
+ ACTIONS STANDARD
+END_OF_AFTER
+
+AFTER UG_TOOLS_CUSTOMIZE
+    BUTTON MY_CALC
+    LABEL Calculator
+    ACTIONS "calc.exe"
+	
+	BUTTON STARTUPUFUNCS
+	LABEL StartupUfuncs
+	BITMAP key.lc.white.bmp
+	ACTIONS ${NXCUSTOM_LIB}\ufunc\component-builder.dll("component-builder") ${NXCUSTOM_LIB}\ufunc\NXJournals\add-fasteners.dll("add-fasteners") ${NXCUSTOM_LIB}\ufunc\cycle-components.dll("cycle-components") U:\NX1899\NXcustom\NX1899library\Ufunc\assembly-color-code.dll("assembly-color-code") U:\NX1899\NXcustom\NX1899library\Ufunc\assembly-wavelink.dll("assembly-wavelink")
+END_OF_AFTER
+
+MODIFY
+	BUTTON UG_INFO_OBJECT
+	LABEL &Object
+	ACCELERATOR F1
+ 
+	BUTTON UG_INFO_GEOMETRIC_MEASUREMENT
+	LABEL &Distance
+	ACCELERATOR Shift+F1
+    	
+	BUTTON UG_INFO_DYNAMIC_ANGLE
+	LABEL &Angle
+	ACCELERATOR Ctrl+Shift+F1
+
+	BUTTON UG_HELP_ON_CONTEXT
+	LABEL On &Context...
+	BITMAP help_context.bmp
+	ACCELERATOR F2
+	ACTIONS STANDARD
+
+	BUTTON UG_EDIT_TRANSFORM
+	LABEL Transform
+	ACCELERATOR Ctrl+T	
+END_OF_MODIFY
+
+MODIFY UG_TOOLBOX
+  BUTTON UG_INSERT_DLEXPRESSION
+  LABEL E&xpression...
+  MESSAGE Provides options for creating and modifying expressions.
+  SYNONYMS parameters, function, formula, variable, part equations, relations, add param, delete param
+  BITMAP equals
+  ACCELERATOR Ctrl+E
+  ACTIONS/REPLACE CheckForSpreadsheet.dll STANDARD
+END_OF_MODIFY
+
+MODIFY UG_EDIT_CURVE
+  BUTTON UG_EDIT_CURVE_STRETCH
+  LABEL Stretch...
+  ACTIONS/PRE TurnUpdatesOff.dll
+END_OF_MODIFY
+
+MODIFY UG_EDIT_CURVE
+  BUTTON UG_EDIT_CURVE_STRETCH
+  LABEL Stretch...
+  ACTIONS/POST TurnUpdatesOn.dll
+END_OF_MODIFY
+
+  

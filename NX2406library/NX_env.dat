@@ -1,0 +1,240 @@
+#
+#     Copyright 1991 - 2019 Siemens Product Lifecycle Management Software Inc.
+#                                   All Rights Reserved.
+#
+##############################################################################
+#
+#
+# This file should be used to override any standard NX environment variables.
+# The values defined here will take precedence over the NX values, as long as
+# they are defined before the #include of ugii_env_ug.dat. This file will not
+# be overwritten by an MR installation.
+#
+# Override any variables here.
+# ******** NX Environment Variable Customization File ********
+
+# Last Modified: 8Jan2020
+
+# Use Symmetric Multi-processing (SMP) if multiple processors are found
+#if ${NUMBER_OF_PROCESSORS}=1
+UGII_SMP_ENABLE=0
+#else
+UGII_SMP_ENABLE=1
+#endif
+
+# Customer Default Files Location (UGII_USER_PROFILE_DIR defined in the NXcommon.bat file)
+UGII_LOCAL_USER_DEFAULTS=${UGII_USER_PROFILE_DIR}\nx_user.dpv
+UGII_SITE_DIR=${NXCUSTOM_CUSTOMER_DEFAULTS_DIR}\Site
+# UGII_GROUP_DIR=${NXCUSTOM_CUSTOMER_DEFAULTS_DIR}\Group
+
+# Drafting Standards
+UGII_DRAFTING_STANDARD_DIR=${NXCUSTOM_CUSTOMER_DEFAULTS_DIR}\drafting_standards
+UGII_LOCAL_USER_DRAFTING_STANDARD_DIR=${UGII_USER_PROFILE_DIR}
+
+# Modeling Standards Directory (Holes and Threads)
+# UGII_SCREW_CLEARANCE_HOLE_STANDARD_DIR=${NXCUSTOM_LIB}\ModelingStandards
+# UGII_THREADED_HOLE_STANDARD_DIR=${NXCUSTOM_LIB}\ModelingStandards
+
+# To display Help/Docs on the Resource bar
+# UGII_DISABLE_HELP_PAGE=0
+
+# NX Startup Background URL Environment Variable
+# UGII_BACKGROUND_URL=C:\Temp\${NXCUSTOM_NUMBER}tips\background.html
+# UGII_BACKGROUND_NOPART=0
+#
+UGII_TEMP_DIR=${TEMP}
+
+# Printers
+# UGII_SDI_SERVER_CFG_DIR=C:\Temp\NXprinting
+
+# Menuscript
+NXCUSTOM_MENUS=${NXCUSTOM_LIB}\Menuscript
+
+# Tools Bar Environment Variables
+NXCUSTOM_TOOL_BARS=${NXCUSTOM_LIB}\ToolBars\
+
+UGII_CUSTOM_DIRECTORY_FILE=${NXCUSTOM_LIB}\custom_dirs.dat
+
+# Template Files Directory
+# UGII_TEMPLATE_DIR=${NXCUSTOM_LIB}\Templates
+
+# Design Tools Directory - Checkmate, Requirement, Issue Tracking, Quickcheck
+# NXDESIGNTOOLS_DIR=${NXCUSTOM_LIB}\DesignTools
+
+# Materials Library Directory
+# UGII_PHYS_MATERIAL_LIB_DIR=${NXCUSTOM_LIB}\Materials\english\
+# UGII_PHYS_MATERIAL_LIB_DATA_DIR=${NXCUSTOM_LIB}\Materials\
+# UGII_PHYS_MATERIAL_LIB_PATH=.\;${UGII_BASE_DIR}\ugii\materials\;${NXCUSTOM_LIB}\Materials\
+
+# Teamcenter Visualization Environment Variables
+UGII_PV_TESS_CONFIG_FILE=${NXCUSTOM_LIB}\NX_tess.config
+UGII_PV_TRANS_MODEL_ANN=YES
+
+# User Defined Feature Environment Variables
+UGII_UDF_LIBRARY_DIR=${NXCUSTOM_LIB}\udf\resource
+UGII_UDF_DATABASE_FILE=${NXCUSTOM_LIB}\udf\udf_database.txt
+UGII_UDF_DEFINITION_FILE=${NXCUSTOM_LIB}\udf\dbc_udf_ascii.def
+UGII_UDF_EVENT_FILE=${NXCUSTOM_LIB}\udf\dbc_udf_ascii.tcl
+# UDF_LIBRARY_DIR=
+
+# Shape Studio Environment Variables
+# UGII_USER_SHOWROOM_DATA_DIR=${NXCUSTOM_LIB}\Showroom\
+# UGII_ALLOW_MAX_TIFF_SIZE=1024
+
+# Visual Reporting Main Folder
+# NXVISUALREPORTING_DIR=${NXCUSTOM_LIB}\VisualReporting
+# Customized Visual Reporting User Folder (to use, create the VisualReporting\definitions folder)
+# NXVISUALREPORTING_USER_DIR=${UGII_USER_PROFILE_DIR}\VisualReporting\definitions\english
+
+# CAM Resource Files
+# When nothing is changed below NXcustom will automatically detect all the CAMresource sub folders and include those automatically
+# When you want to copy the entire resource folder (Not Advised) : un-comment the line below and copy the entire Mach\Resource to CAMresource
+# UGII_CAM_RESOURCE_DIR=${NXCUSTOM_LIB}\CAMresource\
+
+# !!!!!!!!!!!! DO NOT change the 3 lines below !!!!!!!!!!!!!!!
+#if ${UGII_CAM_RESOURCE_DIR} != ""
+#else
+NXCUSTOM_TEST=1111111111111111111
+#include ${NXCUSTOM_LIB}\NX_CAM_auto_env.dat
+#endif
+	
+# CMM Inspection Resource Files (un-comment and copy CMM_INSPECTION\Resource to CMMresource if modifying these files)
+# UGII_INSPECTION_RESOURCE_DIR=${NXCUSTOM_LIB}\CMMresource\
+
+# UGII_CAM_CONFIG=${UGII_CAM_RESOURCE_DIR}\configuration\cam_general.dat
+# PATH=${PATH};${UGII_BASE_DIR}\ugii;${UGII_CAM_RESOURCE_DIR}\shop_doc
+
+# CAM Output folder
+# UGII_CAM_SETUP_ROOT_DIR=${HOMEDRIVE}${HOMEPATH}
+
+# THREADMILL_BASE_DIR=${UGII_CAM_AUXILIARY_DIR}\thread_mill\
+# THREAD_MILL=${THREADMILL_BASE_DIR}\thrm.dll
+
+# Import JT as facetted for CAM
+# UGII_DONT_CREATE_JT_FACETS_FOR_INTEROP=1
+
+# Drafting Tables Environment Variables
+UGII_DRAFTING_HOLE_TABLE=1
+UGII_TABLE_TEMPLATES=${NXCUSTOM_LIB}\Tables
+
+# Drafting Annotation Template Files
+# UGII_ANNOTATION_TEMPLATE_DIR=${NXCUSTOM_LIB}\AnnotationTemplates\
+
+# Defaults for Export CGM and Export PDF
+UGII_CGM_DEFAULTS=${NXCUSTOM_LIB}\NX_cgmdef.txt
+
+# Wizard Environment Variables
+# MOLDWIZARD_DIR=${NXCUSTOM_LIB}\MoldWizard
+# PDIEWIZARD_DIR=${UGII_BASE_DIR}\pdiewizard
+
+# Knowledge Fusion DFA Files Environment Variables
+UGII_KF_USER_CLASS_DIR=${NXCUSTOM_LIB}\KF\
+UGII_BITMAP_PATH=${UGII_KF_USER_CLASS_DIR}application
+APP_BITMAP_LOCATION=${UGII_KF_USER_CLASS_DIR}\PTS\Image
+
+# Journaling in C++ instead of VisualBasic
+# UGII_JOURNALING_LANGUAGE=C++
+# Indicates Journal Availability
+# UGII_JOURNAL_INDICATOR=1
+
+# QuickCheck E-mail Address
+# UGII_QUICKCHECK_MAILTO=
+
+# PCB Exchange
+# MAYA_PCB_DIR=${NXCUSTOM_LIB}\PCBexchange
+
+# Manufacturing Environment Variables
+# UGII_ENABLE_CUTTER_SPIN=1
+
+# Analysis Environment Variables
+# UF_MF_PA_PATH=
+# UF_MF_PA_FACET_TOL=0.01
+# UGII_NX_NASTRAN=C:\PLM\NXNastran\7.1\64bit\bin\nastran.exe
+# UGII_NX_NASTRAN_VERSION=7.1
+# UGII_ANSYS=
+# UGII_ANSYS_VERSION=
+
+# UGManager Environment Variables
+# If the env var below, is set to anything, then exported parts will use the ItemID as their name without the RevID.
+# UGII_UGMGR_ITEMID_IS_OSFILE_NAME=yes
+
+# Color Blind Environment Variables
+# Red Color Blind
+# UGII_OVERRIDE_CDF=protanopia.cdf
+# Green Color Blind
+# UGII_OVERRIDE_CDF=deutanopia.cdf
+
+# *** I-deas Interoperability ***
+# UGII_INOP_SERVER_HOST=host_name
+# UGII_IDEAS2UG_AUTO_UPDATE_CHECK=1
+# UGII_IDEAS2UG_UPDATE_FROM_LATEST=1
+
+# Ideas Navigation (F1-F2-F3-F4)
+# UGII_FKEY_DYNAMICS=1
+
+# UGII_MASTERFEM_DIR=
+# UGII_MASTERFEM=i-deasogl.cmd
+
+# SolidEdge Interoperability
+# UGII_SE_INTEROP=1
+# UGII_USE_SEV19=1
+
+# Misc. Environment Variables
+# UGII_CAST=${UGII_BASE_DIR}\nxcast
+# UGII_CAST_HOME=${UGII_CAST}\html\start.html
+# Import Assembly Structure from JT Files
+UGII_JT_ASSY_STRUCTURE=1
+# Output PMI to a JT Assembly
+JTK_XLATR_ENABLE_PERSISTED_INSTANCE_ID=1
+# Extrude with planar face
+UGII_SECTION_USE_PLANAR_FACE=YES
+
+#CTS-Edit Duane VW 01-2021
+UGII_ENABLE_TRANSFORM_LEGACY_OPTIONS=1
+UGII_3DCONNEXION_LIBRARY=${UGII_3DCONNEXION_DIR}\${UGII_VERSION}\startup\3DxNX.dll
+
+# Don't cache WAVE information that can be seen when a link is broken
+# UGII_DONT_CACHE_WAVE_LINK_DATA=1
+
+# Converts Promotions to Wave Linked Geometry
+# Setting this variable with cause display problems with Assembly Cut
+# UGII_CONVERT_PROMOTION_TO_LINKED_BODY=1
+
+# Turn on Class Selection Dialog
+# UGII_CSD_ON_DIALOG_BAR = 1
+# Highlight Show Through
+# UGII_ENABLE_OVERLAY=TRUE
+# Preselect Show Through
+# UGII_PRESELECT_FACE_EDGES=TRUE
+DONT_REPORT_INACTIVE_LINKS=1
+# Thread Libraries
+# UGII_ENGLISH_THREADS=${NXCUSTOM_LIB}\thd_english.dat
+# UGII_METRIC_THREADS=${NXCUSTOM_LIB}\thd_metric.dat
+# UGII_REFL_IMAGE_DIR=
+# UGII_TEXTURE_LIB=${UGII_BASE_DIR}\ugphoto\textures\
+# UGII_TEXTURE_TIFF_IMAGE_DIR=
+UGII_DRAFT_EXPRESSIONS_OK=1
+UGII_WELD_SYMBOL=ON
+# UGII_MONIKER=1
+UGII_SPACEBALL_ATTACHED=1
+
+# Mouse Wheel (0 inactive, 1 default roll back to enlarge, 2 roll forward to enlarge)
+# UGII_MOUSE_WHEEL=1
+# UGII_PV_TRANS_MODEL_ANN=1
+# EAI_USE_MASTER_NOTATION_PMI_FORMAT=1
+
+# Do not edit anything below this line!!!!!!!!!!!!!
+# Edits below might cause this file not to work properly.
+
+#if FILE ${NXCUSTOM_LIB}\NX_env_routing.dat
+#include ${NXCUSTOM_LIB}\NX_env_routing.dat
+#endif
+#if FILE ${HOMEDRIVE}${HOMEPATH}\NX\NX_env.dat
+#include ${HOMEDRIVE}${HOMEPATH}\NX\NX_env.dat
+#endif
+#if FILE ${UGII_USER_PROFILE_DIR}\NX_env.dat
+#include ${UGII_USER_PROFILE_DIR}\NX_env.dat
+#endif
+#if FILE ${NXCUSTOM_LIB}\NX_env_internal.dat
+#include ${NXCUSTOM_LIB}\NX_env_internal.dat
+#endif

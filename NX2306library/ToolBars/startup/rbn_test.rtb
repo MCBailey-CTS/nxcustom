@@ -13,7 +13,7 @@ BEGIN_GROUP TEST
         LABEL tsg-library
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyExportData.bmp
-        ACTION C:\Users\mcbailey\repos\tsg-library\bin\DebugSignDotNet\tsg_library.dll
+        ACTION C:\Users\mcbailey\repos\tsg-library\TSG_Library\bin\DebugSignDotNet\tsg_library.dll
 
     BUTTON BlockAttDialog
         LABEL  Block Att Dialog

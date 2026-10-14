@@ -1,0 +1,25 @@
+﻿NX 1919
+Macro File: P:\CTS_Programs\NXcustom\NX1899\NXcustom\NX1899library\ToolBars\macros\ReferenceSet.macro
+Macro Version 7.50
+Macro List Language and Codeset: english 17
+Created by dvanderwerf on Mon Feb  1 09:08:29 2021
+Part Name Display Style: $FILENAME
+Selection Parameters 0 2 0.229167 1
+Display Parameters 0.900000 19.218750 8.177083 -1.000000 -0.425474 1.000000 0.425474
+*****************
+RESET
+FOCUS CHANGE IN 1
+WINDOW RESIZE 0.900000 19.218750 8.177083 -1.000000 -0.425474 1.000000 0.425474
+FOCUS CHANGE IN 1
+WINDOW RESIZE 0.900000 19.218750 8.177083 -1.000000 -0.425474 1.000000 0.425474
+MENU, 0, UG_ASSY_REFERENCE_SETS UG_GATEWAY_MAIN_MENUBAR <QuickAccessBar->MenuBar->UG_ARRANGE> ## ! 
+ASK_ITEM 1572865 (1 LIST 0) = 0  ! List
+ASK_ITEM 1572865 (1 LIST 0) = 0  ! List
+ASK_ITEM 3997696 (1 BOOL 0) = 1  ! Add Components Automatically
+EVENT FOCUS_IN 0 0, 1179648, 0, 0, 0! Add New Reference Set
+DIALOG_BEGIN "Reference Sets" 0 ! DA2
+BEG_ITEM 327680 (0 BOOL 0) = 0  ! Select Object
+BEG_ITEM 917505 (0 STRN 0) = ""  ! Reference Set Name
+BEG_ITEM 1572865 (1 LIST 0) = 0  ! List (Items selected)
+BEG_ITEM 3997696 (0 BOOL 0) = 1  ! Add Components Automatically
+BEG_ITEM 4718594 (1 BOOL 0) = 1  ! Preview

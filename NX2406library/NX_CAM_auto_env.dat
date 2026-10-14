@@ -1,0 +1,142 @@
+##################################################################################
+#                                                                                #
+# ============================================================================== #
+# NXcustom automatic setting of environment variables                            #
+# !!!!!!!!!!!!!!! Do not edit unless you know what you are doing !!!!!!!!!!!!!!! #
+# ============================================================================== #
+#                                                                                #
+##################################################################################
+
+### Manufacturing ###
+
+# Last Modified: 8Jan2020
+
+# This is the root for CAM specific files
+UGII_CAM_BASE_DIR=${UGII_BASE_DIR}\mach\
+
+# This is the root for platform independent resource files. Many other
+# locations are defined based on this location.
+UGII_CAM_RESOURCE_DIR=${UGII_CAM_BASE_DIR}resource\
+
+# This is the NXcustom CAM Resource folder
+NXCUSTOM_UGII_CAM_RESOURCE_DIR=${NXCUSTOM_LIB}\CAMresource\
+
+UGII_CAM_FILE_SEARCH_PATH=.\;${UGII_CAM_BASE_DIR};${NXCUSTOM_UGII_CAM_RESOURCE_DIR};${UGII_CAM_RESOURCE_DIR}
+
+# This is where default configuration .dat files are located. This is used to
+# build the list of configurations to choose when entering Manufacturing.
+# The custom directory is also searched for configurations.
+#if FILE ${NXCUSTOM_UGII_CAM_RESOURCE_DIR}configuration\
+	UGII_CAM_CONFIG_DIR=${NXCUSTOM_UGII_CAM_RESOURCE_DIR}configuration\
+#endif
+
+# This is the location of template set .opt files
+#if FILE ${NXCUSTOM_UGII_CAM_RESOURCE_DIR}template_set\
+	UGII_CAM_TEMPLATE_SET_DIR=${NXCUSTOM_UGII_CAM_RESOURCE_DIR}template_set\
+#endif
+
+# These are the locations of the english and metric template parts
+#if FILE ${NXCUSTOM_UGII_CAM_RESOURCE_DIR}template_part\
+	UGII_CAM_TEMPLATE_PART_DIR=${NXCUSTOM_UGII_CAM_RESOURCE_DIR}template_part\
+#endif
+
+# If setup libraries or palettes are used, the dbc and ascii database are here.
+#if FILE ${NXCUSTOM_UGII_CAM_RESOURCE_DIR}template_dir\
+	UGII_CAM_LIBRARY_TEMPLATE_DIR=${NXCUSTOM_UGII_CAM_RESOURCE_DIR}template_dir\
+#endif
+
+# This is where shop documentation tcl and def files are located
+#if FILE ${NXCUSTOM_UGII_CAM_RESOURCE_DIR}shop_doc\
+	UGII_CAM_SHOP_DOC_DIR=${NXCUSTOM_UGII_CAM_RESOURCE_DIR}shop_doc\
+#endif
+
+# This is where work instruction template, tcl, and def files are located
+#if FILE ${NXCUSTOM_UGII_CAM_RESOURCE_DIR}owi\
+	UGII_CAM_WORK_INSTRUCTION_DIR=${NXCUSTOM_UGII_CAM_RESOURCE_DIR}owi\
+#endif
+
+# This is where postprocessor .tcl .def and .pui files are located
+#if FILE ${NXCUSTOM_UGII_CAM_RESOURCE_DIR}postprocessor\
+	UGII_CAM_POST_DIR=${NXCUSTOM_UGII_CAM_RESOURCE_DIR}postprocessor\
+#endif
+
+# This is the location of user defined event .ude files
+#if FILE ${NXCUSTOM_UGII_CAM_RESOURCE_DIR}user_def_event\
+	UGII_CAM_USER_DEF_EVENT_DIR=${NXCUSTOM_UGII_CAM_RESOURCE_DIR}user_def_event\
+#endif
+
+# This is the location of the tcl and def files for listing a tool path
+#if FILE ${NXCUSTOM_UGII_CAM_RESOURCE_DIR}tool_path\
+	UGII_CAM_TOOL_PATH_DIR=${NXCUSTOM_UGII_CAM_RESOURCE_DIR}tool_path\
+#endif
+
+# This is the location of the Process Assistant files
+#if FILE ${NXCUSTOM_UGII_CAM_RESOURCE_DIR}wizard\
+	UGII_CAM_WIZARD_DIR=${NXCUSTOM_UGII_CAM_RESOURCE_DIR}wizard\
+#endif
+
+# This is the location of tcl files for debugging and the review tool
+#if FILE ${NXCUSTOM_UGII_CAM_RESOURCE_DIR}debug\
+	UGII_CAM_DEBUG_DIR=${NXCUSTOM_UGII_CAM_RESOURCE_DIR}debug\
+#endif
+
+# This is for data files used by feature based CAM templates
+#if FILE ${NXCUSTOM_UGII_CAM_RESOURCE_DIR}feature\
+	UGII_CAM_FEATURE_DATA_DIR=${NXCUSTOM_UGII_CAM_RESOURCE_DIR}feature\
+#endif
+
+#if FILE ${NXCUSTOM_UGII_CAM_RESOURCE_DIR}feature\english\
+	UGII_CAM_FEATURE_DATA_ENGLISH_DIR=${NXCUSTOM_UGII_CAM_RESOURCE_DIR}feature\english\
+#endif
+
+#if FILE ${NXCUSTOM_UGII_CAM_RESOURCE_DIR}feature\metric\
+	UGII_CAM_FEATURE_DATA_METRIC_DIR=${NXCUSTOM_UGII_CAM_RESOURCE_DIR}feature\metric\
+#endif
+
+# This is for CAM feature images used by MFN
+#if FILE ${NXCUSTOM_UGII_CAM_RESOURCE_DIR}feature\images\
+	UGII_CAM_FEATURE_IMAGES_DIR=${NXCUSTOM_UGII_CAM_RESOURCE_DIR}feature\images\
+#endif
+
+# This is the directory in which CAM related spread sheets are located
+#if FILE ${NXCUSTOM_UGII_CAM_RESOURCE_DIR}spreadsheet\
+	UGII_CAM_SPREADSHEET_DIR=${NXCUSTOM_UGII_CAM_RESOURCE_DIR}spreadsheet\
+#endif
+
+# This is the directory for the machining knowledge definition files
+#if FILE ${NXCUSTOM_UGII_CAM_RESOURCE_DIR}machining_knowledge\
+	UGII_CAM_MACHINING_KNOWLEDGE_DIR=${NXCUSTOM_UGII_CAM_RESOURCE_DIR}machining_knowledge\
+#endif
+
+# This is the location of the general dbc if ug library
+#if FILE ${NXCUSTOM_UGII_CAM_RESOURCE_DIR}ug_library\
+	UGII_UG_LIBRARY_DIR=${NXCUSTOM_UGII_CAM_RESOURCE_DIR}ug_library\
+#endif
+
+# This location is the NXcustom root for specific library dbc and ascii databases
+NXCUSTOM_UGII_CAM_LIBRARY_DIR=${NXCUSTOM_UGII_CAM_RESOURCE_DIR}library\
+
+# These are the locations for the dbc and ascii databases for the cutting tool library
+#if FILE ${NXCUSTOM_UGII_CAM_LIBRARY_DIR}tool\
+	UGII_CAM_LIBRARY_TOOL_DIR=${NXCUSTOM_UGII_CAM_LIBRARY_DIR}tool\
+#endif
+
+# These are the locations for the dbc and ascii databases for the device library
+#if FILE ${NXCUSTOM_UGII_CAM_LIBRARY_DIR}device\
+	UGII_CAM_LIBRARY_DEVICE_DIR=${NXCUSTOM_UGII_CAM_LIBRARY_DIR}device\
+#endif
+
+# These are the locations for the dbc and ascii databases for the machine tool library
+#if FILE ${NXCUSTOM_UGII_CAM_LIBRARY_DIR}machine\
+	UGII_CAM_LIBRARY_MACHINE_DIR=${NXCUSTOM_UGII_CAM_LIBRARY_DIR}machine\
+#endif
+
+# These are the locations for the dbc and ascii databases for the feed and speed library
+#if FILE ${NXCUSTOM_UGII_CAM_LIBRARY_DIR}feeds_speeds\
+	UGII_CAM_LIBRARY_FEEDS_SPEEDS_DIR=${NXCUSTOM_UGII_CAM_LIBRARY_DIR}feeds_speeds\
+#endif
+
+#if FILE ${NXCUSTOM_UGII_CAM_LIBRARY_DIR}udf\
+	UGII_CAM_LIBRARY_UDF_DIR=${NXCUSTOM_UGII_CAM_LIBRARY_DIR}udf\
+#endif
+

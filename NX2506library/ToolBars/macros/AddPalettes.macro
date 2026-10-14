@@ -1,0 +1,87 @@
+﻿NX 1919
+Macro File: G:\CTS\junk\Duane\NX1919\AddPalettes.macro
+Macro Version 7.50
+Macro List Language and Codeset: english 17
+Created by dvanderwerf on Wed Jun  2 15:42:56 2021
+Part Name Display Style: $FILENAME
+Selection Parameters 0 2 0.229167 1
+Display Parameters 0.900000 19.218750 8.177083 -1.000000 -0.425474 1.000000 0.425474
+*****************
+RESET
+MENU, 0, UG_PREFERENCES_PALETTES UG_GATEWAY_MAIN_MENUBAR <TopBorderBar->MenuBar->UG_PREFERENCES> ## ! 
+DIALOG_BEGIN "Palettes" 0 ! Special
+  BEG_ITEM  0 (1 TOOL 0) = -1  !  
+  BEG_ITEM  1 (1 TOOL 0) = -1  !  
+  BEG_ITEM  3 (1 BLO  0) = -1  !  
+  EVENT VALUE_CHANGED -10 0, 0, 2, 0, 0! Open Palette
+  ASK_ITEM  0 (1 TOOL 0) = 2  ! Open Palette
+ DIALOG_BEGIN "Persistent Dialog" 5501 ! Persistent
+  BEG_ITEM  3 (1 STRN 5501) = ""  !  
+ DIALOG_PERSISTENT_END 5501
+  EVENT ACTIVATE -30 5501, 2, 0, 0, 0! Browse...
+  FILE_BOX -2,@@@U:\nxFiles\Palettes0Library\smartComponentsMetric.pax@@@U:\nxFiles\Palettes0Library\*.pax@@@ 0 ! Open Palette File
+  OK -30 5501 ! OK Callback  
+  ASK_ITEM  3 (1 STRN 5501) = "U:\nxFiles\Palettes0Library\smartComponentsMetric.pax"  !  
+  ASK_ITEM  3 (1 STRN 5501) = "U:\nxFiles\Palettes0Library\smartComponentsMetric.pax"  !  
+  EVENT VALUE_CHANGED -10 0, 0, 2, 0, 0! Open Palette
+  ASK_ITEM  0 (1 TOOL 0) = 2  ! Open Palette
+ DIALOG_BEGIN "Persistent Dialog" 5501 ! Persistent
+  BEG_ITEM  3 (1 STRN 5501) = ""  !  
+ DIALOG_PERSISTENT_END 5501
+  EVENT ACTIVATE -30 5501, 2, 0, 0, 0! Browse...
+  FILE_BOX -2,@@@U:\nxFiles\Palettes0Library\addComponentMetric.pax@@@U:\nxFiles\Palettes0Library\*.pax@@@ 0 ! Open Palette File
+  OK -30 5501 ! OK Callback  
+  ASK_ITEM  3 (1 STRN 5501) = "U:\nxFiles\Palettes0Library\addComponentMetric.pax"  !  
+  ASK_ITEM  3 (1 STRN 5501) = "U:\nxFiles\Palettes0Library\addComponentMetric.pax"  !  
+  EVENT VALUE_CHANGED -10 0, 0, 2, 0, 0! Open Palette
+  ASK_ITEM  0 (1 TOOL 0) = 2  ! Open Palette
+ DIALOG_BEGIN "Persistent Dialog" 5501 ! Persistent
+  BEG_ITEM  3 (1 STRN 5501) = ""  !  
+ DIALOG_PERSISTENT_END 5501
+  EVENT ACTIVATE -30 5501, 2, 0, 0, 0! Browse...
+  FILE_BOX -2,@@@U:\nxFiles\Palettes0Library\addAssembliesMetric.pax@@@U:\nxFiles\Palettes0Library\*.pax@@@ 0 ! Open Palette File
+  OK -30 5501 ! OK Callback  
+  ASK_ITEM  3 (1 STRN 5501) = "U:\nxFiles\Palettes0Library\addAssembliesMetric.pax"  !  
+  ASK_ITEM  3 (1 STRN 5501) = "U:\nxFiles\Palettes0Library\addAssembliesMetric.pax"  !  
+  EVENT VALUE_CHANGED -10 0, 0, 2, 0, 0! Open Palette
+  ASK_ITEM  0 (1 TOOL 0) = 2  ! Open Palette
+ DIALOG_BEGIN "Persistent Dialog" 5501 ! Persistent
+  BEG_ITEM  3 (1 STRN 5501) = ""  !  
+ DIALOG_PERSISTENT_END 5501
+  EVENT ACTIVATE -30 5501, 2, 0, 0, 0! Browse...
+  FILE_BOX -2,@@@U:\nxFiles\Palettes0Library\smartComponentsEnglish.pax@@@U:\nxFiles\Palettes0Library\*.pax@@@ 0 ! Open Palette File
+  OK -30 5501 ! OK Callback  
+  ASK_ITEM  3 (1 STRN 5501) = "U:\nxFiles\Palettes0Library\smartComponentsEnglish.pax"  !  
+  ASK_ITEM  3 (1 STRN 5501) = "U:\nxFiles\Palettes0Library\smartComponentsEnglish.pax"  !  
+  EVENT VALUE_CHANGED -10 0, 0, 2, 0, 0! Open Palette
+  ASK_ITEM  0 (1 TOOL 0) = 2  ! Open Palette
+ DIALOG_BEGIN "Persistent Dialog" 5501 ! Persistent
+  BEG_ITEM  3 (1 STRN 5501) = ""  !  
+ DIALOG_PERSISTENT_END 5501
+  EVENT ACTIVATE -30 5501, 2, 0, 0, 0! Browse...
+  FILE_BOX -2,@@@U:\nxFiles\Palettes0Library\addComponentEnglish.pax@@@U:\nxFiles\Palettes0Library\*.pax@@@ 0 ! Open Palette File
+  OK -30 5501 ! OK Callback  
+  ASK_ITEM  3 (1 STRN 5501) = "U:\nxFiles\Palettes0Library\addComponentEnglish.pax"  !  
+  ASK_ITEM  3 (1 STRN 5501) = "U:\nxFiles\Palettes0Library\addComponentEnglish.pax"  !  
+  EVENT VALUE_CHANGED -10 0, 0, 2, 0, 0! Open Palette
+  ASK_ITEM  0 (1 TOOL 0) = 2  ! Open Palette
+ DIALOG_BEGIN "Persistent Dialog" 5501 ! Persistent
+  BEG_ITEM  3 (1 STRN 5501) = ""  !  
+ DIALOG_PERSISTENT_END 5501
+  EVENT ACTIVATE -30 5501, 2, 0, 0, 0! Browse...
+  FILE_BOX -2,@@@U:\nxFiles\Palettes0Library\addAssembliesEnglish.pax@@@U:\nxFiles\Palettes0Library\*.pax@@@ 0 ! Open Palette File
+  OK -30 5501 ! OK Callback  
+  ASK_ITEM  3 (1 STRN 5501) = "U:\nxFiles\Palettes0Library\addAssembliesEnglish.pax"  !  
+  ASK_ITEM  3 (1 STRN 5501) = "U:\nxFiles\Palettes0Library\addAssembliesEnglish.pax"  !  
+  EVENT VALUE_CHANGED -10 0, 0, 2, 0, 0! Open Palette
+  ASK_ITEM  0 (1 TOOL 0) = 2  ! Open Palette
+ DIALOG_BEGIN "Persistent Dialog" 5501 ! Persistent
+  BEG_ITEM  3 (1 STRN 5501) = ""  !  
+ DIALOG_PERSISTENT_END 5501
+  EVENT ACTIVATE -30 5501, 2, 0, 0, 0! Browse...
+  FILE_BOX -2,@@@U:\nxFiles\Palettes0Library\tables.pax@@@U:\nxFiles\Palettes0Library\*.pax@@@ 0 ! Open Palette File
+  OK -30 5501 ! OK Callback  
+  ASK_ITEM  3 (1 STRN 5501) = "U:\nxFiles\Palettes0Library\tables.pax"  !  
+  ASK_ITEM  3 (1 STRN 5501) = "U:\nxFiles\Palettes0Library\tables.pax"  !  
+  BACK -10 0 ! Back Callback
+DIALOG_END -4, 0 ! Palettes: BACK

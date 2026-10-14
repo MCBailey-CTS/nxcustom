@@ -1,0 +1,553 @@
+﻿Importing Customer Defaults values file: P:\CTS_Programs\NXcustom\NX1899\NXcustom\NX1899library\CustomerDefaults\Site\NX11_2021-01-12.dpv
+
+Default Lock State: locked
+
+Location: Gateway; General; Part
+Setting: Default Units 
+Imported Value: Inches
+Locked: No
+
+Location: Gateway; General; Part
+Setting: Store Preview 
+Imported Value: No
+Locked: No
+
+Location: Gateway; General; Part
+Setting: Creation Time 
+Imported Value: On Demand
+Locked: No
+
+Location: Gateway; General; Part
+Setting: Store Preview 
+Imported Value: No
+Locked: No
+
+Location: Gateway; General; Part
+Setting: Always Compress Parts on Save 
+Imported Value: No
+Locked: No
+
+Location: Gateway; General; Expressions
+Setting: Show Missing Interpart Expression Part Warnings 
+Imported Value: No
+Locked: No
+
+Location: Gateway; General; Expressions
+Setting: Show Referencing Interpart Expression Warnings 
+Imported Value: No
+Locked: No
+
+Location: Gateway; General; Selection
+Setting: Highlight Original 
+Imported Value: No
+Locked: No
+
+Location: Gateway; General; Directories
+Setting: Part File Directory 
+Imported Value: G:\
+Locked: No
+
+Location: Gateway; General; Directories
+Setting: Journal Directory 
+Imported Value: U:\NX110\Concept\NX110library\ToolBars\vb\
+Locked: No
+
+Location: Gateway; General; Directories
+Setting: Macro Directory 
+Imported Value: G:\CTS\junk\
+Locked: No
+
+Location: Gateway; General; Directories
+Setting: GRIP Program Directory 
+Imported Value: U:\NX110\Concept\NX110library\Grip\
+Locked: No
+
+Location: Gateway; General; Directories
+Setting: User Function Program Directory 
+Imported Value: G:\CTS\junk\0Ufunc Testing\
+Locked: No
+
+Location: Gateway; General; 3D Input Device
+Setting: Device Sensitivity 
+Imported Value: 8
+Locked: No
+
+Location: Gateway; General; File New
+Setting: Master Model Support 
+Imported Value: Off
+Locked: No
+
+Location: Gateway; User Interface; Resource Bar
+Setting: Display Resource Bar 
+Imported Value: On Right
+Locked: No
+
+Location: Gateway; User Interface; Resource Bar
+Setting: Home Page URL 
+Imported Value: 
+Locked: No
+
+Location: Gateway; User Interface; Journal
+Setting: Journal Language 
+Imported Value: C#
+Locked: No
+
+Location: Gateway; User Interface; Layer Dialog Box
+Setting: Columns 
+Imported Value: "visible:0"\"object_count:1"\"category_name:1"\"description:1"
+Locked: No
+
+Location: Gateway; User Interface; Layer Dialog Box
+Setting: Show Category Names 
+Imported Value: Yes
+Locked: No
+
+Location: Gateway; Visualization; Performance; Accuracy
+Setting: Resolution 
+Imported Value: Extra Fine
+Locked: No
+
+Location: Gateway; Visualization; Performance; Accuracy
+Setting: Facet Scale 
+Imported Value: View
+Locked: No
+
+Location: Gateway; Visualization; Performance; Accuracy
+Setting: Resolution 
+Imported Value: Fine
+Locked: No
+
+Location: Gateway; Visualization; Performance; Accuracy
+Setting: Facet Scale 
+Imported Value: View
+Locked: No
+
+Location: Gateway; Visualization; Color; Geometry
+Setting: Preselection 
+Imported Value: 5
+Locked: No
+
+Location: Gateway; Visualization; Color; Geometry
+Setting: Selection 
+Imported Value: 7
+Locked: No
+
+Location: Gateway; Visualization; Color; Geometry
+Setting: Hidden Geometry 
+Imported Value: 130
+Locked: No
+
+Location: Gateway; Visualization; Color; Drawing Layouts
+Setting: Monochrome Display 
+Imported Value: Off
+Locked: No
+
+Location: Gateway; Visualization; Color; Drawing Layouts
+Setting: Preselection 
+Imported Value: 5
+Locked: No
+
+Location: Gateway; Visualization; Color; Drawing Layouts
+Setting: Selection 
+Imported Value: 7
+Locked: No
+
+Location: Gateway; Visualization; Color; Drawing Layouts
+Setting: Show Widths 
+Imported Value: No
+Locked: No
+
+Location: Gateway; Visualization; Color; Color Palette
+Setting: Color Definition File 
+Imported Value: U:\NX110\Concept\NX110library\concept.cdf
+Locked: No
+
+Location: Gateway; Visualization; Color; Background
+Setting: Background Type 
+Imported Value: Plain
+Locked: No
+
+Location: Gateway; Visualization; Color; Background
+Setting: Background Type 
+Imported Value: Plain
+Locked: No
+
+Location: Gateway; Visualization; Line; All
+Setting: Show Widths 
+Imported Value: No
+Locked: No
+
+Location: Gateway; Visualization; View; Interaction
+Setting: Fit Percentage %
+Imported Value: 90
+Locked: No
+
+Location: Gateway; Visualization; Performance; Large Model
+Setting: Fixed Frame Rate 
+Imported Value: Off
+Locked: No
+
+Location: Gateway; Visualization; View; Interaction
+Setting: Disable Smooth View Change 
+Imported Value: Yes
+Locked: No
+
+Location: Gateway; Visualization; Performance; Facet Cache
+Setting: Save Shaded Display Facets 
+Imported Value: No
+Locked: No
+
+Location: Gateway; Grid; Model
+Setting: Show Major Lines 
+Imported Value: No
+Locked: No
+
+Location: Gateway; Grid; Model
+Setting: Major Grid Spacing in
+Imported Value: 0.125
+Locked: No
+
+Location: Gateway; Grid; Model
+Setting: Major Grid Spacing in
+Imported Value: 0.125
+Locked: No
+
+Location: Gateway; View Operations; View Operations
+Setting: Direction 
+Imported Value: Backward to Zoom In
+Locked: No
+
+Location: Gateway; Part Navigator; All
+Setting: Display Reference Sets Folder 
+Imported Value: Yes
+Locked: No
+
+Location: Gateway; Part Navigator; All
+Setting: Sort Method 
+Imported Value: Alphanumeric
+Locked: No
+
+Location: Gateway; Assembly Navigator; All
+Setting: Pack Components 
+Imported Value: No
+Locked: No
+
+Location: Gateway; Assembly Navigator; All
+Setting: Component Sort Order 
+Imported Value: Alphanumeric
+Locked: No
+
+Location: Gateway; Assembly Navigator; All
+Setting: Constraint Name Display 
+Imported Value: User and System
+Locked: No
+
+Location: Gateway; Reuse Library; General
+Setting: View Type 
+Imported Value: Previews
+Locked: No
+
+Location: Gateway; Reuse Library; General
+Setting: Filter Type 
+Imported Value: Feature/Object Template
+Locked: No
+
+Location: Gateway; Reuse Library; General
+Setting: Libraries Organized by Native Folder 
+Imported Value: Curve Import|G:\0Library\CurveImport Feature Import|G:\0Library\FeatureTemplates
+Locked: No
+
+Location: Gateway; Reuse Library; General
+Setting: Display Reuse Library 
+Imported Value: No
+Locked: No
+
+Location: Gateway; Reuse Library; Reusable Pocket
+Setting: Reference Set 
+Imported Value: SUB_TOOL
+Locked: No
+
+Location: Gateway; Reuse Library; UDF Library
+Setting: Display UDF Library in Browser 
+Imported Value: No
+Locked: No
+
+Location: Gateway; Reuse Library; Symbols Library
+Setting: Display Symbol Library in Browser 
+Imported Value: No
+Locked: No
+
+Location: Gateway; Reuse Library; Symbols Library
+Setting: Symbol Libraries, Native NX 
+Imported Value: CTS Symbols | U:\nxFiles\Symbol\
+Locked: No
+
+Location: Gateway; Reuse Library; 2D Section Library
+Setting: Display 2D Section Library in Browser 
+Imported Value: No
+Locked: No
+
+Location: Gateway; JT Files; Import Content
+Setting: Face Simplification for JT B-rep 
+Imported Value: Basic Simplification
+Locked: No
+
+Location: Gateway; Translators; STEP
+Setting: Settings File 
+Imported Value: U:\nxFiles\Step Tranlsator\214ug.def
+Locked: No
+
+Location: Gateway; Visual Reporting; General
+Setting: Visual Reporting User Directory 
+Imported Value: %NX_CUSTOM_LIB%\VisualReports\definitions\english\
+Locked: No
+
+Location: Gateway; Materials/Mass; Locations
+Setting: Allow User Control 
+Imported Value: No
+Locked: No
+
+Location: Gateway; Materials/Mass; Locations
+Setting: Allow User Control 
+Imported Value: No
+Locked: No
+
+Location:  Unknown
+Setting:  UG_MaterialReuseLibraryEnable
+**** This setting was not recognized and have been ignored **** 
+
+Location: Gateway; Materials/Mass; Part Attributes
+Setting: Part Material Attribute Title Alias 
+Imported Value: 
+Locked: No
+
+Location: Gateway; Materials/Mass; Part Attributes
+Setting: Create Object Material Attribute 
+Imported Value: No
+Locked: No
+
+Location: Modeling; General; General
+Setting: For Boolean Faces 
+Imported Value: Tool Body
+Locked: No
+
+Setting:  InterruptUpdate_OnError
+**** This setting is hidden and not imported **** 
+
+Setting:  InterruptUpdate_OnWarning
+**** This setting is hidden and not imported **** 
+
+Location: Modeling; Delay and Update; Delay and Update
+Setting: Warn on Missing References 
+Imported Value: Yes
+Locked: No
+
+Location: Modeling; General; Miscellaneous
+Setting: Automatically Sketch on Planar Faces 
+Imported Value: No
+Locked: No
+
+Location: Modeling; Feature Parameters; Associative Copy; Extract and WAVE Geometry Linker
+Setting: Fix at Current Timestamp 
+Imported Value: Yes
+Locked: No
+
+Location: Curves; Curve Associativity; All
+Setting: Line, Arc/Circle, Lines and Arcs 
+Imported Value: No
+Locked: No
+
+Location: Curves; Curve Associativity; All
+Setting: Text 
+Imported Value: No
+Locked: No
+
+Location: Curves; Curve Associativity; All
+Setting: Point 
+Imported Value: No
+Locked: No
+
+Location: Curves; Curve Associativity; All
+Setting: Offset Curve 
+Imported Value: No
+Locked: No
+
+Location: Curves; Curve Associativity; All
+Setting: Studio Spline 
+Imported Value: No
+Locked: No
+
+Location: Curves; Curve Associativity; All
+Setting: Bridge Curve 
+Imported Value: No
+Locked: No
+
+Location: Curves; Curve Associativity; All
+Setting: Join Curves 
+Imported Value: No
+Locked: No
+
+Location: Curves; Curve Associativity; All
+Setting: Project Curve 
+Imported Value: No
+Locked: No
+
+Location: Curves; Curve Associativity; All
+Setting: Combined Projection 
+Imported Value: No
+Locked: No
+
+Location: Curves; Curve Associativity; All
+Setting: Intersection Curve 
+Imported Value: No
+Locked: No
+
+Location: Curves; Curve Associativity; All
+Setting: Section Curve 
+Imported Value: No
+Locked: No
+
+Location: Curves; Curve Associativity; All
+Setting: Offset Curve in Face 
+Imported Value: No
+Locked: No
+
+Location: Curves; Curve Associativity; All
+Setting: Circular Blend Curve 
+Imported Value: No
+Locked: No
+
+Location: Curves; Curve Associativity; All
+Setting: Curve Length 
+Imported Value: No
+Locked: No
+
+Location: Curves; Curve Associativity; All
+Setting: Mirror Curve 
+Imported Value: No
+Locked: No
+
+Location: Assemblies; General; Miscellaneous
+Setting: Display Message when Modifying Read-only Parts 
+Imported Value: No
+Locked: No
+
+Location: Assemblies; General; Miscellaneous
+Setting: Display Message when Modifying Part Family Members 
+Imported Value: No
+Locked: No
+
+Location: Assemblies; General; Miscellaneous
+Setting: Display Message when Saving Read-only Parts 
+Imported Value: No
+Locked: No
+
+Location: Assemblies; General; Work Part
+Setting: Display using 'Entire Part' Reference Set 
+Imported Value: No
+Locked: No
+
+Location: Assemblies; General; Component Operations
+Setting: Layer 
+Imported Value: Work
+Locked: No
+
+Location:  Unknown
+Setting:  Assemblies_AddCompPlacementMethod
+**** This setting was not recognized and have been ignored **** 
+
+Location:  Unknown
+Setting:  Assemblies_AddCompPositioningType
+**** This setting was not recognized and have been ignored **** 
+
+Location: Assemblies; General; Component Operations
+Setting: Layer 
+Imported Value: Work
+Locked: No
+
+Location: Assemblies; General; Component Operations
+Setting: Skip Add Component Dialog Box and Use Defaults 
+Imported Value: No
+Locked: No
+
+Location: Assemblies; General; Component Operations
+Setting: Positioning 
+Imported Value: Select Origin
+Locked: No
+
+Location: Assemblies; General; Component Operations
+Setting: Layer 
+Imported Value: Work
+Locked: No
+
+Location: Assemblies; General; Component Operations
+Setting: Skip Add Component Dialog Box and Use Defaults 
+Imported Value: No
+Locked: No
+
+Location: Assemblies; General; Component Operations
+Setting: Positioning 
+Imported Value: Select Origin
+Locked: No
+
+Location: Assemblies; General; Component Operations
+Setting: Scatter 
+Imported Value: No
+Locked: No
+
+Location: Assemblies; General; Component Operations
+Setting: Layer 
+Imported Value: Work
+Locked: No
+
+Location: Assemblies; General; Component Operations
+Setting: Reference Set Name 
+Imported Value: Body
+Locked: No
+
+Location: Assemblies; General; Interpart Modeling
+Setting: Allow Promote Body 
+Imported Value: No
+Locked: No
+
+Location: Assemblies; Positioning; Interface
+Setting: Scope 
+Imported Value: Anywhere in Assembly
+Locked: No
+
+Location: Assemblies; Site Standards; Reference Sets
+Setting: Name 
+Imported Value: 
+Locked: No
+
+Location: Assemblies; Site Standards; Reference Sets
+Setting: Include WAVE Linked Bodies 
+Imported Value: No
+Locked: No
+
+Location: Assemblies; Site Standards; Reference Sets
+Setting: Add Components Automatically 
+Imported Value: No
+Locked: No
+
+Location: Assemblies; Site Standards; Reference Sets
+Setting: Add Components Automatically 
+Imported Value: No
+Locked: No
+
+Location: Drafting; General/Setup; Standard
+Setting: Drafting Standard 
+Imported Value: CTS-ModifiedISO
+Locked: No
+
+Location: Drafting; General/Setup; Workflow
+Setting: Always Start Insert Sheet Command 
+Imported Value: No
+Locked: No
+
+Total settings and locks imported: 105
+Total settings rejected due to values not valid in this release: 0
+Total settings rejected due to values being locked at the higher level: 0
+Total settings already set to the same value and lock status: 49
+Total settings not recognized in this release:  3
+Total hidden settings in this release:  2

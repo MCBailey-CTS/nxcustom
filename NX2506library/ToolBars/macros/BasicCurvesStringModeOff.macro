@@ -1,0 +1,28 @@
+﻿NX 1919
+Macro File: P:\CTS_Programs\NXcustom\NX1899\NXcustom\NX1899library\ToolBars\macros\BasicCurvesStringModeOff.macro
+Macro Version 7.50
+Macro List Language and Codeset: english 17
+Created by dvanderwerf on Thu Feb 11 14:18:57 2021
+Part Name Display Style: $FILENAME
+Selection Parameters 0 2 0.229167 1
+Display Parameters 0.900000 19.218750 8.177083 -1.000000 -0.425474 1.000000 0.425474
+*****************
+RESET
+MENU, 0, UG_CURVE_BASIC_CURVES UG_GATEWAY_MAIN_MENUBAR <rbn_modeling_home.rtb->GROUP_11_19_2014_15_18_54_909460318> ## ! 
+DIALOG_BEGIN "Basic Curves" 5331 ! DA2
+  BEG_ITEM  1 (1 TOOL 5331) = 0  ! Line
+  BEG_ITEM  3 (0 BOOL 5331) = 0  ! Unbounded
+  BEG_ITEM  4 (1 BOOL 5331) = 0  ! Delta
+  BEG_ITEM  5 (1 OPTM 5331) = 0  ! Inferred Point
+  BEG_ITEM  6 (1 BOOL 5331) = 1  ! String Mode
+  BEG_ITEM 11 (0 BLO  5331) = 0  ! XC
+  BEG_ITEM 12 (1 TOOL 5331) = 1  ! ##91New
+  BEG_ITEM 13 (1 REAL 5331) = 0.0000000000000000  ! Angle Increment
+  BEG_ITEM 15 (1 RADI 5331) = 0  ! Start, End, Point on Arc
+  BEG_ITEM 16 (1 RADI 5331) = 0  ! Parameters
+  BEG_ITEM 18 (1 BOOL 5331) = 1  ! Display Original Spline
+  BEG_ITEM 20 (1 RADI 5331) = 0  ! By Parameter
+  BEG_ITEM 21 (0 BOOL 5331) = 0  ! Multiple Positions
+  EVENT VALUE_CHANGED 0 5331, 6, 0, 0, 0! String Mode
+  ASK_ITEM  6 (1 BOOL 5331) = 0  ! String Mode
+DIALOG_END -3, 0 ! Basic Curves: CANCEL
