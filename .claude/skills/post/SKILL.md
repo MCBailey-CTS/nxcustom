@@ -1,6 +1,6 @@
 ---
 name: post
-description: Post the current TSG_Library.dll build into NX2306library/Ufunc under one or more plugin names (e.g. assembly-wavelink) using the rolling-backup convention. Does not commit.
+description: Build TSG_Library in Release and post the DLL into NX2306library/Ufunc under one or more plugin names (e.g. assembly-wavelink) using the rolling-backup convention. Does not commit.
 ---
 
 # /post
@@ -8,17 +8,29 @@ description: Post the current TSG_Library.dll build into NX2306library/Ufunc und
 Usage: `/post <name> [<name> ...] [--from <path>]`
 
 - `<name>` is the plugin's DLL base name in `Ufunc/`, e.g. `assembly-wavelink`, `gm-seal`. Several may be given; they all receive the same build.
-- Every plugin is the **same** `TSG_Library.dll` build, copied into `Ufunc/` under the plugin's name. The default source is:
+- Every plugin is the **same** `TSG_Library.dll` build, copied into `Ufunc/` under the plugin's name. `/post` builds it itself in **Release**, and the source is the build output:
 
-  `C:\Users\mcbailey\repos\tsg-library\TSG_Library\bin\DebugSignDotNet\TSG_Library.dll`
+  `C:\Users\mcbailey\repos\tsg-library\TSG_Library\bin\Release\TSG_Library.dll`
 
-  `--from <path>` overrides it. `<path>` may be a folder (use its `TSG_Library.dll`) or a full path to a `.dll`. The source file is **not** expected to be named `<name>.dll`.
+  `--from <path>` skips the build and posts `<path>` instead. `<path>` may be a folder (use its `TSG_Library.dll`) or a full path to a `.dll`. The source file is **not** expected to be named `<name>.dll`.
 
 Work from the repo root; paths below are relative to it. Do the steps in order and stop with a report if any check fails — this tree is live for every NX user, so don't improvise around a failed check.
 
+## Build (skipped with `--from`)
+
+0. Build the `TSG_Library` project in Release:
+
+   ```powershell
+   & 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe' `
+       'C:\Users\mcbailey\repos\tsg-library\TSG_Library\TSG_Library.csproj' `
+       /t:Build /p:Configuration=Release /p:Platform=AnyCPU /v:minimal /nologo /m
+   ```
+
+   The Release post-build step signs the DLL with `SignDotNet.exe`; NX won't load it unsigned. If MSBuild exits non-zero, or the output shows an error (including a signing failure), stop and report the errors — post nothing. Mention, but don't stop for, uncommitted changes in the tsg-library repo (`git -C C:\Users\mcbailey\repos\tsg-library status --short`), since they are going into the posted build.
+
 ## Before touching anything
 
-1. Resolve the source DLL and confirm it exists. Report its byte size and modified time so the user can see it is the build they just made. If it's older than an hour or so, say so — they may have forgotten to build — but proceed.
+1. Resolve the source DLL and confirm it exists. Report its byte size and modified time. After a build, its modified time must be from the build just run; if it isn't, the build didn't write it — stop. With `--from`, if it's older than an hour or so, say so but proceed.
 2. `git status --short NX2306library/Ufunc/` must be clean for every `<name>.dll` involved. If a `<name>.dll` is already modified in the working tree, stop: the previous release would then have to come from `git show HEAD:...`, so ask the user before continuing.
 
 ## For each `<name>`
