@@ -10,7 +10,7 @@ Usage: `/post <name> [<name> ...] [--from <path>]`
 - `<name>` is the plugin's DLL base name in `Ufunc/`, e.g. `assembly-wavelink`, `gm-seal`. Several may be given; they all receive the same build.
 - Every plugin is the **same** `TSG_Library.dll` build, copied into `Ufunc/` under the plugin's name. The default source is:
 
-  `C:\Users\mcbailey\repos\tsg-library\bin\DebugSignDotNet\TSG_Library.dll`
+  `C:\Users\mcbailey\repos\tsg-library\TSG_Library\bin\DebugSignDotNet\TSG_Library.dll`
 
   `--from <path>` overrides it. `<path>` may be a folder (use its `TSG_Library.dll`) or a full path to a `.dll`. The source file is **not** expected to be named `<name>.dll`.
 
