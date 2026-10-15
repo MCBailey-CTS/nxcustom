@@ -14,6 +14,13 @@ Usage: `/post <name> [<name> ...] [--nx <version>[,<version> ...]] [--from <path
   `C:\Users\mcbailey\repos\tsg-library\TSG_Library\bin\Release\TSG_Library.dll`
 
   `--from <path>` skips the build and posts `<path>` instead. `<path>` may be a folder (use its `TSG_Library.dll`) or a full path to a `.dll`. The source file is **not** expected to be named `<name>.dll`.
+- **Python companions.** Some plugins call Python scripts through `PythonLibrary.Execute`, which loads them from a `python\` folder beside the DLL — so they go in `<lib>/Ufunc/python/`, shared by every plugin in that library. The source is the `python\` folder beside the source DLL (`...\bin\Release\python\`, or beside the `--from` DLL). When a posted name is in this table, its scripts are posted with it:
+
+  | Plugin | Scripts |
+  |---|---|
+  | `point-component` | `PointComponent.py`, `tsg_nx.py` (imported by `PointComponent.py`) |
+
+  When a plugin gains a script, add it here along with any module it imports from the `python\` folder (check its `import` lines).
 
 Work from the repo root; paths below are relative to it. Do the steps in order and stop with a report if any check fails — this tree is live for every NX user, so don't improvise around a failed check.
 
@@ -35,6 +42,7 @@ Work from the repo root; paths below are relative to it. Do the steps in order a
 2. Check every `<name>` in every `<lib>` before changing anything, so a failure never leaves the libraries half-posted:
    - `<lib>/Ufunc/<name>.dll` must be tracked in git. If not, stop — `/post` updates existing plugins; adding a new one also needs a ribbon button and bitmap. If the name looks like a typo of an existing plugin (e.g. `boss` for `gm-boss`), suggest the correction and ask.
    - `git status --short <lib>/Ufunc/<name>.dll` must be clean. If it's already modified, stop and ask: the previous release would then have to come from `git show HEAD:...`. If the user says to overwrite the uncommitted post, copy the new build over `<name>.dll` in place and keep the existing `<name>N.dll` (it still matches HEAD) — don't make another backup.
+   - For each Python companion script of `<name>`: the source script must exist, and `git status --short <lib>/Ufunc/python/<script>` must be clean (untracked-and-absent is fine — that's a first post). If it's modified, stop and ask, as for the DLL.
 
 ## For each `<lib>` and each `<name>`
 
@@ -46,10 +54,11 @@ Work from the repo root; paths below are relative to it. Do the steps in order a
    - `git hash-object <lib>/Ufunc/<name>.dll` differs from that. If it doesn't, the build hasn't changed since the last post — delete the new `<name>.dll`, `mv <name>N.dll` back to `<name>.dll`, and tell the user.
    - If step 4 or 5 fails partway (e.g. permission denied), restore the same way before stopping: the tree must never be left without a `<name>.dll`.
 7. `grep -n '<name>\.dll' <lib>/ToolBars/startup/*.rtb` — informational; mention if nothing references it, but proceed.
+8. Post `<name>`'s Python companion scripts, if any: create `<lib>/Ufunc/python/` if missing and copy each script over `<lib>/Ufunc/python/<script>` **in place** — no numbered backups; Python files aren't locked by NX and git holds the previous version. Post a script shared by several names (e.g. `tsg_nx.py`) once per library. Note whether each is new, changed, or unchanged versus HEAD (`git hash-object` vs `git rev-parse HEAD:<path>`). If the DLL was rolled back in step 6 as unchanged but a script changed, still post the script and say so.
 
 ## Once for all names
 
-8. **Do not commit or push.** The user tests the posted build in NX first and will ask for the commit separately. Leave the files in the working tree and do not stage them.
-9. Report: which libraries were posted to; per name, a table with one row per library giving the backup number and old → new byte sizes; the ribbon line(s) referencing each; and `git status --short <lib>/Ufunc/` for each library so the user can see exactly what is pending. Say plainly if any library was skipped.
+9. **Do not commit or push.** The user tests the posted build in NX first and will ask for the commit separately. Leave the files in the working tree and do not stage them.
+10. Report: which libraries were posted to; per name, a table with one row per library giving the backup number and old → new byte sizes; the Python scripts posted and whether each was new/changed/unchanged; the ribbon line(s) referencing each; and `git status --short <lib>/Ufunc/` for each library so the user can see exactly what is pending. Say plainly if any library was skipped. If `tsg_nx.py` (or another imported module) changed, remind the user that NX caches imported modules, so NX must be restarted to pick it up.
 
-When the user later asks to commit, stage only the `<name>.dll` / `<name>N.dll` pairs in each library (not `git add -A`), use the message `posted <name1>, <name2>, ...` (add `(NX2406 only)` or similar when not every library got it) plus the attribution trailer, and push only if asked.
+When the user later asks to commit, stage only the `<name>.dll` / `<name>N.dll` pairs and any posted `python/<script>` files in each library (not `git add -A`), use the message `posted <name1>, <name2>, ...` (add `(NX2406 only)` or similar when not every library got it) plus the attribution trailer, and push only if asked.
