@@ -1,0 +1,19 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "title color",
+            "detail": "Cyan title bar at U:\\nxcustom, green anywhere else (.vscode/title-color.ps1)",
+            "type": "process",
+            "command": "powershell.exe",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy", "Bypass",
+                "-File", "${workspaceFolder}\\.vscode\\title-color.ps1"
+            ],
+            "runOptions": { "runOn": "folderOpen" },
+            "presentation": { "reveal": "silent", "close": true },
+            "problemMatcher": []
+        }
+    ]
+}
