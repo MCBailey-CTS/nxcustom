@@ -92,6 +92,12 @@ BEGIN_GROUP MERLIN
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\point-component.dll
 
+    BUTTON NINE99
+        LABEL 999
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\nine-99-block.dll
+
 END_GROUP
 
 BEGIN_GROUP PIERCE_GROUP

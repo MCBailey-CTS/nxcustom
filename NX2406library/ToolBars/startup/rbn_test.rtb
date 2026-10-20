@@ -20,4 +20,10 @@ BEGIN_GROUP TEST
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\BlockAttributer.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\block-att-dialog.dll("block-att-dialog")
+
+    BUTTON TestUnloadSharedImage
+        LABEL Unload Image
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\cts_logo.bmp
+        ACTION ${NXCUSTOM_LIB}\toolbars\macros\UnloadSharedImage.macro
 END_GROUP
