@@ -1,6 +1,6 @@
 ---
 name: post
-description: Build TSG_Library in Release and post the DLL into the Ufunc folder of every NX library (NX2306library, NX2406library, NX2506library), or just the versions given with --nx, under one or more plugin names (e.g. assembly-wavelink) using the rolling-backup convention. Does not commit.
+description: Build TSG_Library in Release and post the DLL into the Ufunc folder of every NX library (NX2306library, NX2406library, NX2506library), or just the versions given with --nx, under one or more plugin names (e.g. assembly-wavelink) using the rolling-backup convention. Also does first posts of new plugins that already have a ribbon button, and checks each name against TSG_Library's UFunc registry. Does not commit.
 ---
 
 # /post
@@ -40,9 +40,20 @@ Work from the repo root; paths below are relative to it. Do the steps in order a
 
 1. Resolve the source DLL and confirm it exists. Report its byte size and modified time. After a build, its modified time must be from the build just run; if it isn't, the build didn't write it — stop. With `--from`, if it's older than an hour or so, say so but proceed.
 2. Check every `<name>` in every `<lib>` before changing anything, so a failure never leaves the libraries half-posted:
-   - `<lib>/Ufunc/<name>.dll` must be tracked in git. If not, stop — `/post` updates existing plugins; adding a new one also needs a ribbon button and bitmap. If the name looks like a typo of an existing plugin (e.g. `boss` for `gm-boss`), suggest the correction and ask.
-   - `git status --short <lib>/Ufunc/<name>.dll` must be clean. If it's already modified, stop and ask: the previous release would then have to come from `git show HEAD:...`. If the user says to overwrite the uncommitted post, copy the new build over `<name>.dll` in place and keep the existing `<name>N.dll` (it still matches HEAD) — don't make another backup.
+   - **The name must be one TSG_Library knows.** `Program.Main` picks the UFunc from its first argument, or, with none, from the DLL's file name, and looks it up in the `switch` in `C:\Users\mcbailey\repos\tsg-library\TSG_Library\src\UFuncs\_Runner.cs` (case labels are lowercase; lookup is case-insensitive). The name NX will pass is the first quoted argument of the ribbon `ACTION` that runs `<name>.dll` (e.g. `block-att-dialog.dll("block-att-dialog")`), or `<name>` itself when the `ACTION` passes none or no ribbon references it. That name must appear as `case "<that name>":` in `_Runner.cs`; if it doesn't, NX fails with "No UFunc is registered" — stop, and suggest the closest case label (e.g. `nine-99-block` for `nine99`). Older buttons pass `("UFUNC", "<Name>")`, which the current build reads as the name `UFUNC` and rejects. Several plugins (e.g. `grid`, `simplify-curves`, `gm-seal`) are older builds whose names aren't in `_Runner.cs`, so posting today's build over them would break a working button. When that happens, say so; if the DLL name itself is a case label, offer to change the `ACTION` to drop the arguments. Skip this check when `--from` points at a DLL that isn't `TSG_Library.dll`.
+   - **Decide the post mode** from git and the file on disk:
+     - **Update** — `<lib>/Ufunc/<name>.dll` is tracked and `git status --short` shows it clean. Steps 3–6 apply.
+     - **Tracked but modified** — stop and ask: the previous release would then have to come from `git show HEAD:...`. If the user says to overwrite the uncommitted post, treat it as a re-post (below) but keep the existing `<name>N.dll` (it still matches HEAD) — don't make another backup.
+     - **First post** — untracked and absent. Allowed only if a ribbon in `<lib>` already has an `ACTION` that runs it (`grep -in '\\ufunc\\<name>\.dll' <lib>/ToolBars/startup/*.rtb`); a new plugin needs its button first. If none does, stop: suggest a correction if the name looks like a typo of an existing plugin (e.g. `boss` for `gm-boss`), otherwise ask whether to add a button.
+     - **Re-post of an uncommitted first post** — untracked but present (a first post not yet committed). Replace it without a backup: it was never released, so git has no copy to protect.
    - For each Python companion script of `<name>`: the source script must exist, and `git status --short <lib>/Ufunc/python/<script>` must be clean (untracked-and-absent is fine — that's a first post). If it's modified, stop and ask, as for the DLL.
+
+## First post, or re-post of an uncommitted first post
+
+For a `<lib>`/`<name>` in one of these modes, do this instead of steps 3–6, then carry on at step 7:
+
+- **First post:** copy the source DLL to `<name>.dll` and confirm `git hash-object` of it equals the source's.
+- **Re-post:** if `git hash-object <name>.dll` already equals the source's, change nothing and say so. Otherwise `mv <name>.dll <name>.dll.old` (NX may have it loaded, so don't copy over it), copy the source to `<name>.dll`, then delete `<name>.dll.old`. If the copy fails, `mv` the `.old` back before stopping. If the delete fails because NX has it open, leave it and tell the user.
 
 ## For each `<lib>` and each `<name>`
 
@@ -59,6 +70,6 @@ Work from the repo root; paths below are relative to it. Do the steps in order a
 ## Once for all names
 
 9. **Do not commit or push.** The user tests the posted build in NX first and will ask for the commit separately. Leave the files in the working tree and do not stage them.
-10. Report: which libraries were posted to; per name, a table with one row per library giving the backup number and old → new byte sizes; the Python scripts posted and whether each was new/changed/unchanged; the ribbon line(s) referencing each; and `git status --short <lib>/Ufunc/` for each library so the user can see exactly what is pending. Say plainly if any library was skipped. If `tsg_nx.py` (or another imported module) changed, remind the user that NX caches imported modules, so NX must be restarted to pick it up.
+10. Report: which libraries were posted to; per name, a table with one row per library giving the backup number (or "none — first post" / "none — replaced uncommitted post") and old → new byte sizes; the Python scripts posted and whether each was new/changed/unchanged; the ribbon line(s) referencing each; and `git status --short <lib>/Ufunc/` for each library so the user can see exactly what is pending. Say plainly if any library was skipped. If `tsg_nx.py` (or another imported module) changed, remind the user that NX caches imported modules, so NX must be restarted to pick it up.
 
-When the user later asks to commit, stage only the `<name>.dll` / `<name>N.dll` pairs and any posted `python/<script>` files in each library (not `git add -A`), use the message `posted <name1>, <name2>, ...` (add `(NX2406 only)` or similar when not every library got it) plus the attribution trailer, and push only if asked.
+When the user later asks to commit, stage only the `<name>.dll` / `<name>N.dll` pairs and any posted `python/<script>` files in each library (not `git add -A`), use the message `posted <name1>, <name2>, ...` (add `(NX2406 only)` or similar when not every library got it) plus the attribution trailer, and push only if asked. For a first post there is no `<name>N.dll`: stage the new `<name>.dll`, plus the ribbon `.rtb` that adds its button if that is still uncommitted, and mark it `(new)` in the message, e.g. `posted nine-99-block (new)`.
