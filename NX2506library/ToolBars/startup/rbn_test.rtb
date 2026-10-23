@@ -26,4 +26,16 @@ BEGIN_GROUP TEST
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\cts_logo.bmp
         ACTION ${NXCUSTOM_LIB}\toolbars\macros\UnloadSharedImage.macro
+
+    BUTTON TestNXRemotingServer
+        LABEL NX Server
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\cts_logo.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\NXRemotingServer.dll
+
+    BUTTON TestGmSplitForm
+        LABEL gm-split-form
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION C:\Users\mcbailey\repos\tsg-library\TSG_Library\python\GmSplitForm.py
 END_GROUP
