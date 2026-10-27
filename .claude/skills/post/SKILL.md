@@ -19,8 +19,11 @@ Usage: `/post <name> [<name> ...] [--nx <version>[,<version> ...]] [--from <path
   | Plugin | Scripts |
   |---|---|
   | `point-component` | `PointComponent.py`, `tsg_nx.py` (imported by `PointComponent.py`) |
+  | `auto-design` *(Python only)* | `AutoDesign.py`, `AutoDesign.dlx`, `DeadStrike.py`, `DeadStrike.dlx`, `DrawDie.py`, `GmBlankStation.py`, `GmBlankStationDialog.py`, `GmBlankStationDialog.dlx`, `GmCastPost.py`, `GmCastTrimPad.py`, `GmPierce.py`, `GmSplitForm.py`, `GmSplitFormDialog.py`, `GmSplitFormDialog.dlx`, `GmSplitFormWithPlateBackside.py`, `PointComponent.py`, `WireStartHole.py`, `progress_window.py`, `ProgressWindow.ps1`, `tsg_dialog.py`, `tsg_nx.py`, `usage_db.py`, `pyodbc.cp310-win_amd64.pyd` |
 
-  When a plugin gains a script, add it here along with any module it imports from the `python\` folder (check its `import` lines).
+  When a plugin gains a script, add it here along with any module it imports from the `python\` folder (check its `import` lines, including imports inside functions), any `.dlx` dialog it names, and anything those load in turn.
+
+  A *(Python only)* name has no DLL: its ribbon `ACTION` runs `${NXCUSTOM_LIB}\ufunc\python\<Script>.py` directly. For such a name, skip the `_Runner.cs` check and the DLL steps (post modes and steps 3–7); build as usual (the build refreshes `python\`), then do step 8 for its scripts. When committing, stage just those scripts.
 
 Work from the repo root; paths below are relative to it. Do the steps in order and stop with a report if any check fails — this tree is live for every NX user, so don't improvise around a failed check.
 

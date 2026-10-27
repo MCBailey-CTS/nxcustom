@@ -6,37 +6,58 @@
 TITLE  Merlin
 VERSION 170
 
-BEGIN_GROUP MERLIN_0
-    LABEL MERLIN-0
-    
-    BUTTON GM_COMPONENT
-        LABEL GM Component
-        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
-        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\gm-component.dll
+BEGIN_GROUP FULL_HITS
+    LABEL Full Hits
 
-    
+    BUTTON AUTO_DESIGN
+        LABEL Auto Design
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\AutoDesign.py
 
-    BUTTON GM_SPLIT_FORM
-        LABEL GM Split Form
+    BUTTON GM_BLANK_STATION
+        LABEL Blank Station
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\gm-split-form.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\gm-blank-station.dll
 
-    BUTTON GM_SPLIT_FORM_PLATE
-        LABEL GM Split Form With Plate
+    BUTTON GM_SECONDARY_TRIM_STATION
+        LABEL Secondary Trim Station
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\gm-split-form-with-plate.dll
-    
-    BUTTON GM_SPLIT_FORM_WITH_PLATE_BACKSIDE
-        LABEL GM Split Form With Plate Backside
+        ACTION ${NXCUSTOM_LIB}\ufunc\gm-secondary-trim-station.dll
+
+    BUTTON DRAW_DIE
+        LABEL Draw Die
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\gm-split-form-with-plate-backside.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\draw-die-creator.dll("UFUNC", "DrawDieCreator")
+
+    BUTTON FLANGE_HIT
+        LABEL Flange Hit
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\flange-hit.dll
+
+    BUTTON DEAD_HIT
+        LABEL Dead Hit
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\dead-hit.dll
+
+    BUTTON RESTRIKE
+        LABEL Restrike
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\restrike.dll
+
+    BUTTON PIERCE
+        LABEL Pierce
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\gm-pierce.dll
 
 END_GROUP
-
 
 BEGIN_GROUP MERLIN_CAST
     LABEL CAST
@@ -59,8 +80,8 @@ BEGIN_GROUP MERLIN_CAST
             ACTION ${NXCUSTOM_LIB}\ufunc\gm-cast-post.dll
 END_GROUP
 
-BEGIN_GROUP MERLIN
-    LABEL MERLIN
+BEGIN_GROUP COMPONENTS
+    LABEL Components
 
     BUTTON Perfect
         LABEL Perfect
@@ -68,23 +89,11 @@ BEGIN_GROUP MERLIN
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\gm-perfect.dll
 
-    BUTTON Boss
-        LABEL Boss
+    BUTTON GM_COMPONENT
+        LABEL GM Component
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\gm-boss.dll
-
-    BUTTON GM_BLANK_STATION
-        LABEL GM Blank Station
-        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
-        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\gm-blank-station.dll
-
-    BUTTON GM_SECONDARY_TRIM_STATION
-        LABEL GM Secondary Trim Station
-        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
-        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\gm-secondary-trim-station.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\gm-component.dll
 
     BUTTON POINT_COMPONENT
         LABEL Point Component
@@ -92,34 +101,35 @@ BEGIN_GROUP MERLIN
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\point-component.dll
 
-    BUTTON NINE99
-        LABEL 999
-        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
-        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\nine-99-block.dll
-
 END_GROUP
 
-BEGIN_GROUP PIERCE_GROUP
-    LABEL PIERCE
+BEGIN_GROUP MISC
+    LABEL Misc
 
-    BUTTON PIERCE
-        LABEL Pierce
+    BUTTON PROFILE_SUBTRACT
+        LABEL Profile Subtract
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\gm-pierce.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\profile-subtract.dll
 
-    BUTTON PIERCE_SECONDARY
-        LABEL Pierce Secondary
+    BUTTON CAST_BOSS
+        LABEL Cast Boss
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\gm-pierce-secondary.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\cast-boss.dll
 
-    BUTTON FULL_PIERCE
-        LABEL Full Pierce
+    BUTTON SAVE_AS
+        LABEL Save As
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\gm-full-pierce.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\save-as.dll
+
+    BUTTON SOLID_ATTRIBUTER
+        LABEL Solid Attributer
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\solid-attributer.dll
+
 END_GROUP
 
 BEGIN_GROUP GM
