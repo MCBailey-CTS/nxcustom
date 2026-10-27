@@ -62,4 +62,10 @@ BEGIN_GROUP TEST
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\cts_logo.bmp
         ACTION C:\Users\mcbailey\repos\tsg-library\TSG_Library\bin\DebugSignDotNet\tsg_library.dll("debug", "dead-hit")
+
+    BUTTON TestDeleteWavelinkLabel
+        LABEL Delete Wavelink Label
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyWaveLink.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\DeleteWavelinkLabel.py
 END_GROUP

@@ -43,13 +43,13 @@ BEGIN_GROUP FULL_HITS
         LABEL Dead Hit
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\dead-hit.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\DeadStrike.py
 
     BUTTON RESTRIKE
         LABEL Restrike
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\restrike.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\GmCastPost.py
 
     BUTTON PIERCE
         LABEL Pierce
@@ -110,13 +110,13 @@ BEGIN_GROUP MISC
         LABEL Profile Subtract
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\profile-subtract.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\ProfileSubtract.py
 
     BUTTON CAST_BOSS
         LABEL Cast Boss
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\cast-boss.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\GmBoss.py
 
     BUTTON SAVE_AS
         LABEL Save As
