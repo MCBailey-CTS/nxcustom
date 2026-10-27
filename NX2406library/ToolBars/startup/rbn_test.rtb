@@ -37,7 +37,7 @@ BEGIN_GROUP TEST
         LABEL gm-split-form
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION C:\Users\mcbailey\repos\tsg-library\TSG_Library\python\GmSplitForm.py
+        ACTION C:\Users\mcbailey\repos\tsg-library\TSG_Library\bin\DebugSignDotNet\python\GmSplitForm.py
 
     BUTTON TestAddFast
         LABEL add-fast
@@ -49,11 +49,17 @@ BEGIN_GROUP TEST
         LABEL measure
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\cts_logo.bmp
-        ACTION C:\Users\mcbailey\repos\tsg-library\TSG_Library\bin\DebugSignDotNet\tsg_library.dll("debug", "measure")
+        ACTION C:\Users\mcbailey\repos\tsg-library\TSG_Library\bin\DebugSignDotNet\python\Measure.py
 
     BUTTON TestDesignCheck
         LABEL design-check
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\DesignCheck.bmp
         ACTION C:\Users\mcbailey\repos\tsg-library\TSG_Library\bin\DebugSignDotNet\tsg_library.dll("debug", "design-check")
+
+    BUTTON TestDeadHit
+        LABEL dead-hit
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\cts_logo.bmp
+        ACTION C:\Users\mcbailey\repos\tsg-library\TSG_Library\bin\DebugSignDotNet\tsg_library.dll("debug", "dead-hit")
 END_GROUP
