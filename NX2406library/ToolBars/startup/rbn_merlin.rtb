@@ -57,6 +57,12 @@ BEGIN_GROUP FULL_HITS
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\gm-pierce.dll
 
+    BUTTON GM_SPLIT_FORM
+        LABEL GM Split Form
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\GmSplitForm.py
+
 END_GROUP
 
 BEGIN_GROUP MERLIN_CAST

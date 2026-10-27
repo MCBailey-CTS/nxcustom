@@ -25,6 +25,7 @@ Usage: `/post <name> [<name> ...] [--nx <version>[,<version> ...]] [--from <path
   | `gm-boss` *(Python only; the Merlin "Cast Boss" button)* | `GmBoss.py`, `DrawDie.py`, `PointComponent.py`, `tsg_nx.py`, `usage_db.py`, `pyodbc.cp310-win_amd64.pyd` |
   | `gm-cast-post` *(Python only; the Merlin "Restrike" button)* | `GmCastPost.py`, `DrawDie.py`, `GmCastTrimPad.py`, `PointComponent.py`, `WireStartHole.py`, `tsg_nx.py`, `usage_db.py`, `pyodbc.cp310-win_amd64.pyd` |
   | `delete-wavelink-label` *(Python only)* | `DeleteWavelinkLabel.py`, `tsg_nx.py`, `usage_db.py`, `pyodbc.cp310-win_amd64.pyd` |
+  | `gm-split-form` *(Python only; Backing Plate / SHCS From Backside are dialog checkboxes)* | `GmSplitForm.py`, `GmSplitFormDialog.py`, `GmSplitFormDialog.dlx`, `DrawDie.py`, `GmCastTrimPad.py`, `PointComponent.py`, `tsg_dialog.py`, `tsg_nx.py`, `usage_db.py`, `pyodbc.cp310-win_amd64.pyd` |
   | `nine-99-block` *(Python only)* | `Nine99.py`, `DrawDie.py`, `GmCastTrimPad.py`, `GmSplitForm.py`, `GmSplitFormDialog.py`, `GmSplitFormDialog.dlx`, `PointComponent.py`, `tsg_dialog.py`, `tsg_nx.py`, `usage_db.py`, `pyodbc.cp310-win_amd64.pyd` |
 
   When a plugin gains a script, add it here along with any module it imports from the `python\` folder (check its `import` lines, including imports inside functions), any `.dlx` dialog it names, and anything those load in turn.
