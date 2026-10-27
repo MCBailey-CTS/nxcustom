@@ -1183,42 +1183,72 @@ def prompt(message: str) -> None:
     progress(message)
 
 
-_assembly_file_version: Optional[str] = None
+_file_versions: _Dict[str, str] = {}
+
+
+def _file_version(dll: str) -> str:
+    """The FileVersion string in dll's version resource, or "" when it has none or cannot be read. Cached by path."""
+    if dll in _file_versions:
+        return _file_versions[dll]
+    version = ""
+    try:
+        import ctypes
+        version_dll: _Any = getattr(ctypes, "windll").version
+        size = version_dll.GetFileVersionInfoSizeW(dll, None)
+        if size:
+            data = ctypes.create_string_buffer(size)
+            pointer = ctypes.c_void_p()
+            length = ctypes.c_uint()
+            if version_dll.GetFileVersionInfoW(dll, 0, size, data) and version_dll.VerQueryValueW(
+                    data, "\VarFileInfo\Translation", ctypes.byref(pointer), ctypes.byref(length)) \
+                    and length.value >= 4:
+                words = ctypes.cast(pointer, ctypes.POINTER(ctypes.c_ushort))
+                key = "\StringFileInfo\{:04x}{:04x}\FileVersion".format(words[0], words[1])
+                if version_dll.VerQueryValueW(data, key, ctypes.byref(pointer), ctypes.byref(length)) \
+                        and length.value and pointer.value is not None:
+                    version = ctypes.wstring_at(pointer.value, length.value).rstrip("\0")
+    except Exception:
+        version = ""
+    _file_versions[dll] = version
+    return version
+
+
+def _calling_dll() -> str:
+    """
+    TSG_LIBRARY_DLL - the DLL a C# PythonLibrary.Execute call came from, which sets it in the process environment
+    just before. Read live through the Win32 API: os.environ is a copy taken when Python started.
+    """
+    try:
+        import ctypes
+        buffer = ctypes.create_unicode_buffer(1024)
+        length = getattr(ctypes, "windll").kernel32.GetEnvironmentVariableW("TSG_LIBRARY_DLL", buffer, 1024)
+        return buffer.value if 0 < length < 1024 else ""
+    except Exception:
+        return ""
 
 
 def assembly_file_version() -> str:
     """
-    Extensions.AssemblyFileVersion - the FileVersion string of the TSG_Library.dll this python folder is
-    deployed beside (python\\ sits next to the DLL), or "" when it cannot be read.
+    Extensions.AssemblyFileVersion for the python folder's build, or "" when no DLL gives one. Tried in turn:
+    the DLL of the C# UFunc that ran this script (TSG_LIBRARY_DLL, see _calling_dll); TSG_Library.dll beside the
+    python folder (the build output); and the newest *.dll beside it, since the posted Ufunc folder names each build
+    after its UFunc (dead-hit.dll, point-component.dll, ...) and has no TSG_Library.dll - the newest one is the
+    last post, which also copied the python files.
     """
-    global _assembly_file_version
-    if _assembly_file_version is not None:
-        return _assembly_file_version
-    _assembly_file_version = ""
+    import glob
+    import os
+    folder = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    candidates = [_calling_dll(), os.path.join(folder, "TSG_Library.dll")]
     try:
-        import ctypes
-        import os
-        dll = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "TSG_Library.dll")
-        version_dll: _Any = getattr(ctypes, "windll").version
-        size = version_dll.GetFileVersionInfoSizeW(dll, None)
-        if not size:
-            return _assembly_file_version
-        data = ctypes.create_string_buffer(size)
-        if not version_dll.GetFileVersionInfoW(dll, 0, size, data):
-            return _assembly_file_version
-        pointer = ctypes.c_void_p()
-        length = ctypes.c_uint()
-        if not version_dll.VerQueryValueW(data, "\\VarFileInfo\\Translation",
-                                          ctypes.byref(pointer), ctypes.byref(length)) or length.value < 4:
-            return _assembly_file_version
-        words = ctypes.cast(pointer, ctypes.POINTER(ctypes.c_ushort))
-        key = "\\StringFileInfo\\{:04x}{:04x}\\FileVersion".format(words[0], words[1])
-        if version_dll.VerQueryValueW(data, key, ctypes.byref(pointer), ctypes.byref(length)) and length.value \
-                and pointer.value is not None:
-            _assembly_file_version = ctypes.wstring_at(pointer.value, length.value).rstrip("\0")
+        candidates.extend(sorted(glob.glob(os.path.join(folder, "*.dll")), key=os.path.getmtime, reverse=True))
     except Exception:
-        _assembly_file_version = ""
-    return _assembly_file_version
+        pass
+    for dll in candidates:
+        if dll and os.path.isfile(dll):
+            version = _file_version(dll)
+            if version:
+                return version
+    return ""
 
 
 def ufunc_rev_name(ufunc_name: str) -> str:
