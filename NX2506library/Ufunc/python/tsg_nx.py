@@ -13,12 +13,13 @@ import math
 import os
 import traceback
 from typing import Any, Union
-from typing import Iterable, Iterator, List, NamedTuple, Optional, cast
+from typing import Iterable, Iterator, List, NamedTuple, Optional, Sequence, cast
 
 import NXOpen
 import NXOpen.Assemblies
 import NXOpen.Features
 import NXOpen.GeometricUtilities
+import NXOpen.Layer
 import NXOpen.UF
 import NXOpen.UserDefinedObjects
 
@@ -49,6 +50,32 @@ def print_(message: object) -> None:
     lw.WriteLine(str(message))
 
 
+def library_file(name: str, near: str = "") -> str:
+    """
+    The path of a file the UFuncs ship beside their scripts (a .dlx, a .ps1). Deployed, bin\\<config>\\python holds
+    them all; in the source tree they are split between src\\UFuncs and src\\python, so this looks beside near (a
+    module's __file__) first, then beside this module, then in the sibling UFuncs folder. A missing file comes back
+    as the first place looked, so the caller's error names a sensible path.
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    folders = [os.path.dirname(os.path.abspath(near))] if near else []
+    folders += [here, os.path.join(os.path.dirname(here), "UFuncs")]
+    for folder in folders:
+        path = os.path.join(folder, name)
+        if os.path.isfile(path):
+            return path
+    return os.path.join(folders[0], name)
+
+
+def syslog(message: object) -> None:
+    """Writes to the NX syslog only (not the listing window), one WriteLine per line. Never raises."""
+    try:
+        for line in str(message).splitlines() or [""]:
+            session_.LogFile.WriteLine(line)
+    except Exception:
+        pass  # Nowhere left to report it.
+
+
 def print_exception(ex: BaseException, user_message: Optional[str] = None) -> None:
     """Exception.__PrintException - same layout as the C# version so the listing window reads alike."""
     print_("///////////////////////////////////////////")
@@ -61,6 +88,30 @@ def print_exception(ex: BaseException, user_message: Optional[str] = None) -> No
     for line in traceback.format_exc().splitlines():
         print_(line)
     print_("///////////////////////////////////////////")
+    progress("FAILED: {}".format(ex))
+
+    # tblExceptions, as __PrintException writes it. usage_db never raises, but a missing pyodbc must not either.
+    try:
+        import usage_db
+        usage_db.log_exception(ex, user_message)
+    except Exception:
+        pass
+
+
+# The file Auto Design's progress window follows (AutoDesign.py sets it for the length of a run and clears it after),
+# so a builder launched on its own writes nothing.
+progress_path: Optional[str] = None
+
+
+def progress(message: str) -> None:
+    """Appends a line to Auto Design's progress window; a no-op unless an Auto Design run is following the file."""
+    if not progress_path:
+        return
+    try:
+        with open(progress_path, "a", encoding="utf-8") as f:
+            f.write(str(message).replace("\n", " ") + "\n")
+    except OSError:
+        pass
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -501,7 +552,59 @@ def distance_tolerance() -> float:
 
 def show_error(message: str) -> None:
     """Merlin.ShowError - the standard NX "Error" message box."""
-    NXOpen.UI.GetUI().NXMessageBox.Show("Error", NXOpen.NXMessageBox.DialogType.Error, message)
+    message_box("Error", NXOpen.NXMessageBox.DialogType.Error, message)
+
+
+# NXMessageBox.Show returns 1 for Yes and 2 for No on a Question box.
+MessageBoxYes = 1
+MessageBoxNo = 2
+
+
+def message_box(title: str, dialog_type: Any, message: str) -> int:
+    """
+    UFuncUsage.MessageBox - shows an NXMessageBox and writes its tblDialogs row. Use it for every message box, in
+    place of UI.NXMessageBox.Show. Returns what Show returns (MessageBoxYes on a Question box's Yes).
+    """
+    response = NXOpen.UI.GetUI().NXMessageBox.Show(title, dialog_type, message)
+    type_name = next((name for name in ("Error", "Warning", "Information", "Question")
+                      if getattr(NXOpen.NXMessageBox.DialogType, name, None) == dialog_type), str(dialog_type))
+    if type_name == "Question":
+        answer = "yes" if response == MessageBoxYes else "no" if response == MessageBoxNo else str(response)
+    else:
+        answer = str(response)
+    log_dialog("message-box", title, type_name, message, answer)
+    return response
+
+
+def confirm_execute(ufunc_name: str) -> bool:
+    """
+    UFuncUsage.ConfirmExecute - the "Are you sure you want to execute" Question box a UFunc with no dialog of its
+    own shows before it does anything. True on Yes.
+    """
+    if message_box(ufunc_rev_name(ufunc_name), NXOpen.NXMessageBox.DialogType.Question,
+                   "Are you sure you want to execute {}?".format(ufunc_name)) == MessageBoxYes:
+        return True
+    mark_cancelled("the confirm")
+    return False
+
+
+def mark_cancelled(where: str) -> None:
+    """usage_db.mark_cancelled - the run's END syslog banner says CANCELLED at where. Never raises."""
+    try:
+        import usage_db
+        usage_db.mark_cancelled(where)
+    except Exception:
+        pass
+
+
+def log_dialog(kind: str, title: Optional[str], dialog_type: Optional[str], message: Optional[str],
+               response: Optional[str]) -> None:
+    """usage_db.log_dialog. usage_db never raises, but a missing pyodbc must not either."""
+    try:
+        import usage_db
+        usage_db.log_dialog(kind, title, dialog_type, message, response)
+    except Exception:
+        pass
 
 
 def set_color(obj: NXOpen.DisplayableObject, color: int) -> None:
@@ -552,6 +655,84 @@ def has_reference_set(part: NXOpen.BasePart, name: str) -> bool:
     return find_reference_set_or_null(part, name) is not None
 
 
+# True inside quiet_listing() - Auto Design's builders leave out their elapsed times and "Created reference set"
+# lines, so the listing window carries only what needs reading.
+quiet = False
+
+
+@contextlib.contextmanager
+def quiet_listing(on: bool = True) -> Iterator[None]:
+    """Sets quiet for the block when on (never clears an outer one); restores it on exit."""
+    global quiet
+    previous = quiet
+    quiet = previous or bool(on)
+    try:
+        yield
+    finally:
+        quiet = previous
+
+
+def info(message: object) -> None:
+    """
+    A progress line, not an error: the syslog always, the listing window only outside quiet_listing() (so Auto
+    Design's listing window shows just its errors). Errors and warnings stay on print_.
+    """
+    syslog(message)
+    if not quiet:
+        print_(message)
+
+
+def reference_set_box(component: NXOpen.Assemblies.Component, refset: str, label: str) -> Optional[Box3d]:
+    """
+    The combined absolute box of component's solid bodies under refset, measured by switching component to it and
+    putting it back on the reference set it had. None when the part has no such reference set or it shows no solid
+    body (printed, prefixed with label). Switching kills the component's body occurrences - capture anything read
+    off them first.
+    """
+    if not has_reference_set(component.Prototype, refset):
+        return None
+
+    original_refset = component.ReferenceSet
+    try:
+        set_reference_set(component, refset)
+        bodies = solid_body_members(component)
+        if not bodies:
+            print_("{}: {} {} has no solid body - using the picked body.".format(label, component.DisplayName, refset))
+            return None
+        return combine_boxes([body_box(b) for b in bodies])
+    finally:
+        if original_refset != refset:
+            set_reference_set(component, original_refset)
+
+
+def confirm_missing_reference_sets(label: str, purpose: str, components: Iterable[NXOpen.Assemblies.Component],
+                                   refsets: Sequence[str]) -> bool:
+    """
+    Checks every component for refsets. When any are missing, one Question box (title label) lists each component,
+    its current reference set and what it lacks, after purpose ("The window height is taken from ...").
+    True to proceed with the current reference set for those (printed per component), False when the user declines.
+    """
+    missing = []
+    for component in components:
+        absent = [name for name in refsets if not has_reference_set(component.Prototype, name)]
+        if absent:
+            missing.append("{} (current: {}) has no {}".format(component.DisplayName, component.ReferenceSet,
+                                                               " or ".join(absent)))
+    if not missing:
+        return True
+
+    message = "{}, but:\r\n{}\r\n\r\nProceed using the current reference set for those?".format(
+        purpose, "\r\n".join(missing))
+    # 1 is Yes on a Question box.
+    if message_box(label, NXOpen.NXMessageBox.DialogType.Question, message) != MessageBoxYes:
+        print_("{} cancelled: {}".format(label, "; ".join(missing)))
+        return False
+
+    for line in missing:
+        info("{}: {} - using the current reference set.".format(label, line))
+    return True
+
+
 def find_or_create_reference_set(part: NXOpen.BasePart, name: str) -> NXOpen.ReferenceSet:
     """Merlin.FindOrCreateReferenceSet - the part's reference set, created and named when absent."""
     existing = find_reference_set_or_null(part, name)
@@ -559,7 +740,7 @@ def find_or_create_reference_set(part: NXOpen.BasePart, name: str) -> NXOpen.Ref
         return existing
     created = part.CreateReferenceSet()
     created.SetName(name)
-    print_('Created reference set "{}" in {}'.format(name, part.Leaf))
+    info('Created reference set "{}" in {}'.format(name, part.Leaf))
     return created
 
 
@@ -757,12 +938,6 @@ def lock_updates() -> Iterator[None]:
         ufsession_.Modeling.Update()
 
 
-def delete_objects(*objects: NXOpen.TaggedObject) -> None:
-    """Session.__DeleteObjects / TaggedObject.__Delete - adds to the delete list inside a DoUpdate."""
-    with do_update():
-        session_.UpdateManager.AddObjectsToDeleteList(list(objects))
-
-
 def add_z(point: NXOpen.Point3d, z: float) -> NXOpen.Point3d:
     """Point3d.__AddZ"""
     return NXOpen.Point3d(point.X, point.Y, point.Z + z)
@@ -823,31 +998,6 @@ def curve_mid_point(curve: NXOpen.Curve) -> NXOpen.Point3d:
 # ---------------------------------------------------------------------------------------------------
 # UFunc naming / cue line / extra Disposable wrappers (ref-set UFunc ports)
 # ---------------------------------------------------------------------------------------------------
-
-def ufunc_rev_name(ufunc_name: str, rev_name: str = "") -> str:
-    """_UFunc.ufunc_rev_name - "{AssemblyFileVersion} - {ufunc_name}".
-
-    Python has no assembly version, so a caller in C# passes its own ufunc_rev_name as rev_name; run
-    standalone (rev_name "") it reads "Python - {ufunc_name}".
-    """
-    return rev_name if rev_name else "Python - {}".format(ufunc_name)
-
-
-def prompt(message: str) -> None:
-    """Extensions.prompt - writes the cue line."""
-    ufsession_.Ui.SetPrompt(message)
-
-
-@contextlib.contextmanager
-def do_update(undo_text: str = "Do Update") -> Iterator[None]:
-    """DoUpdate (session_.__UsingDoUpdate) - sets a visible undo mark, then DoUpdate + deletes it on exit."""
-    undo = session_.SetUndoMark(NXOpen.Session.MarkVisibility.Visible, undo_text)
-    try:
-        yield
-    finally:
-        session_.UpdateManager.DoUpdate(undo)
-        session_.DeleteUndoMark(undo, "")
-
 
 @contextlib.contextmanager
 def regenerate_display() -> Iterator[None]:
@@ -965,26 +1115,6 @@ _T = _TypeVar("_T")
 _K = _TypeVar("_K")
 
 
-@contextlib.contextmanager
-def do_update(undo_text: str = "Do Update") -> Iterator[None]:
-    """DoUpdate (Session.__UsingDoUpdate) - visible undo mark on entry; DoUpdate + DeleteUndoMark on exit."""
-    mark = session_.SetUndoMark(NXOpen.Session.MarkVisibility.Visible, undo_text)
-    try:
-        yield
-    finally:
-        session_.UpdateManager.DoUpdate(mark)
-        session_.DeleteUndoMark(mark, "")
-
-
-@contextlib.contextmanager
-def regenerate_display() -> Iterator[None]:
-    """RegenerateDisplay (Session.__UsingRegenerateDisplay) - UF_DISP_regenerate_display on exit."""
-    try:
-        yield
-    finally:
-        ufsession_.Disp.RegenerateDisplay()
-
-
 def delete_objects(objects: _Sequence[NXOpen.TaggedObject]) -> None:
     """Session.__DeleteObjects - adds the objects to the delete list inside a DoUpdate."""
     with do_update():
@@ -1048,8 +1178,9 @@ def reference_sets(part: NXOpen.BasePart, name: str) -> NXOpen.ReferenceSet:
 
 
 def prompt(message: str) -> None:
-    """Extensions.prompt - writes the cue line."""
+    """Extensions.prompt - writes the cue line, and the same line to Auto Design's progress window (progress)."""
     ufsession_.Ui.SetPrompt(message)
+    progress(message)
 
 
 _assembly_file_version: Optional[str] = None
@@ -1082,7 +1213,8 @@ def assembly_file_version() -> str:
             return _assembly_file_version
         words = ctypes.cast(pointer, ctypes.POINTER(ctypes.c_ushort))
         key = "\\StringFileInfo\\{:04x}{:04x}\\FileVersion".format(words[0], words[1])
-        if version_dll.VerQueryValueW(data, key, ctypes.byref(pointer), ctypes.byref(length)) and length.value:
+        if version_dll.VerQueryValueW(data, key, ctypes.byref(pointer), ctypes.byref(length)) and length.value \
+                and pointer.value is not None:
             _assembly_file_version = ctypes.wstring_at(pointer.value, length.value).rstrip("\0")
     except Exception:
         _assembly_file_version = ""

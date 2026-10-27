@@ -33,6 +33,8 @@ if _here not in sys.path:
 import NXOpen  # noqa: E402
 import NXOpen.Assemblies  # noqa: E402
 import NXOpen.Features  # noqa: E402
+import NXOpen.Layer  # noqa: E402
+import NXOpen.UF  # noqa: E402
 
 import tsg_nx as nx  # noqa: E402
 
@@ -310,6 +312,11 @@ def _rebase_block_to_part_origin(component: NXOpen.Assemblies.Component, parent:
     nx.set_display_part(new_part)
     nx.set_work_part(new_part)
 
+    # The builder's Length/Width/Height come back None in Python, so the size expressions come from
+    # UF_MODL_ask_block_parms ("name=value" strings, length / width / height) - as DrawDie's re-base does.
+    length_exp, width_exp, height_exp = (new_part.Expressions.FindObject(parm.split("=", 1)[0].strip())
+                                         for parm in nx.ufsession_.ModlFeatures.AskBlockParms(block.Tag, 0))
+
     # The block's own origin and orientation, read in assembly coordinates - they become the component's
     # position after the reset below.
     builder = new_part.Features.CreateBlockFeatureBuilder(block)
@@ -322,9 +329,9 @@ def _rebase_block_to_part_origin(component: NXOpen.Assemblies.Component, parent:
         builder.SetOrientation(NXOpen.Vector3d(1.0, 0.0, 0.0), NXOpen.Vector3d(0.0, 1.0, 0.0))
         builder.SetOriginAndLengths(
             NXOpen.Point3d(0.0, 0.0, 0.0),
-            builder.Length.RightHandSide,
-            builder.Width.RightHandSide,
-            builder.Height.RightHandSide)
+            length_exp.RightHandSide,
+            width_exp.RightHandSide,
+            height_exp.RightHandSide)
         builder.Commit()
     finally:
         builder.Destroy()
