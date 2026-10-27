@@ -130,6 +130,12 @@ BEGIN_GROUP MISC
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\solid-attributer.dll
 
+    BUTTON NINE99
+        LABEL 999
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\Nine99.py
+
 END_GROUP
 
 BEGIN_GROUP GM

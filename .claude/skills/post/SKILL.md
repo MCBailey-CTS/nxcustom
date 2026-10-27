@@ -20,6 +20,7 @@ Usage: `/post <name> [<name> ...] [--nx <version>[,<version> ...]] [--from <path
   |---|---|
   | `point-component` | `PointComponent.py`, `tsg_nx.py` (imported by `PointComponent.py`) |
   | `auto-design` *(Python only)* | `AutoDesign.py`, `AutoDesign.dlx`, `DeadStrike.py`, `DeadStrike.dlx`, `DrawDie.py`, `GmBlankStation.py`, `GmBlankStationDialog.py`, `GmBlankStationDialog.dlx`, `GmCastPost.py`, `GmCastTrimPad.py`, `GmPierce.py`, `GmSplitForm.py`, `GmSplitFormDialog.py`, `GmSplitFormDialog.dlx`, `GmSplitFormWithPlateBackside.py`, `PointComponent.py`, `WireStartHole.py`, `progress_window.py`, `ProgressWindow.ps1`, `tsg_dialog.py`, `tsg_nx.py`, `usage_db.py`, `pyodbc.cp310-win_amd64.pyd` |
+  | `nine-99-block` *(Python only)* | `Nine99.py`, `DrawDie.py`, `GmCastTrimPad.py`, `GmSplitForm.py`, `GmSplitFormDialog.py`, `GmSplitFormDialog.dlx`, `PointComponent.py`, `tsg_dialog.py`, `tsg_nx.py`, `usage_db.py`, `pyodbc.cp310-win_amd64.pyd` |
 
   When a plugin gains a script, add it here along with any module it imports from the `python\` folder (check its `import` lines, including imports inside functions), any `.dlx` dialog it names, and anything those load in turn.
 
