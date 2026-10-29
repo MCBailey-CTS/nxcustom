@@ -2,11 +2,12 @@
 The profile-subtract UFunc: a standalone Python UFunc (no C# class); its menu button runs this file's main().
 
 Three dialogs (tools\\make-dlx.py, 2026-10-29), all anywhere in the assembly:
-  - ProfileSubtractTargets.dlx: the target solid bodies only. Each is blanked as soon as it is picked (so the tool
-    faces behind it can be picked next), one taken out of the pick is unblanked, and every one still blanked is
-    unblanked when the run ends - cancelled, finished or failed;
-  - one target picked: ProfileSubtractTools.dlx - the offset and many planar tool faces;
-  - many targets picked: ProfileSubtractTool.dlx - the offset and a single planar tool face.
+  - ProfileSubtractTargets.dlx: target faces only - a face of each target solid body (the body is the target; the
+    faces the subtract makes are colored like the first face picked on that body, 2026-10-29). Each face's body is
+    blanked as soon as it is picked (so the tool faces behind it can be picked next), one taken out of the pick is
+    unblanked, and every one still blanked is unblanked when the run ends - cancelled, finished or failed;
+  - one target body picked: ProfileSubtractTools.dlx - the offset and many planar tool faces;
+  - many target bodies picked: ProfileSubtractTool.dlx - the offset and a single planar tool face.
 OK stays greyed out until something is picked.
 
 The offset's units follow the job (tsg_dialog.detect_customer, 2026-10-29): a GM job - or one it cannot tell -
@@ -22,19 +23,21 @@ so one bad face does not drop the rest):
     the curves are in the part's own coordinates (Boss found that taking them from the assembly offsets them by the
     component's position a second time);
   - the linked face is deleted; the edge curves stay in the target's part;
-  - the curves are offset outward by the offset (an Offset Curve feature, the edge curves kept; a negative offset
-    goes inward, 0 skips it). Which side the builder offsets to follows the loop's direction, so the result is
-    measured and redone reversed if its box came out smaller;
+  - the curves are offset outward by the offset (a non-associative Offset Curve - plain curves, no feature,
+    2026-10-29 - the edge curves kept; a negative offset goes inward, 0 skips it). Which side the builder offsets to
+    follows the loop's direction, so the result is measured and deleted and redone reversed if its box came out
+    smaller;
   - each 45-degree corner of the offset profile (a line at 45 degrees to the lines either side of it - a chamfer) is
     turned into a 25 mm radius (CornerRadiusMm, 2026-10-29): the two side lines are trimmed back to the arc's
-    tangent points and the arc replaces the chamfer. The offset's curves are feature output and cannot be edited, so
-    the trimmed lines and the arcs are new dumb curves and the curves they replace are blanked. A chamfer whose side
-    lines are too short for the radius is left as it is (noted in the syslog);
+    tangent points and the arc replaces the chamfer (new lines and arcs; the curves they replace are deleted). A
+    chamfer whose side lines are too short for the radius is left as it is (noted in the syslog);
   - the offset curves are extruded 10" both ways along the linked face's normal (Boss._snap_extrude) and the
-    extrude is subtracted from the target body. The offset, radius and extrude lengths are converted to the target
-    part's units.
-The starting display and work parts are restored in a finally. The curves, offset and extrude stay as features
-behind the subtract, so the profile can be edited.
+    extrude is subtracted from the target body, and the faces the subtract made (the boolean's own faces) are
+    colored like the target face. A profile that does not reach the body (NX error 670030) is noted in the listing
+    window, its extrude deleted, and not logged to tblExceptions. The offset, radius and extrude lengths are
+    converted to the target part's units. The display is not suppressed (2026-10-29).
+The starting display and work parts are restored in a finally. The edge and offset curves stay in the part as plain
+curves; the extrude stays a feature behind the subtract.
 
 Two ways in:
   - File -> Execute -> NX Open on this file runs main().
@@ -71,8 +74,8 @@ from tsg_dialog import CustomerTsg, Dialog, detect_customer, title_with_version 
 
 ufunc_name = "profile-subtract"
 
-# UF_UI_SEL_FEATURE_SOLID_BODY - not in every UFConstants build, so the number Perfect.py uses too.
-_SolidBodyDetail = 36
+# NX's boolean error when the tool body does not intersect the target: nothing to subtract.
+_ErrorNoIntersection = 670030
 
 # How far the profile is extruded each way along the tool face's normal.
 ExtrudeInches = 10.0
@@ -88,8 +91,8 @@ class ProfileSubtract(object):
     @staticmethod
     def execute() -> None:
         """
-        The targets dialog, then the tools dialog for one target (many faces) or for many targets (one face), then
-        build per target. The targets, blanked once picked, are unblanked at the end - cancelled, finished or failed.
+        The targets dialog (a face per target body), then the tools dialog for one target body (many faces) or for
+        many (one face), then build per body, the new faces colored like that body's first picked face. The target bodies, blanked once picked, are unblanked at the end - cancelled, finished or failed.
         """
         title = title_with_version("Profile Subtract")
         targets_dialog = _TargetsDialog(title)
@@ -98,12 +101,22 @@ class ProfileSubtract(object):
                 return
             targets = targets_dialog.targets
             # One target: many tool faces. Many targets: one tool face.
-            tools_dialog = _ToolsDialog(title, many_faces=len(targets) == 1)
+            tools_dialog = _ToolsDialog(title, many_faces=len({f.GetBody().Tag for f in targets}) == 1)
             if not tools_dialog.run() or not tools_dialog.tool_faces:
                 return
 
+            # The target faces by their body, in pick order: each body is built once, and its new faces take the
+            # color of its first picked face.
+            bodies: List[NXOpen.Body] = []
+            colors: Dict[int, int] = {}
+            for face in targets:
+                body = face.GetBody()
+                if body.Tag not in colors:
+                    bodies.append(body)
+                    colors[body.Tag] = face.Color
+
             built: Set[int] = set()
-            for target in targets:
+            for target in bodies:
                 # Two occurrences of one part share its body: subtract into it once.
                 owner = cast(NXOpen.Body, target.Prototype) if target.IsOccurrence else target
                 if owner.Tag in built:
@@ -112,19 +125,22 @@ class ProfileSubtract(object):
                     continue
                 built.add(owner.Tag)
                 try:
-                    build(target, tools_dialog.tool_faces, tools_dialog.offset, tools_dialog.offset_in_mm)
+                    build(target, tools_dialog.tool_faces, tools_dialog.offset, tools_dialog.offset_in_mm,
+                          colors[target.Tag])
                 except Exception as ex:
                     nx.print_exception(ex)
         finally:
             targets_dialog.unblank_targets()
 
 
-def build(target: NXOpen.Body, tool_faces: Sequence[NXOpen.Face], offset: float, offset_in_mm: bool = False) -> int:
+def build(target: NXOpen.Body, tool_faces: Sequence[NXOpen.Face], offset: float, offset_in_mm: bool = False,
+          color: Optional[int] = None) -> int:
     """
     Per tool face: links it into the target's owning part without its holes, copies the linked face's edges to curves
     there, deletes the link, offsets the curves outward by offset (millimetres with offset_in_mm, else inches),
-    extrudes them ExtrudeInches up and down the face's normal and subtracts that from the target body. Returns how
-    many faces were subtracted.
+    extrudes them ExtrudeInches up and down the face's normal and subtracts that from the target body, the faces the
+    subtract made colored color (unless None). A profile that misses the body (NX error 670030) is noted, its extrude
+    deleted, and not logged as an exception. Returns how many faces were subtracted.
     """
     starting_display = nx.display_part()
     starting_work = nx.work_part()
@@ -144,8 +160,21 @@ def build(target: NXOpen.Body, tool_faces: Sequence[NXOpen.Face], offset: float,
                 profile = _offset_outward(curves, part_offset)
                 profile = _round_chamfers(profile, CornerRadiusMm * per_inch / 25.4)
                 extrude = _snap_extrude(profile, normal, ExtrudeInches * per_inch, start=-ExtrudeInches * per_inch)
-                nx.create_boolean(owner, list(extrude.GetBodies()), NXOpen.Features.Feature.BooleanType.Subtract)
+                faces_before = {f.Tag for f in owner.GetFaces()}
+                try:
+                    subtract = nx.create_boolean(owner, list(extrude.GetBodies()),
+                                                 NXOpen.Features.Feature.BooleanType.Subtract)
+                except NXOpen.NXException as ex:
+                    if ex.ErrorCode != _ErrorNoIntersection:
+                        raise
+                    # Not an error to log (tblExceptions): this face's profile just does not reach the body.
+                    _snap_delete([extrude])
+                    nx.print_("Profile Subtract: the profile of tool face {} does not intersect {} - nothing "
+                              "subtracted.".format(tool_faces.index(face) + 1, target_part.Leaf))
+                    continue
                 subtracted += 1
+                if color is not None:
+                    _color_new_faces(subtract, owner, faces_before, color)
             except Exception as ex:
                 nx.print_exception(ex)
     finally:
@@ -155,6 +184,21 @@ def build(target: NXOpen.Body, tool_faces: Sequence[NXOpen.Face], offset: float,
     nx.print_("Profile Subtract: subtracted {} of {} tool face(s) from {}.".format(
         subtracted, len(tool_faces), target_part.Leaf))
     return subtracted
+
+
+def _color_new_faces(subtract: NXOpen.Features.Feature, body: NXOpen.Body, faces_before: Set[int],
+                     color: int) -> None:
+    """
+    Colors the faces subtract made: the feature's own faces (the walls the extrude cut), or, when it reports none,
+    the body's faces that were not there before it.
+    """
+    faces = list(subtract.GetFaces()) or [f for f in body.GetFaces() if f.Tag not in faces_before]
+    for face in faces:
+        try:
+            nx.set_color(face, color)
+        except Exception as ex:
+            nx.print_exception(ex)
+    nx.syslog("Profile Subtract: {} new face(s) colored {}".format(len(faces), color))
 
 
 def _profile_curves(face: NXOpen.Face, assembly: NXOpen.Part,
@@ -189,28 +233,30 @@ def _profile_curves(face: NXOpen.Face, assembly: NXOpen.Part,
 
 def _offset_outward(curves: Sequence[NXOpen.Curve], distance: float) -> List[NXOpen.Curve]:
     """
-    An Offset Curve (Distance) feature of curves, distance in part units, in the work part, on the outside of the
-    loop: a negative distance goes inside. The builder's side depends on the loop's direction, so the result is
-    measured - an outward offset of a closed loop has the bigger box - and redone reversed when it went the wrong way.
-    The input curves are kept. A zero distance returns curves as they are.
+    A non-associative Offset Curve (Distance) of curves - plain curves, no feature, 2026-10-29 - distance in part
+    units, in the work part, on the outside of the loop: a negative distance goes inside. The builder's side depends
+    on the loop's direction, so the result is measured - an outward offset of a closed loop has the bigger box - and
+    deleted and redone reversed when it went the wrong way. The input curves are kept. A zero distance returns curves
+    as they are.
     """
     if abs(distance) < 1e-9:
         return list(curves)
 
     original = _box_size(curves)
     for reverse in (False, True):
-        feature = _offset_curve(curves, abs(distance), reverse)
-        offset = [c for c in feature.GetEntities() if isinstance(c, NXOpen.Curve)]
+        offset = _offset_curve(curves, abs(distance), reverse)
         if offset and (_box_size(offset) > original) == (distance > 0):
             return offset
-        _snap_delete([feature])
+        if offset:
+            _snap_delete(cast(List[NXOpen.NXObject], offset))
     raise RuntimeError("Could not offset the profile curves {} {}".format(
         "out" if distance > 0 else "in", nx.cs_double_str(abs(distance))))
 
 
-def _offset_curve(curves: Sequence[NXOpen.Curve], distance: float, reverse: bool) -> NXOpen.Features.Feature:
+def _offset_curve(curves: Sequence[NXOpen.Curve], distance: float, reverse: bool) -> List[NXOpen.Curve]:
     """Part.__CreateOffsetCurve(curves, distance, reverseDirection) - Distance type, input retained, tangents
-    extended at the corners."""
+    extended at the corners - but not associative: returns the plain offset curves (the builder's committed
+    objects), no Offset Curve feature."""
     part = nx.work_part()
     modeling: Any = cast(Any, part.Preferences).Modeling
     distance_tolerance = modeling.DistanceToleranceData
@@ -222,6 +268,7 @@ def _offset_curve(curves: Sequence[NXOpen.Curve], distance: float, reverse: bool
         geometric: Any = NXOpen.GeometricUtilities
         builder.Type = features.OffsetCurveBuilder.Types.Distance
         builder.InputCurvesOptions.InputCurveOption = geometric.CurveOptions.InputCurve.Retain
+        builder.InputCurvesOptions.Associative = False
         builder.CurveFitData.Tolerance = distance_tolerance
         builder.TrimMethod = features.OffsetCurveBuilder.TrimOption.ExtendTangents
         section = builder.CurvesToOffset
@@ -235,7 +282,11 @@ def _offset_curve(curves: Sequence[NXOpen.Curve], distance: float, reverse: bool
                                  NXOpen.Point3d(0.0, 0.0, 0.0), NXOpen.Section.Mode.Create, False)
         builder.OffsetDistance.RightHandSide = nx.cs_double_str(distance)
         builder.ReverseDirection = reverse
-        return cast(NXOpen.Features.Feature, builder.CommitFeature())
+        before = {c.Tag for c in part.Curves}
+        builder.Commit()
+        offset = [cast(NXOpen.Curve, o) for o in builder.GetCommittedObjects() if isinstance(o, NXOpen.Curve)]
+        # Should the builder not hand them back, they are the work part's curves that were not there before.
+        return offset or [c for c in part.Curves if c.Tag not in before]
     finally:
         builder.Destroy()
 
@@ -244,8 +295,8 @@ def _round_chamfers(curves: Sequence[NXOpen.Curve], radius: float) -> List[NXOpe
     """
     curves with every 45-degree corner turned into a radius (part units): a line whose two ends each meet another
     line at 45 degrees (+- _ChamferAngleTolerance) is replaced by an arc tangent to those two lines, which are
-    trimmed back to its tangent points. Replaced curves are blanked, not deleted (offset curves are feature output);
-    the result is the untouched curves plus new dumb lines and arcs in the work part.
+    trimmed back to its tangent points. The replaced curves are deleted; the result is the untouched curves plus new
+    lines and arcs in the work part.
     """
     tolerance = max(nx.distance_tolerance() * 10, 1e-6)
     lines = [cast(NXOpen.Line, c) for c in curves if isinstance(c, NXOpen.Line)]
@@ -292,14 +343,15 @@ def _round_chamfers(curves: Sequence[NXOpen.Curve], radius: float) -> List[NXOpe
     part = nx.work_part()
     replaced = {c.Tag for c in chamfers}
     result: List[NXOpen.Curve] = []
+    retired: List[NXOpen.NXObject] = []
     for curve in curves:
         if curve.Tag in replaced:
-            curve.Blank()
+            retired.append(curve)
             continue
         if isinstance(curve, NXOpen.Line):
             start, end = ends[curve.Tag]
             if _distance(start, curve.StartPoint) > 1e-9 or _distance(end, curve.EndPoint) > 1e-9:
-                curve.Blank()
+                retired.append(curve)
                 result.append(cast(NXOpen.Curve, part.Curves.CreateLine(start, end)))
                 continue
         result.append(curve)
@@ -309,6 +361,8 @@ def _round_chamfers(curves: Sequence[NXOpen.Curve], radius: float) -> List[NXOpe
         if isinstance(arc, (tuple, list)):
             arc = arc[0]
         result.append(cast(NXOpen.Curve, arc))
+    if retired:
+        _snap_delete(retired)
     nx.syslog("Profile Subtract: {} 45-degree corner(s) rounded to {}".format(len(arcs), nx.cs_double_str(radius)))
     return result
 
@@ -398,9 +452,10 @@ def _box_size(curves: Sequence[NXOpen.Curve]) -> float:
 
 class _TargetsDialog(Dialog):
     """
-    ProfileSubtractTargets.dlx: the target solid bodies, nothing else. Each is blanked as soon as it is picked (so
-    the tool faces behind it can be picked in the next dialog); one taken out of the pick is unblanked again. The
-    caller unblanks the rest (unblank_targets) when the run ends.
+    ProfileSubtractTargets.dlx: target faces, nothing else - a face of each target solid body, whose color the faces
+    the subtract makes take (2026-10-29; it used to pick the bodies). Each face's body is blanked as soon as it is
+    picked (so the tool faces behind it can be picked in the next dialog); a body none of whose faces is still picked
+    is unblanked again. The caller unblanks the rest (unblank_targets) when the run ends.
     """
 
     dlx_name = "ProfileSubtractTargets.dlx"
@@ -409,19 +464,20 @@ class _TargetsDialog(Dialog):
         self.title = title
         super().__init__()
         # Captured in ok(): the blocks are gone once Launch returns.
-        self.targets: List[NXOpen.Body] = []
+        self.targets: List[NXOpen.Face] = []
         # The target bodies blanked (update) by tag, unblanked by unblank_targets.
         self._blanked: Dict[int, NXOpen.Body] = {}
 
     def initialize(self) -> None:
-        body_mask = NXOpen.Selection.MaskTriple(NXOpen.UF.UFConstants.UF_solid_type, 0, _SolidBodyDetail)
+        face_mask = NXOpen.Selection.MaskTriple(NXOpen.UF.UFConstants.UF_solid_type, 0,
+                                                NXOpen.UF.UFConstants.UF_UI_SEL_FEATURE_ANY_FACE)
         self.block("targets").SetSelectionFilter(NXOpen.Selection.SelectionAction.ClearAndEnableSpecific,
-                                                 [body_mask])
+                                                 [face_mask])
         self.assembly_scope(self.block("targets"))
 
     def update(self, block: NXOpen.BlockStyler.UIBlock) -> None:
         if block == self.block("targets"):
-            picked = {b.Tag: b for b in self._picked_targets()}
+            picked = {b.Tag: b for b in (f.GetBody() for f in self._picked_targets())}
             # Taken out of the pick: show it again.
             for tag in [t for t in self._blanked if t not in picked]:
                 self._unblank(self._blanked.pop(tag))
@@ -453,13 +509,13 @@ class _TargetsDialog(Dialog):
         self.targets = self._picked_targets()
         # enable_ok greys OK out for this; it is a backstop.
         if not self.targets:
-            self.message("Select the target solid bodies.")
+            self.message("Select a face of each target solid body.")
             return False
         return True
 
-    def _picked_targets(self) -> List[NXOpen.Body]:
-        return [cast(NXOpen.Body, o) for o in self.selected(self.block("targets"))
-                if isinstance(o, NXOpen.Body) and cast(NXOpen.Body, o).IsSolidBody]
+    def _picked_targets(self) -> List[NXOpen.Face]:
+        return [cast(NXOpen.Face, o) for o in self.selected(self.block("targets"))
+                if isinstance(o, NXOpen.Face) and cast(NXOpen.Face, o).GetBody().IsSolidBody]
 
 
 class _ToolsDialog(Dialog):

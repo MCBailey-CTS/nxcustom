@@ -142,7 +142,7 @@ class AutoDesign(object):
         """
         Merlin.StaticAutoDesign - run from the -000: the dialog, then every PROGRAM group through its program. Each
         program is caught on its own. Progress goes to the window, opened once the dialog is accepted so it does not
-        sit on top of it. The dialog's Customer radio decides is_gm (TSG throws NotImplementedError); the argument is
+        sit on top of it. The dialog's Customer radio decides is_gm (TSG uses the CTS parts); the argument is
         not used.
         """
         global _log

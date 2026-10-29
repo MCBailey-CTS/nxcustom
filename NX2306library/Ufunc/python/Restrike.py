@@ -6,7 +6,7 @@ in the op's LADnn (the lower post, off and subtracting each body's component's L
 upper post, UPR-3D). Run from the -000; the work part does not matter, the stations are found by display name under it.
 
 The dialog (Restrike.dlx, tools\\make-dlx.py, 2026-10-29) is Draw Die's DrawDie.OpBodiesDialog: the Customer radio
-(None / TSG / GM, None on opening; TSG throws NotImplementedError), the solid bodies and a radio of the ops with both
+(None / TSG / GM, None on opening; TSG uses the CTS parts), the solid bodies and a radio of the ops with both
 a ladNN and a uadNN under the -000 (none is an error box before it; the work part's op is checked first). OK stays
 greyed out until TSG or GM is checked and a body is picked. Auto Design's RESTRIKE (its own _restrike_posts) still
 builds into 02.
@@ -55,7 +55,7 @@ class Restrike(object):
     def execute(is_gm: bool = True) -> None:
         """
         The units gate, the dialog (customer, bodies, op), then the lower and upper posts in that op. The dialog's
-        Customer radio decides is_gm (TSG throws NotImplementedError); the argument is not used.
+        Customer radio decides is_gm (TSG uses the CTS parts); the argument is not used.
         """
         ok, message = drawdie._check_info_units()
         if not ok:

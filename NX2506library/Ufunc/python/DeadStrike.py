@@ -17,7 +17,7 @@ X / Y the bodies + .375" a side, the top at their highest point and the bottom 2
 blocks with a .375" wall left standing round the subtract.
 
 The dialog (DeadStrike.dlx, tools\\make-dlx.py): the Customer radio (None / TSG / GM, None on opening; GM builds with
-the GM parts, TSG throws NotImplementedError), the solid bodies (anywhere in the assembly), Rows (x) / Cols (y) (1-5,
+the GM parts, TSG uses the CTS parts), the solid bodies (anywhere in the assembly), Rows (x) / Cols (y) (1-5,
 both sides' grid), and Lower / Upper boxes (both checked by default) to build only one side.
 OK stays greyed out until TSG or GM is checked, a body is picked and a side is checked.
 
@@ -72,7 +72,7 @@ class DeadStrike(object):
     def execute(is_gm: bool = True) -> None:
         """
         The dialog, then both sides' split forms (or the one side checked). The dialog's Customer radio decides is_gm
-        (TSG throws NotImplementedError); the argument is not used.
+        (TSG uses the CTS parts); the argument is not used.
         """
         dialog = _DeadStrikeDialog(title_with_version("Dead Strike"))
         if not dialog.run():

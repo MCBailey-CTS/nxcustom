@@ -8,7 +8,7 @@ The Merlin builder for a full draw station minus the nitrogen, from the "DRAW DI
   - UADnn: eight cavity form steels (UPR-3D) and the mounting plate on top of them.
 
 The draw-die UFunc picks through a Block Styler dialog (DrawDie.dlx, tools\\make-dlx.py, 2026-10-29): the Customer
-radio (None / TSG / GM, None on opening; TSG throws NotImplementedError), the part's solid bodies and a radio of the
+radio (None / TSG / GM, None on opening; TSG uses the CTS parts), the part's solid bodies and a radio of the
 ops - the display part's station numbers with both a ladNN and a uadNN, read when it opens (none is an error box
 before it; the work part's number is checked first when it is one), and Edit Spreadsheets (checked on every opening;
 off, no key's or guided retainer's sheet is opened, as in Auto Design - 2026-10-29). OK stays greyed out until TSG or GM is checked
@@ -311,7 +311,7 @@ def static_draw_die(is_gm: bool) -> None:
     """
     Merlin.StaticDrawDie - run from the -000: the units and -000 gates, the ops with both a LADnn and a UADnn (none
     is an error before the dialog), then the dialog (customer, part bodies, op) and build_draw_die into that op. The
-    dialog's Customer radio decides is_gm (TSG throws NotImplementedError); the argument is not used.
+    dialog's Customer radio decides is_gm (TSG uses the CTS parts); the argument is not used.
     """
     ok, message = _check_info_units()
     if not ok:

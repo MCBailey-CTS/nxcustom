@@ -38,8 +38,8 @@ _SolidBodyDetail = 36
 
 def ask(title: str) -> Optional[Tuple[List[NXOpen.Body], str]]:
     """
-    Shows the dialog titled title; (picked slug bodies, "D2" | "S7") once accepted, None otherwise. TSG on the
-    Customer radio throws NotImplementedError (the build only has the GM parts).
+    Shows the dialog titled title; (picked slug bodies, "D2" | "S7") once accepted, None otherwise. TSG and GM build
+    the same (the blank station has no CTS branch).
     """
     try:
         dialog = _BlankStationDialog(title)

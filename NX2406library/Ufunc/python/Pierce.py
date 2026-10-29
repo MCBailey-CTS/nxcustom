@@ -12,7 +12,7 @@ Pick slug bodies (english info units, display and work part). Each slug is class
 Anything else is printed and skipped. Every dimension is in millimetres and carried as the C# string.
 
 The pierce and full-pierce UFuncs pick through one Block Styler dialog (Pierce.dlx, tools\\make-dlx.py, 2026-10-29):
-the Customer radio (None / TSG / GM, None on opening; TSG throws NotImplementedError), the slug bodies (anywhere in
+the Customer radio (None / TSG / GM, None on opening; TSG uses the CTS parts), the slug bodies (anywhere in
 the assembly) and a radio of the ops to place the details in - the display part's station numbers with both a ladNN
 and a uadNN, read when the dialog opens (none is an error box before it; the work part's number, when it is a
 station, is checked first). OK stays greyed out until TSG or GM is checked and a body is picked. AutoDesign passes
@@ -255,7 +255,7 @@ def static_pierce(is_gm: bool) -> None:
 def run_pierce(is_gm: bool, label: str = "Pierce") -> List[Component]:
     """
     PierceMerlin.RunPierce(bool) - units gate, then the Pierce dialog (customer, slug bodies, op), then the build.
-    [] on gate failure or cancel. The dialog's Customer radio decides is_gm (TSG throws NotImplementedError); the
+    [] on gate failure or cancel. The dialog's Customer radio decides is_gm (TSG uses the CTS parts); the
     argument is not used.
     """
     picked = _ask_pierce(label)
@@ -891,7 +891,7 @@ def _ask_pierce(label: str) -> Optional[Tuple[bool, List[NXOpen.Body], str]]:
     """
     The units gate, then the Pierce dialog titled '{version} - label': (is_gm, slug bodies, station number) once it
     is accepted. None after an error box (units, no station) or when it is cancelled (Dialog.run marked the run
-    cancelled). TSG throws NotImplementedError.
+    cancelled). TSG uses the CTS parts.
     """
     ok, message = drawdie._check_info_units()
     if not ok:

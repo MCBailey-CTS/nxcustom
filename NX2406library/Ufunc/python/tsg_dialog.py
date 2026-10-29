@@ -296,11 +296,14 @@ def title_with_version(title: str) -> str:
 
 
 def is_gm_customer(customer: str) -> bool:
-    """True for GM. TSG throws NotImplementedError: the CTS parts are not wired up yet. None throws ValueError."""
+    """
+    True for GM, False for TSG (2026-10-29: the builders' CTS branches - cts- names, the CTS keys / lift lugs / guided
+    keepers - in the same stations; it used to throw NotImplementedError). None throws ValueError.
+    """
     if customer == CustomerGm:
         return True
     if customer == CustomerTsg:
-        raise NotImplementedError("TSG is not implemented yet - only the GM parts can be added. Pick GM.")
+        return False
     raise ValueError("Pick TSG or GM, not '{}'.".format(customer))
 
 
@@ -329,7 +332,7 @@ class CustomerDialog(Dialog):
 def ask_is_gm(title: str) -> Optional[bool]:
     """
     The Customer dialog titled '{version} - title', in place of the "Are you sure" box: True once GM is picked, None
-    when it is cancelled (Dialog.run marked the run cancelled). TSG throws NotImplementedError.
+    when it is cancelled (Dialog.run marked the run cancelled). TSG uses the CTS parts.
     """
     dialog = CustomerDialog(title_with_version(title))
     if not dialog.run():

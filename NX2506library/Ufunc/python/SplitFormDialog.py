@@ -70,7 +70,7 @@ class SplitFormDialog(object):
         if not accepted or dialog.body is None:
             return
 
-        # The dialog's Customer radio decides is_gm (TSG throws NotImplementedError); the is_gm argument is not used.
+        # The dialog's Customer radio decides is_gm (TSG uses the CTS parts); the is_gm argument is not used.
         is_gm = is_gm_customer(dialog.customer_choice)
 
         # The dialog stands in for the station detection, the split-count menus and the body pick.
