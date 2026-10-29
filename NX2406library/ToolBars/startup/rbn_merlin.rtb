@@ -19,13 +19,13 @@ BEGIN_GROUP FULL_HITS
         LABEL Blank Station
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\gm-blank-station.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\GmBlankStation.py
 
     BUTTON GM_SECONDARY_TRIM_STATION
         LABEL Secondary Trim Station
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\gm-secondary-trim-station.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\GmSecondaryTrimStation.py
 
     BUTTON DRAW_DIE
         LABEL Draw Die
@@ -49,7 +49,7 @@ BEGIN_GROUP FULL_HITS
         LABEL Restrike
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\GmCastPost.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\Restrike.py
 
     BUTTON PIERCE
         LABEL Pierce

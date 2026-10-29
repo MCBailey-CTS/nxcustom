@@ -139,8 +139,8 @@ class Dialog(object):
                 except NXOpen.NXException as ex:
                     nx.print_("assembly_scope: {} failed: {}".format(name, ex))
                     continue
-                # Until this is confirmed in NX: what the property held, its members, and what it holds now.
-                nx.print_("assembly_scope: {} was {} of {}, now {}".format(name, current, members, properties.GetEnum(name)))
+                # Syslog only: what the property held, its members, and what it holds now.
+                nx.syslog("assembly_scope: {} was {} of {}, now {}".format(name, current, members, properties.GetEnum(name)))
         finally:
             properties.Dispose()
 

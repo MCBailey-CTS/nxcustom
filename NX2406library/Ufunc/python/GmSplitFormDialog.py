@@ -126,10 +126,6 @@ class _SplitFormDialog(Dialog):
         self.block("backside").Value = self.backside
         self.block("backside").Enable = self.plate
 
-        if is_upper is None:
-            nx.print_("{}: the work part {} is not an upper (UAD/UPD/USH/USP) or lower (LAD/LSH/LSP) station - "
-                      "check the assembly by hand.".format(self.title, nx.work_part().Leaf))
-
     def update(self, block: NXOpen.BlockStyler.UIBlock) -> None:
         # Upper and Lower act as a radio pair: checking one unchecks the other; unchecking leaves neither.
         upper, lower = self.block("upper"), self.block("lower")
