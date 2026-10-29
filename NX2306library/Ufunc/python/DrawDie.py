@@ -403,7 +403,7 @@ def build_draw_die(is_gm: bool, bodies: Sequence[NXOpen.Body], build_lower_half:
         span_y = part_box.MaxY - part_box.MinY
 
         if span_x > span_y:
-            nx.print_("Draw Die: the part is longer in X ({}) than in Y ({}). The spec lays the die out long along "
+            nx.warn("Draw Die: the part is longer in X ({}) than in Y ({}). The spec lays the die out long along "
                       "Y, so the hoist rings and long-side placements will land on the short sides."
                       .format(_f3(span_x), _f3(span_y)))
 
@@ -446,7 +446,7 @@ def build_draw_die(is_gm: bool, bodies: Sequence[NXOpen.Body], build_lower_half:
         finally:
             # Session.__UsingTimer prints the elapsed TimeSpan.
             if not nx.quiet:
-                nx.print_(_time_span(datetime.datetime.now() - start))
+                nx.warn(_time_span(datetime.datetime.now() - start))
     except Exception as ex:
         nx.print_exception(ex)
     finally:
@@ -491,10 +491,10 @@ def _map_box_to_station(root_box: nx.Box3d, station: NXOpen.Assemblies.Component
         upright = abs(x_axis[0] - origin[0] - 1) < 1e-6 and abs(z_axis[2] - origin[2] - 1) < 1e-6
 
         if not upright:
-            nx.print_("Draw Die: {} is turned in {}. The draw die is laid out in its coordinates, so check that the "
+            nx.warn("Draw Die: {} is turned in {}. The draw die is laid out in its coordinates, so check that the "
                       "details are not upside down.".format(station.DisplayName, top_level.Leaf))
         elif any(abs(c) > 1e-6 for c in origin):
-            nx.print_("Draw Die: {} is not at the origin of {} - the part box was mapped into it.".format(
+            nx.warn("Draw Die: {} is not at the origin of {} - the part box was mapped into it.".format(
                 station.DisplayName, top_level.Leaf))
 
         return nx.Box3d(min(c[0] for c in corners), min(c[1] for c in corners), min(c[2] for c in corners),
@@ -1176,7 +1176,7 @@ def _center_draw_die_children_on_z(part: NXOpen.Part, components: Iterable[NXOpe
             bodies = nx.solid_body_members(component)
 
             if not bodies:
-                nx.print_("Draw Die: {} has no solid body to centre on Z {} - left where it is.".format(
+                nx.warn("Draw Die: {} has no solid body to centre on Z {} - left where it is.".format(
                     component.DisplayName, _f3(z)))
                 continue
 
@@ -1207,7 +1207,7 @@ def _save_as_draw_die_part(placed: Sequence[NXOpen.Assemblies.Component], job: D
     [cts-]{name}-{token}.prt, so its settings can be changed without touching the library.
     """
     if not placed:
-        nx.print_("Draw Die: nothing placed for {} - no Save As.".format(name))
+        nx.warn("Draw Die: nothing placed for {} - no Save As.".format(name))
         return
 
     try:
@@ -1235,7 +1235,7 @@ def _set_draw_die_key_size(placed: Sequence[NXOpen.Assemblies.Component], job: D
         return False
 
     if not job.is_gm:
-        nx.print_("Draw Die: CTS key sheet not mapped - {} left at its seed size.".format(placed[0].DisplayName))
+        nx.warn("Draw Die: CTS key sheet not mapped - {} left at its seed size.".format(placed[0].DisplayName))
         return False
 
     selection, label = size
@@ -1257,7 +1257,7 @@ def _set_draw_die_guided_retainer(placed: Sequence[NXOpen.Assemblies.Component],
         return False
 
     if not job.is_gm:
-        nx.print_("Draw Die: CTS guided keeper sheet not mapped - {} left at its seed settings.".format(
+        nx.warn("Draw Die: CTS guided keeper sheet not mapped - {} left at its seed settings.".format(
             placed[0].DisplayName))
         return False
 
@@ -1328,7 +1328,7 @@ def _apply_draw_die_sheet(placed: NXOpen.Assemblies.Component, label: str,
                 got = text(sheet.EvaluateCell(row, col, sheet.GetSheetNumberOfName(sheet_name)))
                 if got != expected:
                     ok = False
-                    nx.print_("Draw Die: {} {} {}!R{}C{} is {}, expected {}.".format(
+                    nx.warn("Draw Die: {} {} {}!R{}C{} is {}, expected {}.".format(
                         part.Leaf, label, sheet_name, row, col, got, expected))
 
             exp_attr = sheet.GetSheetNumberOfName("Exp-Attr")
@@ -1520,7 +1520,7 @@ def _rebase_block_to_part_origin(component: NXOpen.Assemblies.Component, parent:
     block = nx.first_block_feature(new_part)
 
     if block is None:
-        nx.print_("{} has no block feature - leaving its origin alone".format(new_part.Leaf))
+        nx.warn("{} has no block feature - leaving its origin alone".format(new_part.Leaf))
         return
 
     nx.set_display_part(new_part)
@@ -1630,7 +1630,7 @@ def _subtract_refset_from_dynamic_block(target_part: NXOpen.Part, component: NXO
     target_part's dynamic block, then restores restore_refset. NXException 670030 is swallowed with a print.
     """
     if not nx.has_reference_set(nx.prototype(component), subtract_refset):
-        nx.print_("Component {} doesn't containt a reference set {}".format(component.DisplayName, subtract_refset))
+        nx.warn("Component {} doesn't containt a reference set {}".format(component.DisplayName, subtract_refset))
         return
 
     nx.set_reference_set(component, subtract_refset)

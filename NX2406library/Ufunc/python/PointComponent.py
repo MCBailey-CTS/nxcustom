@@ -306,7 +306,7 @@ def _rebase_block_to_part_origin(component: NXOpen.Assemblies.Component, parent:
     block = nx.first_block_feature(new_part)
 
     if block is None:
-        nx.print_("{} has no block feature - leaving its origin alone".format(new_part.Leaf))
+        nx.warn("{} has no block feature - leaving its origin alone".format(new_part.Leaf))
         return
 
     nx.set_display_part(new_part)
@@ -383,7 +383,7 @@ def _subtract_components(get_target: Callable[[], NXOpen.Body],
     """Merlin.SubtractComponents - link each component's refset into the work part and subtract it."""
     for comp in components:
         if not nx.has_reference_set(nx.prototype(comp), refset):
-            nx.print_("Component {} does not have reference set {}, skipping boolean".format(comp.DisplayName, refset))
+            nx.warn("Component {} does not have reference set {}, skipping boolean".format(comp.DisplayName, refset))
             continue
 
         try:
@@ -439,7 +439,7 @@ def _set_reference_set_in_ancestor_assemblies(occurrence: NXOpen.Assemblies.Comp
             occurrences = nx.occurrences_of_part_in(owner_part, proto)
 
             if not occurrences:
-                nx.print_('Found no occurrence of {} in {} - reference set "{}" not set there'.format(
+                nx.warn('Found no occurrence of {} in {} - reference set "{}" not set there'.format(
                     proto.Leaf, owner_part.Leaf, refset))
                 continue
 
@@ -455,7 +455,7 @@ def _set_reference_set_in_ancestor_assemblies(occurrence: NXOpen.Assemblies.Comp
                         members.append(member)
 
                 if not members:
-                    nx.print_('No component of {} carries {} - reference set "{}" contents unchanged there'.format(
+                    nx.warn('No component of {} carries {} - reference set "{}" contents unchanged there'.format(
                         owner_part.Leaf, proto.Leaf, refset))
                 else:
                     nx.find_or_create_reference_set(owner_part, refset).AddObjectsToReferenceSet(members)
@@ -518,10 +518,10 @@ def _warn_about_unreached_station_assemblies(station: NXOpen.BasePart, proto: NX
             loaded = [leaf for leaf in candidates if nx.ufsession_.Part.IsLoaded(leaf) != 0]
 
             if not loaded:
-                nx.print_('{}: reference set "{}" NOT set in {} - not loaded in this session. Open the assembly and '
+                nx.warn('{}: reference set "{}" NOT set in {} - not loaded in this session. Open the assembly and '
                           'set it there, or re-run from the assembly.'.format(proto.Leaf, refset, " or ".join(candidates)))
             else:
-                nx.print_('{}: reference set "{}" NOT set in {} - loaded but contains no occurrence of the detail.'
+                nx.warn('{}: reference set "{}" NOT set in {} - loaded but contains no occurrence of the detail.'
                           .format(proto.Leaf, refset, " or ".join(loaded)))
     except Exception as ex:
         nx.print_exception(ex)

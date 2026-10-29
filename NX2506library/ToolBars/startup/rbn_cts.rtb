@@ -19,7 +19,7 @@ BEGIN_GROUP CTS_SIMULATION
         LABEL  Sim Ref Sets
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimRefSets.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\sim-ref-sets.dll("UFUNC", "SimRefSets")
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\SimRefSets.py
 
     BUTTON ExtractFreeEdgeCurves
         LABEL  Extract Free Edge Curves
@@ -37,13 +37,13 @@ BEGIN_GROUP CTS_SIMULATION
         LABEL  F-Shape Exporter
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\F-ShapeExporter.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\f-shape-exporter.dll("UFUNC", "F_ShapeExporter")
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\FShapeExporter.py
 
     BUTTON ExportSimPackage
         LABEL  Export Sim Package
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\ExportSimPackage.bmp        
-        ACTION ${NXCUSTOM_LIB}\ufunc\export-sim-package.dll("export-sim-package")
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\ExportSimPackage.py
 
 END_GROUP
 
@@ -72,13 +72,13 @@ BEGIN_GROUP CTS_LAYOUT
         LABEL  Blank Data Builder
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\Toolbars\bitmaps\BlankDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\blank-data-builder.dll("blank-data-builder")
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\BlankDataBuilder.py
 
     BUTTON ExportStrip
         LABEL  Export Strip
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\Toolbars\bitmaps\ExportStrip.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\export-strip.dll("export-strip")
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\ExportStrip.py
 
     BUTTON StripRefSetter
         LABEL  Strip Ref Setter
@@ -167,7 +167,7 @@ BEGIN_GROUP CTS_DESIGN
         LABEL  Delete Layer 50
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\DeleteLayer50.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\delete-layer-50.dll("delete-layer-50")
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\DeleteLayer50.py
 
     BUTTON MirrorComponents
         LABEL  Mirror Components
@@ -197,13 +197,13 @@ BEGIN_GROUP CTS_DESIGN
         LABEL  Delete Unused Curves
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\DeleteUnusedCurves.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\delete-unused-curves.dll("delete-unused-curves")
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\DeleteUnusedCurves.py
 
     BUTTON SimplifyCurves
         LABEL  Simplify Curves
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimplifyCurves.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\simplify-curves.dll("UFUNC", "SimplifyCurves")
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\SimplifyCurves.py
 
     BUTTON AddFasteners
         LABEL  Add Fasteners
@@ -215,7 +215,7 @@ BEGIN_GROUP CTS_DESIGN
         LABEL  Drain Holes
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\DrainHoleCreator.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\drain-hole-creator.dll("UFUNC", "DrainHoleCreator")
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\DrainHoleCreator.py
 
     BUTTON DetailNumberNote
         LABEL  Detail Number Note
@@ -227,13 +227,13 @@ BEGIN_GROUP CTS_DESIGN
         LABEL  Create Burnout
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CreateBurnout.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\create-burnout.dll("create-burnout")
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\CreateBurnout.py
 
     BUTTON CreateResetDatumCsys
         LABEL  Create Reset Datum Csys
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CreateResetDatumCsys.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\create-reset-datum-csys.dll("create-reset-datum-csys")
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\CreateResetDatumCsys.py
 
     BUTTON PlotDetailDrawings
         LABEL  Plot Detail Drawings
@@ -245,7 +245,7 @@ BEGIN_GROUP CTS_DESIGN
         LABEL  Assembly Auto Detail
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\AssemblyAutoDetail.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\assembly-auto-detail.dll("assembly-auto-detail")
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\AutoDetail.py
 
     BUTTON WireTaperTrimDevelopment
         LABEL  Wire Taper Trim Development
@@ -263,7 +263,7 @@ BEGIN_GROUP CTS_DESIGN
         LABEL  Clean Job Directory
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CleanJobDirectory.bmp       
-        ACTION ${NXCUSTOM_LIB}\ufunc\clean-job-directory.dll("clean-job-directory")
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\CleanJobDirectory.py
 
     BUTTON AssemblyWaveLink
         LABEL  Assembly Wave Link
@@ -429,13 +429,13 @@ BEGIN_GROUP CTS_UTILITY
         LABEL  NX WinZip
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\NxWinZip.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\nx-win-zip.dll("nx-win-zip")
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\NxWinZip.py
 
     BUTTON Nx7zip
         LABEL  NX 7zip
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\Nx7zip.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\nx-7-zip.dll("nx-7-zip")
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\Nx7zip.py
 
     BUTTON CleanBodyRefSet
         LABEL  Clean Body Ref Set

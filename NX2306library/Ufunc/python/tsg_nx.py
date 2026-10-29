@@ -682,6 +682,17 @@ def info(message: object) -> None:
         print_(message)
 
 
+def warn(message: object) -> None:
+    """
+    A note, skip or timing - something left undone on purpose or worth a look, not a failure. Like info(): the
+    syslog always, the listing window only outside quiet_listing() (Auto Design's window shows only real errors and
+    exceptions). A failure stays on print_ / print_exception.
+    """
+    syslog(message)
+    if not quiet:
+        print_(message)
+
+
 def reference_set_box(component: NXOpen.Assemblies.Component, refset: str, label: str) -> Optional[Box3d]:
     """
     The combined absolute box of component's solid bodies under refset, measured by switching component to it and
@@ -697,7 +708,7 @@ def reference_set_box(component: NXOpen.Assemblies.Component, refset: str, label
         set_reference_set(component, refset)
         bodies = solid_body_members(component)
         if not bodies:
-            print_("{}: {} {} has no solid body - using the picked body.".format(label, component.DisplayName, refset))
+            warn("{}: {} {} has no solid body - using the picked body.".format(label, component.DisplayName, refset))
             return None
         return combine_boxes([body_box(b) for b in bodies])
     finally:

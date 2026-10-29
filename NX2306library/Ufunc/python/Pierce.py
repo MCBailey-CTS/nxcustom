@@ -11,10 +11,14 @@ Pick slug bodies (english info units, display and work part). Each slug is class
   - 4 linear + 4 circular edges     -> rectangle  (p/w = straight edge + 2r, r = corner radius; squares included)
 Anything else is printed and skipped. Every dimension is in millimetres and carried as the C# string.
 
-After the pick, the station: the display part's station numbers with both a ladNN and a uadNN (one is used as is,
-several are offered in a menu; none is an error). Every button goes into that lad, every punch and retainer into
-that uad (placed in the display part, then restructured under the station - same absolute position - and added to
-the station's BODY reference set). The C# put all three straight into the display part.
+The pierce and full-pierce UFuncs pick through one Block Styler dialog (Pierce.dlx, tools\\make-dlx.py, 2026-10-29):
+the Customer radio (None / TSG / GM, None on opening; TSG throws NotImplementedError), the slug bodies (anywhere in
+the assembly) and a radio of the ops to place the details in - the display part's station numbers with both a ladNN
+and a uadNN, read when the dialog opens (none is an error box before it; the work part's number, when it is a
+station, is checked first). OK stays greyed out until TSG or GM is checked and a body is picked. AutoDesign passes
+its station ("02") and the bodies straight to Pierce.build, with no dialog. Every button goes into that lad, every
+punch and retainer into that uad (placed in the display part, then restructured under the station - same absolute
+position - and added to the station's BODY reference set). The C# put all three straight into the display part.
 
 Rounds are grouped by p, oblongs by p then w, rectangles by p, w then r. Per size group, in this order:
   1. size  - the button and punch diameters are looked up FIRST (a table miss costs only this group, before
@@ -64,8 +68,8 @@ Differences from the C# / uncertainties (none of this has been run in NX):
     EvaluateUnitVectors at the mid parameter, since the Python UFEval has no Evaluate.
   - Vector3d.__IsIsParallelTo (UF_VEC3_is_parallel, tolerance .0001) is computed here: |a x b| <= .0001 |a||b|.
     Rectangle edges are either parallel or perpendicular, so the tolerance's exact meaning does not matter.
-  - The body pick is DrawDie._select_bodies (NXOpen SelectionManager, solid-body mask) with non-solid bodies
-    dropped after, where the C# is the SNAP select_solid_bodies; an empty pick counts as a cancel in both.
+  - The pierce / full-pierce pick is the Pierce dialog (above); the C# was the SNAP select_solid_bodies plus the
+    station menu. super_pierce still picks through DrawDie._select_bodies and the menu.
   - NormalizeSlugDimension is Python round(x, 6); .NET Math.Round(x, 6) can differ only on an exact binary
     midpoint at the 7th decimal, which slug noise never produces.
   - The C# exception types are mirrored by name (ArgumentOutOfRangeException, ArgumentException,
@@ -104,6 +108,7 @@ import NXOpen.UF  # noqa: E402
 import tsg_nx as nx  # noqa: E402
 import PointComponent as merlin  # noqa: E402
 import DrawDie as drawdie  # noqa: E402
+from tsg_dialog import CustomerNone, Dialog, is_gm_customer, title_with_version  # noqa: E402
 
 _T = TypeVar("_T")
 _K = TypeVar("_K")
@@ -248,14 +253,19 @@ def static_pierce(is_gm: bool) -> None:
     run_pierce(is_gm)
 
 
-def run_pierce(is_gm: bool) -> List[Component]:
-    """PierceMerlin.RunPierce(bool) - units gate + body pick, then the build. [] on gate failure or cancel."""
-    bodies = _try_begin_pierce("Pierce")
+def run_pierce(is_gm: bool, label: str = "Pierce") -> List[Component]:
+    """
+    PierceMerlin.RunPierce(bool) - units gate, then the Pierce dialog (customer, slug bodies, op), then the build.
+    [] on gate failure or cancel. The dialog's Customer radio decides is_gm (TSG throws NotImplementedError); the
+    argument is not used.
+    """
+    picked = _ask_pierce(label)
 
-    if bodies is None:
+    if picked is None:
         return []
 
-    return run_pierce_bodies(is_gm, bodies)
+    is_gm, bodies, station = picked
+    return run_pierce_bodies(is_gm, bodies, station)
 
 
 def run_pierce_bodies(is_gm: bool, bodies: List[NXOpen.Body], station: Optional[str] = None) -> List[Component]:
@@ -303,7 +313,7 @@ def run_pierce_bodies(is_gm: bool, bodies: List[NXOpen.Body], station: Optional[
     nx.set_work_part(nx.display_part())
     nx.session_.UpdateManager.DoUpdate(mark_id)
     if not nx.quiet:
-        nx.print_(drawdie._time_span(datetime.datetime.now() - time))
+        nx.warn(drawdie._time_span(datetime.datetime.now() - time))
     return created
 
 
@@ -315,10 +325,10 @@ def static_pierce_and_secondary(is_gm: bool) -> None:
     top_level = nx.display_part()
 
     try:
-        created = run_pierce(is_gm)
+        created = run_pierce(is_gm, "Full Pierce")
 
         if len(created) == 0:
-            nx.print_("Pierce created no components - skipping the secondary pass.")
+            nx.warn("Pierce created no components - skipping the secondary pass.")
             return
 
         _process_secondary_pierce(created)
@@ -338,7 +348,7 @@ def super_pierce(is_gm: bool) -> None:
         created = _run_super_pierce(is_gm)
 
         if len(created) == 0:
-            nx.print_("Super pierce created no components - skipping the secondary pass.")
+            nx.warn("Super pierce created no components - skipping the secondary pass.")
             return
 
         _process_secondary_pierce(created)
@@ -393,7 +403,7 @@ def _run_super_pierce(is_gm: bool) -> List[Component]:
     nx.set_work_part(nx.display_part())
     nx.session_.UpdateManager.DoUpdate(mark_id)
     if not nx.quiet:
-        nx.print_(drawdie._time_span(datetime.datetime.now() - time))
+        nx.warn(drawdie._time_span(datetime.datetime.now() - time))
     return created
 
 
@@ -875,20 +885,49 @@ _StationPattern = re.compile(r"(lad|uad)(\d\d)")
 _MaxMenuItems = 14
 
 
-def _pick_pierce_stations(station: Optional[str] = None) -> Optional[_PierceStations]:
-    """
-    The station numbers with both a ladNN and a uadNN under the display part. station ("02") is used when present;
-    otherwise one is used as is and several are offered in a menu. None (after an error box) when there are none or
-    station is missing, or (silently, the run marked cancelled) when the menu is cancelled.
-    """
+def _find_pierce_stations() -> Dict[str, Dict[str, Component]]:
+    """Station number ("02") -> {"lad": ..., "uad": ...} occurrences, for numbers with both under the display part."""
     root = nx.root_component(nx.display_part())
     found: Dict[str, Dict[str, Component]] = {}
     for component in (nx.descendants(root) if root is not None else []):
         match = _StationPattern.search(component.DisplayName.lower())
         if match is not None:
             found.setdefault(match.group(2), {}).setdefault(match.group(1), component)
+    return {number: kinds for number, kinds in found.items() if "lad" in kinds and "uad" in kinds}
 
-    numbers = sorted(number for number, kinds in found.items() if "lad" in kinds and "uad" in kinds)
+
+def _ask_pierce(label: str) -> Optional[Tuple[bool, List[NXOpen.Body], str]]:
+    """
+    The units gate, then the Pierce dialog titled '{version} - label': (is_gm, slug bodies, station number) once it
+    is accepted. None after an error box (units, no station) or when it is cancelled (Dialog.run marked the run
+    cancelled). TSG throws NotImplementedError.
+    """
+    ok, message = drawdie._check_info_units()
+    if not ok:
+        nx.show_error(message)
+        return None
+
+    numbers = sorted(_find_pierce_stations())
+    if len(numbers) == 0:
+        nx.show_error("No op with both a ladNN and a uadNN assembly was found under {}.".format(
+            nx.display_part().Leaf))
+        return None
+
+    dialog = _PierceDialog(title_with_version(label), numbers)
+    if not dialog.run():
+        return None
+
+    return is_gm_customer(dialog.customer_choice), dialog.bodies, dialog.station
+
+
+def _pick_pierce_stations(station: Optional[str] = None) -> Optional[_PierceStations]:
+    """
+    The station numbers with both a ladNN and a uadNN under the display part. station ("02") is used when present;
+    otherwise one is used as is and several are offered in a menu. None (after an error box) when there are none or
+    station is missing, or (silently, the run marked cancelled) when the menu is cancelled.
+    """
+    found = _find_pierce_stations()
+    numbers = sorted(found)
 
     if station is not None:
         if station not in numbers:
@@ -906,7 +945,7 @@ def _pick_pierce_stations(station: Optional[str] = None) -> Optional[_PierceStat
     else:
         options = numbers[:_MaxMenuItems]
         if len(numbers) > len(options):
-            nx.print_("Pierce: only the first {} of {} stations fit the menu.".format(len(options), len(numbers)))
+            nx.warn("Pierce: only the first {} of {} stations fit the menu.".format(len(options), len(numbers)))
         # DisplayMenu is not in the hand-written UFUi stub. Items start at response 5.
         response = int(cast(Any, nx.ufsession_.Ui).DisplayMenu("Pierce into station", 0, options, len(options)))
         index = response - 5
@@ -940,7 +979,7 @@ def _move_into_station(component: Component, station: Component) -> Component:
             component.DisplayName, station.DisplayName, "; ".join(messages) or "no component returned"))
 
     for message in messages:
-        nx.print_("Pierce: restructure into {} - {}".format(station.DisplayName, message))
+        nx.warn("Pierce: restructure into {} - {}".format(station.DisplayName, message))
 
     new_component = cast(Component, moved[0])
     nx.find_or_create_reference_set(nx.prototype(station), "BODY").AddObjectsToReferenceSet(
@@ -1225,7 +1264,7 @@ def _configure_pierce_retainer(retainer: Component, punch_diameter: int) -> None
     if applied > 0:
         return
 
-    nx.print_("Retainer d={}: the spreadsheet applied no expressions - falling back to get_retainer_expressions."
+    nx.warn("Retainer d={}: the spreadsheet applied no expressions - falling back to get_retainer_expressions."
               .format(punch_diameter))
     nx.set_work_component(retainer)
     _apply_retainer_expressions(punch_diameter)
@@ -1468,7 +1507,7 @@ def _process_secondary_pierce(components: Iterable[Optional[Component]]) -> None
                 nx.print_exception(ex, part.Leaf)
 
     if not nx.quiet:
-        nx.print_(drawdie._time_span(datetime.datetime.now() - then))
+        nx.warn(drawdie._time_span(datetime.datetime.now() - then))
 
 
 def _try_cell_value(field: str, text: Optional[str]) -> Optional[float]:
@@ -1482,7 +1521,7 @@ def _try_cell_value(field: str, text: Optional[str]) -> Optional[float]:
         except ValueError:
             pass
 
-    nx.print_('Pierce spreadsheet: no "{}" attribute on the part - leaving that cell alone.'.format(field)
+    nx.warn('Pierce spreadsheet: no "{}" attribute on the part - leaving that cell alone.'.format(field)
               if text is None else
               'Pierce spreadsheet: "{}" is "{}", which is not a number - leaving that cell alone.'.format(field, text))
 
@@ -1721,17 +1760,68 @@ def _enum_name(value: object) -> str:
     return str(value).rsplit(".", 1)[-1]
 
 
+# UF_UI_SEL_FEATURE_SOLID_BODY - not in every UFConstants build, so the number Perfect.py uses too.
+_SolidBodyDetail = 36
+
+
+class _PierceDialog(Dialog):
+    """Pierce.dlx: the Customer radio, the slug bodies and the op radio (filled from the assembly)."""
+
+    dlx_name = "Pierce.dlx"
+
+    def __init__(self, title: str, numbers: List[str]) -> None:
+        self.title = title
+        self.numbers = list(numbers)
+        super().__init__()
+        # Captured in ok(): the blocks are gone once Launch returns.
+        self.customer_choice = CustomerNone
+        self.bodies: List[NXOpen.Body] = []
+        self.station = self.numbers[0]
+
+    def initialize(self) -> None:
+        mask = NXOpen.Selection.MaskTriple(NXOpen.UF.UFConstants.UF_solid_type, 0, _SolidBodyDetail)
+        self.block("bodies").SetSelectionFilter(NXOpen.Selection.SelectionAction.ClearAndEnableSpecific, [mask])
+        # The slugs live in the strip components below the -000.
+        self.assembly_scope(self.block("bodies"))
+        # The ops come from the assembly; the .dlx only holds a placeholder.
+        self.block("station").SetEnumMembers(self.numbers)
+
+    def shown(self) -> None:
+        self.reset_customer()
+        # The work part's op when it is one of them (the user set it as a station), else the first.
+        match = _StationPattern.search(nx.work_part().Leaf.lower())
+        number = match.group(2) if match is not None and match.group(2) in self.numbers else self.numbers[0]
+        self.block("station").ValueAsString = number
+
+    def enable_ok(self) -> bool:
+        return self.customer_picked() and len(self._picked_bodies()) > 0
+
+    def ok(self) -> bool:
+        self.bodies = self._picked_bodies()
+        # enable_ok greys OK out for these; they are a backstop.
+        if not self.customer_picked():
+            self.message("Check TSG or GM.")
+            return False
+        if not self.bodies:
+            self.message("Select the slug bodies.")
+            return False
+        self.customer_choice = self.customer()
+        self.station = str(self.block("station").ValueAsString)
+        return True
+
+    def _picked_bodies(self) -> List[NXOpen.Body]:
+        return [cast(NXOpen.Body, o) for o in self.selected(self.block("bodies"))
+                if isinstance(o, NXOpen.Body) and cast(NXOpen.Body, o).IsSolidBody]
+
+
 def main() -> None:
     """The pierce UFunc - its menu button runs this file. An escaping exception is printed."""
     import usage_db
-    from tsg_dialog import ask_is_gm
 
     with usage_db.run("pierce"):
         try:
-            # The Customer dialog stands in for the "Are you sure" box: GM builds with the GM parts, TSG throws.
-            is_gm = ask_is_gm("Pierce")
-            if is_gm is not None:
-                Pierce.execute(is_gm)
+            # The Pierce dialog asks for the customer (and stands in for the "Are you sure" box).
+            Pierce.execute(True)
         except Exception as ex:
             nx.print_exception(ex)
 
