@@ -400,8 +400,9 @@ def _finish_block999(new_component: NXOpen.Assemblies.Component, block_body: NXO
                 nx.print_exception(ex)
 
         # The bottom was colored 42 when the block was built; the top (opposite it) gets 42 too. After the jack
-        # subtracts, which cut into the top face - colored before them, it came out 129.
-        top_face = nx.planar_face_with_normal_or_null(block_body, NXOpen.Vector3d(0.0, 0.0, 1.0))
+        # subtracts, which cut into the top face - colored before them, it came out 129. The +Z face at the top
+        # height: the counterbore floors (and any punch pocket floors) face +Z as well.
+        top_face = _planar_face_at_z(block_body, max_point.Z)
         if top_face is not None:
             nx.set_color(top_face, 42)
         else:
@@ -438,6 +439,18 @@ def _finish_block999(new_component: NXOpen.Assemblies.Component, block_body: NXO
         _add_xx_to_occurrences(nx.display_part(), renamed)
 
         return renamed
+
+
+def _planar_face_at_z(body: NXOpen.Body, z: float) -> Optional[NXOpen.Face]:
+    """The planar face of body facing +Z that lies at height z (within .001"), or None."""
+    up = NXOpen.Vector3d(0.0, 0.0, 1.0)
+    for face in body.GetFaces():
+        if face.SolidFaceType != NXOpen.Face.FaceType.Planar or not nx.vectors_equal(nx.face_normal(face), up):
+            continue
+        _type, point, _direction, _box, _radius, _rad_data, _norm_dir = nx.ufsession_.Modeling.AskFaceData(face.Tag)
+        if abs(point[2] - z) < 0.001:
+            return face
+    return None
 
 
 # A {job}-{op}-{detail} leaf.

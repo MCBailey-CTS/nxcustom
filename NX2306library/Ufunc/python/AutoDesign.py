@@ -69,7 +69,7 @@ import NXOpen.UF  # noqa: E402
 import tsg_nx as nx  # noqa: E402
 import DrawDie as drawdie  # noqa: E402
 from progress_window import ProgressWindow  # noqa: E402
-from tsg_dialog import Dialog, title_with_version  # noqa: E402
+from tsg_dialog import CustomerNone, Dialog, is_gm_customer, title_with_version  # noqa: E402
 
 ufunc_name = "auto-design"
 
@@ -142,7 +142,8 @@ class AutoDesign(object):
         """
         Merlin.StaticAutoDesign - run from the -000: the dialog, then every PROGRAM group through its program. Each
         program is caught on its own. Progress goes to the window, opened once the dialog is accepted so it does not
-        sit on top of it.
+        sit on top of it. The dialog's Customer radio decides is_gm (TSG throws NotImplementedError); the argument is
+        not used.
         """
         global _log
 
@@ -172,6 +173,7 @@ class AutoDesign(object):
         # A cancel prints nothing: Dialog.run already marked the run cancelled.
         if not accepted:
             return
+        is_gm = is_gm_customer(dialog.customer_choice)
 
         _log = _ProgressLog(title)
         try:
@@ -573,6 +575,7 @@ class _AutoDesignDialog(Dialog):
         self.deadhit_cols = 1
         self.edit_spreadsheets = True
         self.run_programs: Set[str] = set(Programs)
+        self.customer_choice = CustomerNone
 
     def initialize(self) -> None:
         mask = NXOpen.Selection.MaskTriple(NXOpen.UF.UFConstants.UF_solid_type, 0, _SolidBodyDetail)
@@ -581,6 +584,7 @@ class _AutoDesignDialog(Dialog):
         self.assembly_scope(self.block("bodies"))
 
     def shown(self) -> None:
+        self.reset_customer()
         for program in DisplayedPrograms:
             count = len(self.program_parts.get(program, []))
             toggle = self.block("run_" + program)
@@ -603,12 +607,16 @@ class _AutoDesignDialog(Dialog):
             self._update_bodies_block()
 
     def enable_ok(self) -> bool:
-        return (self._select_all() or len(self._picked_bodies()) > 0) and bool(self._checked_programs())
+        return (self.customer_picked() and (self._select_all() or len(self._picked_bodies()) > 0)
+                and bool(self._checked_programs()))
 
     def ok(self) -> bool:
         self.select_all = self._select_all()
         self.bodies = [] if self.select_all else self._picked_bodies()
-        # enable_ok greys OK out; this is a backstop.
+        # enable_ok greys OK out for these; they are a backstop.
+        if not self.customer_picked():
+            self.message("Check TSG or GM.")
+            return False
         if not self.select_all and not self.bodies:
             self.message("\"Select solids\" is chosen but no solid body is picked.")
             return False
@@ -623,6 +631,7 @@ class _AutoDesignDialog(Dialog):
         if not self.run_programs:
             self.message("No program is checked - nothing to run.")
             return False
+        self.customer_choice = self.customer()
         return True
 
     def _checked_programs(self) -> Set[str]:

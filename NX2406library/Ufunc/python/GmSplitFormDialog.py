@@ -34,7 +34,7 @@ import NXOpen.BlockStyler  # noqa: E402
 import NXOpen.UF  # noqa: E402
 
 import tsg_nx as nx  # noqa: E402
-from tsg_dialog import Dialog, title_with_version  # noqa: E402
+from tsg_dialog import CustomerNone, Dialog, is_gm_customer, title_with_version  # noqa: E402
 
 # NX will not build a Block Styler dialog from inside some callbacks (a menu or toolbar launch, it seems).
 _ErrorCannotLaunchDialog = 3520048
@@ -70,9 +70,12 @@ class GmSplitFormDialog(object):
         if not accepted or dialog.body is None:
             return
 
+        # The dialog's Customer radio decides is_gm (TSG throws NotImplementedError); the is_gm argument is not used.
+        is_gm = is_gm_customer(dialog.customer_choice)
+
         # The dialog stands in for the station detection, the split-count menus and the body pick.
         target = getattr(importlib.import_module(module), class_name)
-        target.execute_with(bool(is_gm), dialog.is_upper, dialog.rows, dialog.cols, [dialog.body], dialog.plate,
+        target.execute_with(is_gm, dialog.is_upper, dialog.rows, dialog.cols, [dialog.body], dialog.plate,
                             dialog.backside)
 
 
@@ -110,6 +113,7 @@ class _SplitFormDialog(Dialog):
         self.body: Optional[NXOpen.Body] = None
         self.plate = plate
         self.backside = backside
+        self.customer_choice = CustomerNone
 
     def initialize(self) -> None:
         mask = NXOpen.Selection.MaskTriple(NXOpen.UF.UFConstants.UF_solid_type, 0, _SolidBodyDetail)
@@ -119,6 +123,7 @@ class _SplitFormDialog(Dialog):
 
     def shown(self) -> None:
         # Value properties: set once the dialog is up, or its memory would overwrite them.
+        self.reset_customer()
         is_upper = detect_is_upper()
         self.block("upper").Value = is_upper is True
         self.block("lower").Value = is_upper is False
@@ -141,13 +146,17 @@ class _SplitFormDialog(Dialog):
                 self.block("backside").Value = False
 
     def enable_ok(self) -> bool:
-        return (bool(self.block("upper").Value) or bool(self.block("lower").Value)) and self._picked_body() is not None
+        return (self.customer_picked() and (bool(self.block("upper").Value) or bool(self.block("lower").Value))
+                and self._picked_body() is not None)
 
     def ok(self) -> bool:
         upper, lower = bool(self.block("upper").Value), bool(self.block("lower").Value)
         self.body = self._picked_body()
 
-        # enable_ok greys OK out for both; these are a backstop.
+        # enable_ok greys OK out for these; they are a backstop.
+        if not self.customer_picked():
+            self.message("Check TSG or GM.")
+            return False
         if not upper and not lower:
             self.message("Check Upper or Lower.")
             return False
@@ -155,6 +164,7 @@ class _SplitFormDialog(Dialog):
             self.message("Select a solid body.")
             return False
 
+        self.customer_choice = self.customer()
         self.is_upper = upper
         self.rows = int(self.block("rows").Value)
         self.cols = int(self.block("cols").Value)

@@ -31,7 +31,7 @@ BEGIN_GROUP FULL_HITS
         LABEL Draw Die
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\draw-die-creator.dll("UFUNC", "DrawDieCreator")
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\DrawDie.py
 
     BUTTON FLANGE_HIT
         LABEL Flange Hit
@@ -55,10 +55,10 @@ BEGIN_GROUP FULL_HITS
         LABEL Pierce
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\gm-pierce.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\GmPierce.py
 
     BUTTON GM_SPLIT_FORM
-        LABEL GM Split Form
+        LABEL Split Form
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\python\GmSplitForm.py
@@ -68,19 +68,19 @@ END_GROUP
 BEGIN_GROUP MERLIN_CAST
     LABEL CAST
         BUTTON GM_TRIM_CAST_PAD
-            LABEL GM Cast Trim Pad
+            LABEL Cast Trim Pad
             RIBBON_STYLE SMALL_IMAGE_AND_TEXT
             BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-            ACTION ${NXCUSTOM_LIB}\ufunc\gm-cast-trim-pad.dll
+            ACTION ${NXCUSTOM_LIB}\ufunc\python\GmCastTrimPad.py
 
         BUTTON GM_CAST_FORM_PAD
-            LABEL GM Cast Form Pad
+            LABEL Cast Form Pad
             RIBBON_STYLE SMALL_IMAGE_AND_TEXT
             BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-            ACTION ${NXCUSTOM_LIB}\ufunc\gm-cast-form-pad.dll
+            ACTION ${NXCUSTOM_LIB}\ufunc\python\GmCastFormPad.py
 
         BUTTON GM_CAST_POST
-            LABEL GM Cast Post
+            LABEL Cast Post
             RIBBON_STYLE SMALL_IMAGE_AND_TEXT
             BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
             ACTION ${NXCUSTOM_LIB}\ufunc\python\GmCastPost.py
@@ -93,13 +93,13 @@ BEGIN_GROUP COMPONENTS
         LABEL Perfect
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\gm-perfect.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\GmPerfect.py
 
     BUTTON GM_COMPONENT
-        LABEL GM Component
+        LABEL Component
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\gm-component.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\GmComponent.py
 
     BUTTON POINT_COMPONENT
         LABEL Point Component
@@ -173,11 +173,11 @@ BEGIN_GROUP NITRO_PLATE
         LABEL Lower
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\nitro-plate-lower.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\NitroPlateLower.py
 
     BUTTON NITRO_PLATE_UPPER
         LABEL Upper
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\nitro-plate-upper.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\NitroPlate.py
 END_GROUP

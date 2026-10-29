@@ -432,11 +432,14 @@ def _snap_delete(objects: Sequence[NXOpen.NXObject]) -> None:
 def main() -> None:
     """The gm-boss UFunc - its menu button runs this file. An escaping exception is printed."""
     import usage_db
+    from tsg_dialog import ask_is_gm
 
     with usage_db.run("gm-boss"):
         try:
-            # No confirm: it starts with the target face pick, which the user can cancel.
-            GmBoss.execute(True)
+            # The Customer dialog first: GM builds with the GM parts, TSG throws.
+            is_gm = ask_is_gm("Cast Boss")
+            if is_gm is not None:
+                GmBoss.execute(is_gm)
         except Exception as ex:
             nx.print_exception(ex)
 

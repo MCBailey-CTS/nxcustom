@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import Any, List, Sequence, cast
+from typing import Any, List, Optional, Sequence, cast
 
 # Session.Execute does not put the script's folder on sys.path, so the shared module would not import.
 _here = os.path.dirname(os.path.abspath(__file__))
@@ -33,6 +33,12 @@ import tsg_nx as nx  # noqa: E402
 
 # UF_UI_SEL_SCOPE_ANY_IN_ASSEMBLY (Snap's SelectionScope.AnyInAssembly) - not in every UFConstants build.
 _ScopeAnyInAssembly = 3
+
+# The Merlin dialogs' Customer radio, ("enum", "customer", "Customer", Customers, "radio") in tools\make-dlx.py: None
+# is checked when the dialog opens (reset_customer, from shown()) and OK stays greyed out until TSG or GM is checked.
+# GM adds the GM library parts as children; TSG (the CTS parts) is not implemented yet - is_gm_customer throws.
+CustomerNone, CustomerTsg, CustomerGm = "None", "TSG", "GM"
+Customers = [CustomerNone, CustomerTsg, CustomerGm]
 
 
 class Dialog(object):
@@ -87,6 +93,18 @@ class Dialog(object):
 
     def block(self, block_id: str) -> Any:
         return self.dialog.TopBlock.FindBlock(block_id)
+
+    def reset_customer(self) -> None:
+        """Checks None on the "customer" radio. Call from shown(): the dialog memory would bring back the last pick."""
+        self.block("customer").ValueAsString = CustomerNone
+
+    def customer(self) -> str:
+        """The "customer" radio's value: None, TSG or GM."""
+        return str(self.block("customer").ValueAsString)
+
+    def customer_picked(self) -> bool:
+        """TSG or GM is checked - an enable_ok() condition."""
+        return self.customer() in (CustomerTsg, CustomerGm)
 
     def run(self) -> bool:
         """
@@ -238,3 +256,44 @@ def title_with_version(title: str) -> str:
         version = ""
     return "{} - {}".format(version, title) if version else title
 
+
+def is_gm_customer(customer: str) -> bool:
+    """True for GM. TSG throws NotImplementedError: the CTS parts are not wired up yet. None throws ValueError."""
+    if customer == CustomerGm:
+        return True
+    if customer == CustomerTsg:
+        raise NotImplementedError("TSG is not implemented yet - only the GM parts can be added. Pick GM.")
+    raise ValueError("Pick TSG or GM, not '{}'.".format(customer))
+
+
+class CustomerDialog(Dialog):
+    """CustomerDialog.dlx: the Customer radio alone, for the Merlin UFuncs with no dialog of their own."""
+
+    dlx_name = "CustomerDialog.dlx"
+
+    def __init__(self, title: str) -> None:
+        self.title = title
+        super().__init__()
+        # Captured in ok(): the blocks are gone once Launch returns.
+        self.choice = CustomerNone
+
+    def shown(self) -> None:
+        self.reset_customer()
+
+    def enable_ok(self) -> bool:
+        return self.customer_picked()
+
+    def ok(self) -> bool:
+        self.choice = self.customer()
+        return self.customer_picked()
+
+
+def ask_is_gm(title: str) -> Optional[bool]:
+    """
+    The Customer dialog titled '{version} - title', in place of the "Are you sure" box: True once GM is picked, None
+    when it is cancelled (Dialog.run marked the run cancelled). TSG throws NotImplementedError.
+    """
+    dialog = CustomerDialog(title_with_version(title))
+    if not dialog.run():
+        return None
+    return is_gm_customer(dialog.choice)

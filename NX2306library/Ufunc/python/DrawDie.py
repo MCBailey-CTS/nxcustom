@@ -1887,12 +1887,14 @@ def _time_span(elapsed: datetime.timedelta) -> str:
 def main() -> None:
     """The draw-die UFunc - its menu button runs this file. An escaping exception is printed."""
     import usage_db
+    from tsg_dialog import ask_is_gm
 
     with usage_db.run("draw-die"):
         try:
-            # No dialog of its own: ask before doing anything (a logged Question box).
-            if nx.confirm_execute("draw-die"):
-                DrawDie.execute(True)
+            # The Customer dialog stands in for the "Are you sure" box: GM builds with the GM parts, TSG throws.
+            is_gm = ask_is_gm("Draw Die")
+            if is_gm is not None:
+                DrawDie.execute(is_gm)
         except Exception as ex:
             nx.print_exception(ex)
 

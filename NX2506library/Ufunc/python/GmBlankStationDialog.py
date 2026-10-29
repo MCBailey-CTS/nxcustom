@@ -27,7 +27,7 @@ import NXOpen  # noqa: E402
 import NXOpen.UF  # noqa: E402
 
 import tsg_nx as nx  # noqa: E402
-from tsg_dialog import Dialog  # noqa: E402
+from tsg_dialog import CustomerNone, Dialog, is_gm_customer  # noqa: E402
 
 # NX will not build a Block Styler dialog from inside some callbacks (a menu or toolbar launch, it seems).
 _ErrorCannotLaunchDialog = 3520048
@@ -37,7 +37,10 @@ _SolidBodyDetail = 36
 
 
 def ask(title: str) -> Optional[Tuple[List[NXOpen.Body], str]]:
-    """Shows the dialog titled title; (picked slug bodies, "D2" | "S7") once accepted, None otherwise."""
+    """
+    Shows the dialog titled title; (picked slug bodies, "D2" | "S7") once accepted, None otherwise. TSG on the
+    Customer radio throws NotImplementedError (the build only has the GM parts).
+    """
     try:
         dialog = _BlankStationDialog(title)
         accepted = dialog.run()
@@ -54,6 +57,7 @@ def ask(title: str) -> Optional[Tuple[List[NXOpen.Body], str]]:
     if not accepted or not dialog.bodies:
         return None
 
+    is_gm_customer(dialog.customer_choice)
     return dialog.bodies, dialog.material
 
 
@@ -68,22 +72,30 @@ class _BlankStationDialog(Dialog):
         # Captured in ok(): the blocks are gone once Launch returns.
         self.bodies: List[NXOpen.Body] = []
         self.material = "D2"
+        self.customer_choice = CustomerNone
 
     def initialize(self) -> None:
         mask = NXOpen.Selection.MaskTriple(NXOpen.UF.UFConstants.UF_solid_type, 0, _SolidBodyDetail)
         self.block("bodies").SetSelectionFilter(NXOpen.Selection.SelectionAction.ClearAndEnableSpecific, [mask])
         self.assembly_scope(self.block("bodies"))
 
+    def shown(self) -> None:
+        self.reset_customer()
+
     def enable_ok(self) -> bool:
-        return len(self._picked_bodies()) > 0
+        return self.customer_picked() and len(self._picked_bodies()) > 0
 
     def ok(self) -> bool:
         self.bodies = self._picked_bodies()
-        # enable_ok greys OK out; this is a backstop.
+        # enable_ok greys OK out for these; they are a backstop.
+        if not self.customer_picked():
+            self.message("Check TSG or GM.")
+            return False
         if not self.bodies:
             self.message("Select at least one slug body.")
             return False
         self.material = str(self.block("material").ValueAsString)
+        self.customer_choice = self.customer()
         return True
 
     def _picked_bodies(self) -> List[NXOpen.Body]:

@@ -1724,12 +1724,14 @@ def _enum_name(value: object) -> str:
 def main() -> None:
     """The gm-pierce UFunc - its menu button runs this file. An escaping exception is printed."""
     import usage_db
+    from tsg_dialog import ask_is_gm
 
     with usage_db.run("gm-pierce"):
         try:
-            # No dialog of its own: ask before doing anything (a logged Question box).
-            if nx.confirm_execute("gm-pierce"):
-                GmPierce.execute(True)
+            # The Customer dialog stands in for the "Are you sure" box: GM builds with the GM parts, TSG throws.
+            is_gm = ask_is_gm("Pierce")
+            if is_gm is not None:
+                GmPierce.execute(is_gm)
         except Exception as ex:
             nx.print_exception(ex)
 

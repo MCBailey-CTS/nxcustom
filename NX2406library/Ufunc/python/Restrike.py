@@ -158,10 +158,14 @@ def _confirm_reference_sets(bodies: Sequence[NXOpen.Body]) -> bool:
 def main() -> None:
     """The restrike UFunc - its menu button runs this file. An escaping exception is printed."""
     import usage_db
+    from tsg_dialog import ask_is_gm
 
     with usage_db.run(ufunc_name):
         try:
-            Restrike.execute(True)
+            # The Customer dialog first: GM builds with the GM parts, TSG throws.
+            is_gm = ask_is_gm("Restrike")
+            if is_gm is not None:
+                Restrike.execute(is_gm)
         except Exception as ex:
             nx.print_exception(ex)
 

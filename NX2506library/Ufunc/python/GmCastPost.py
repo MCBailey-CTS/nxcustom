@@ -649,12 +649,14 @@ def _add_x(point: NXOpen.Point3d, x: float) -> NXOpen.Point3d:
 def main() -> None:
     """The gm-cast-post UFunc - its menu button runs this file. An escaping exception is printed."""
     import usage_db
+    from tsg_dialog import ask_is_gm
 
     with usage_db.run("gm-cast-post"):
         try:
-            # No dialog of its own: ask before doing anything (a logged Question box).
-            if nx.confirm_execute("gm-cast-post"):
-                GmCastPost.execute(True)
+            # The Customer dialog stands in for the "Are you sure" box: GM builds with the GM parts, TSG throws.
+            is_gm = ask_is_gm("Cast Post")
+            if is_gm is not None:
+                GmCastPost.execute(is_gm)
         except Exception as ex:
             nx.print_exception(ex)
 
