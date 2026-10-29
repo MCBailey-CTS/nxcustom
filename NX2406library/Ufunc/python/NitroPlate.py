@@ -13,7 +13,7 @@ that hold a cylinder together stick out its top):
   - lower: top face on their lowest point, 50 mm thick, hanging under them.
 The eight corners are mapped ROOT -> WORK, since the station is not at identity in the -000 (it is flipped upside
 down), and the block is built from the box they span in the work part. Body color 13, top and bottom faces 42.
-Promoted to {gm|cts}-nitro-plate-{upper|lower}, re-based onto the block (the opposite corner for the upper), then:
+Promoted to [cts-]nitro-plate-{upper|lower}, re-based onto the block (the opposite corner for the upper), then:
   - BODY refset, DYNAMIC BLOCK, the AutoSize update switched off BEFORE DESCRIPTION / DETAIL NAME "NITROGEN PLATE
     SYSTEM" and MATERIAL "DADCO" are stamped (the subtracts below would otherwise rewrite DESCRIPTION as a size);
   - SUBTOOL on hidden layer 15, its "top" face offset 3" and its sides 30 mm outward, recolored 2 with the "bottom"
@@ -42,7 +42,7 @@ Differences from the C#:
     chainset, the part's distance tolerance, the builder's other defaults) and an OffsetFaceBuilder (face-dumb rule,
     Direction False - the C# passes false straight through). The C# hands Snap "{value}in" strings; here the
     distances are written as plain numbers in the part's units (inches, x 25.4 in a metric part), as
-    GmCastTrimPad.py does for its chamfer.
+    CastTrimPad.py does for its chamfer.
   - The SUBTOOL faces come from Body.GetFaces() rather than Snap.NX.Body.Faces - read once, before the offsets, as
     the C# reads them.
   - ExactBoundingBox's identity matrix and temporary csys are made with ufsession_.Mtx3.Initialize /
@@ -55,7 +55,7 @@ Differences from the C#:
     session where TSG_Library never registered it, the plate gets no UDO and there is nothing to switch off.
   - GFolder.create_or_null (print-only, result unused) is not ported.
 
-The Merlin helpers DrawDie.py, PointComponent.py and GmCastTrimPad.py already port are imported from them rather than
+The Merlin helpers DrawDie.py, PointComponent.py and CastTrimPad.py already port are imported from them rather than
 copied.
 """
 
@@ -83,7 +83,7 @@ import NXOpen.Layer  # noqa: E402
 import tsg_nx as nx  # noqa: E402
 import PointComponent as merlin  # noqa: E402
 import DrawDie as drawdie  # noqa: E402
-import GmCastTrimPad as trimpad  # noqa: E402
+import CastTrimPad as trimpad  # noqa: E402
 
 # ---------------------------------------------------------------------------------------------------
 # Constants (Merlin's, inches unless the name says otherwise)
@@ -143,7 +143,7 @@ class NitroPlateSpec(object):
                  subtool_flipped: bool) -> None:
         # Cue, undo-mark and title text, e.g. "Nitro Plate Upper".
         self.Label = label
-        # The part name after the gm-/cts- prefix, e.g. "nitro-plate-upper".
+        # The part name after the cts- prefix (none for GM), e.g. "nitro-plate-upper".
         self.NamePrefix = name_prefix
         # How far the plate runs past the cylinders' bounding box on each of +X, -X, +Y and -Y.
         self.Overhang = overhang
@@ -373,7 +373,7 @@ def _build(is_gm: bool, spec: NitroPlateSpec, bodies: List[NXOpen.Body], bottom_
             nx.set_color(face, 42)
 
     new_component = drawdie._create_new_component_core(
-        ("gm-" if is_gm else "cts-") + spec.NamePrefix,
+        ("" if is_gm else "cts-") + spec.NamePrefix,
         [block_body],
         NXOpen.Assemblies.CreateNewComponentBuilder.ComponentOriginType.Absolute,
         NXOpen.Assemblies.CreateNewComponentBuilder.ComponentLayerOptionType.AsSpecified,

@@ -34,10 +34,10 @@ BEGIN_GROUP TEST
         ACTION ${NXCUSTOM_LIB}\ufunc\NXRemotingServer.dll
 
     BUTTON TestGmSplitForm
-        LABEL gm-split-form
+        LABEL split-form
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION C:\Users\mcbailey\repos\tsg-library\TSG_Library\bin\DebugSignDotNet\python\GmSplitForm.py
+        ACTION C:\Users\mcbailey\repos\tsg-library\TSG_Library\bin\DebugSignDotNet\python\SplitForm.py
 
     BUTTON TestAddFast
         LABEL add-fast

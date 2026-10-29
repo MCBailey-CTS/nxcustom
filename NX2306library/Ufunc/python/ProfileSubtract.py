@@ -6,15 +6,15 @@ anywhere in the assembly) and an offset in inches. OK stays greyed out until a t
 
 Then, per tool face (each in its own try/except, printed, so one bad face does not drop the rest):
   - the face is wave-linked into the target body's owning part as a single face with its holes removed, from the
-    assembly, with the target's component as the work component (GmBoss._extract_face_without_holes);
+    assembly, with the target's component as the work component (Boss._extract_face_without_holes);
   - with the target's part displayed and made the work part, a curve is copied off every edge of the linked face, so
-    the curves are in the part's own coordinates (GmBoss found that taking them from the assembly offsets them by the
+    the curves are in the part's own coordinates (Boss found that taking them from the assembly offsets them by the
     component's position a second time);
   - the linked face is deleted; the edge curves stay in the target's part;
   - the curves are offset outward by the offset (an Offset Curve feature, the edge curves kept; a negative offset
     goes inward, 0 skips it). Which side the builder offsets to follows the loop's direction, so the result is
     measured and redone reversed if its box came out smaller;
-  - the offset curves are extruded 10" both ways along the linked face's normal (GmBoss._snap_extrude) and the
+  - the offset curves are extruded 10" both ways along the linked face's normal (Boss._snap_extrude) and the
     extrude is subtracted from the target body. Inches are converted for a metric target part.
 The starting display and work parts are restored in a finally. The curves, offset and extrude stay as features
 behind the subtract, so the profile can be edited.
@@ -47,13 +47,13 @@ import NXOpen.GeometricUtilities  # noqa: E402
 import NXOpen.UF  # noqa: E402
 
 import tsg_nx as nx  # noqa: E402
-from GmBoss import (_extract_face_without_holes, _normal_vector, _planar_face_mask, _snap_delete,  # noqa: E402
+from Boss import (_extract_face_without_holes, _normal_vector, _planar_face_mask, _snap_delete,  # noqa: E402
                     _snap_extrude)
 from tsg_dialog import Dialog, title_with_version  # noqa: E402
 
 ufunc_name = "profile-subtract"
 
-# UF_UI_SEL_FEATURE_SOLID_BODY - not in every UFConstants build, so the number GmPerfect.py uses too.
+# UF_UI_SEL_FEATURE_SOLID_BODY - not in every UFConstants build, so the number Perfect.py uses too.
 _SolidBodyDetail = 36
 
 # How far the profile is extruded each way along the tool face's normal.

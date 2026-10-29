@@ -6,7 +6,7 @@ tools\\sql\\usage-tables.sql.
 
 For a UFunc an NX menu button runs as a .py, with no C# UFunc around it to record the run:
 
-    with usage_db.run("gm-split-form"):
+    with usage_db.run("split-form"):
         ...
 
 Talks to SQL Server through pyodbc - pyodbc.cp310-win_amd64.pyd, which sits beside this file (NX's Python is

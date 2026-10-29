@@ -2,7 +2,7 @@
 The dead-strike UFunc: a standalone Python UFunc (no C# class); its menu button runs this file's main().
 
 The dead strike tooling Auto Design builds for its DEADHIT program, on bodies picked by hand. Run from the -000.
-  - Lower: a GM Split Form with backing plate and SHCS from the backside (GmSplitFormWithPlateBackside.execute_with)
+  - Lower: a GM Split Form with backing plate and SHCS from the backside (SplitFormWithPlateBackside.execute_with)
     over the picked bodies in LAD02, subtracting each body's component's LWR-3D, Rows x Cols blocks.
   - Upper (since 2026-10-29): exactly the Draw Die's upper half (DrawDie.build_upper) - the 2 x 4 cavity steels and
     the mounting plate in UAD02, subtracting UPR-3D. Rows / Cols do not apply to it.
@@ -56,7 +56,7 @@ ufunc_name = "dead-strike"
 LowerStation = "lad02"
 UpperStation = "uad02"
 
-# UF_UI_SEL_FEATURE_SOLID_BODY - not in every UFConstants build, so the number GmPerfect.py uses too.
+# UF_UI_SEL_FEATURE_SOLID_BODY - not in every UFConstants build, so the number Perfect.py uses too.
 _SolidBodyDetail = 36
 
 BodyRef = Tuple[Optional[NXOpen.Assemblies.Component], NXOpen.Body]
@@ -105,7 +105,7 @@ def build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: s
     the cavity steels and mounting plate in UAD02, subtracting UPR-3D; rows / cols do not apply, station_name is not
     used). log also gets each step (Auto Design's progress window); skip_spreadsheets and quiet go to the draw die.
     """
-    from GmSplitFormWithPlateBackside import GmSplitFormWithPlateBackside
+    from SplitFormWithPlateBackside import SplitFormWithPlateBackside
 
     def say(message: str) -> None:
         if log is not None:
@@ -145,7 +145,7 @@ def build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: s
         drawdie._set_wcs_to_absolute(top_level)
         say("Building the dead strike split form ({} x {}) in {}...".format(rows, cols, station.DisplayName))
         # Sized off the bodies: the strip layout's UPR-3D / LWR-3D is a tool body far taller and wider than the part.
-        GmSplitFormWithPlateBackside.execute_with(is_gm, is_upper, rows, cols,
+        SplitFormWithPlateBackside.execute_with(is_gm, is_upper, rows, cols,
                                                   cast(Sequence[NXOpen.TaggedObject], list(bodies)),
                                                   size_off_bodies=True)
         say("Finished the dead strike split form in {}.".format(station.DisplayName))

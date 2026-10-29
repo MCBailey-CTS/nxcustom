@@ -1,7 +1,7 @@
 """
 The restrike UFunc: a standalone Python UFunc (no C# class); its menu button runs this file's main().
 
-Auto Design's RESTRIKE program on bodies picked by hand: a GM Cast Post (GmCastPost.build) on each picked body, once
+Auto Design's RESTRIKE program on bodies picked by hand: a GM Cast Post (CastPost.build) on each picked body, once
 in LAD02 (the lower post, off and subtracting each body's component's LWR-3D) and once in UAD02 (the upper post,
 UPR-3D). Run from the -000; the work part does not matter, the stations are found by display name under it.
 
@@ -85,9 +85,9 @@ def build(is_gm: bool, bodies: Sequence[NXOpen.Body]) -> None:
 def _build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: str, is_upper: bool) -> None:
     """
     GM Cast Post on bodies, built into station_name (lad02 / uad02): makes that station the work component of the
-    -000, as a user would before launching gm-cast-post, and subtracts UPR-3D / LWR-3D like it does.
+    -000, as a user would before launching cast-post, and subtracts UPR-3D / LWR-3D like it does.
     """
-    from GmCastPost import GmCastPost
+    from CastPost import CastPost
 
     top_level = nx.display_part()
 
@@ -112,7 +112,7 @@ def _build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: 
         nx.info("Restrike: building the {} post in {}.".format("upper" if is_upper else "lower",
                                                               station.DisplayName))
         # refsets_confirmed: _confirm_reference_sets asked once for both posts.
-        GmCastPost.build(is_gm, is_upper, cast(Sequence[NXOpen.TaggedObject], list(bodies)),
+        CastPost.build(is_gm, is_upper, cast(Sequence[NXOpen.TaggedObject], list(bodies)),
                          "UPR-3D" if is_upper else "LWR-3D", False, True)
     except Exception as ex:
         nx.print_("Restrike: the post in {} failed.".format(station.DisplayName))

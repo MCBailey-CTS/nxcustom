@@ -35,7 +35,7 @@ Three ways in:
 
 The Merlin helpers already ported are imported, not copied: RebaseBlockToPartOrigin, CreateSubtool,
 SetReferenceSetInAncestorAssemblies and the "0.###" format from PointComponent.py; Vector3d.__ToMatrix3x3() from
-DrawDie.py; Part_.FindOrCreateReferenceSet (quiet) and Part.__SubtractLinkedBody from GmSplitForm.py.
+DrawDie.py; Part_.FindOrCreateReferenceSet (quiet) and Part.__SubtractLinkedBody from SplitForm.py.
 
 Differences from the C#:
   - create_block restores both WCS axes, where __CreateBlock(Matrix3x3, Point3d, Point3d) puts the new Y back
@@ -75,7 +75,7 @@ import NXOpen.Layer  # noqa: E402
 import tsg_nx as nx  # noqa: E402
 import PointComponent as merlin  # noqa: E402
 import DrawDie as drawdie  # noqa: E402
-import GmSplitForm as splitform  # noqa: E402
+import SplitForm as splitform  # noqa: E402
 
 Block999SideGrowth = .75
 

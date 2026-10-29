@@ -260,8 +260,8 @@ class DrawDieJob(object):
 
     @property
     def prefix(self) -> str:
-        """"gm" or "cts" - the component-name prefix."""
-        return "gm" if self.is_gm else "cts"
+        """"" or "cts-" - the component-name prefix (none for GM)."""
+        return "" if self.is_gm else "cts-"
 
     @property
     def dir(self) -> str:
@@ -533,7 +533,7 @@ def _build_draw_die_binder(job: DrawDieJob) -> nx.Box3d:
 
     new_part, component = _promote_draw_die_block(
         job, min_point, xlength, ywidth, height,
-        name="{}-draw-die-binder".format(job.prefix),
+        name="{}draw-die-binder".format(job.prefix),
         color=CastColor,
         description="LOWER CAST BINDER",
         material="GM190/S0050A",
@@ -647,7 +647,7 @@ def _build_draw_die_posts(job: DrawDieJob) -> nx.Box3d:
     min_point = _centered_min(box, xlength, ywidth, box.MaxZ - height)
 
     _build_draw_die_form_steels(job, min_point, xlength, ywidth, height,
-                                name="{}-draw-die-post".format(job.prefix),
+                                name="{}draw-die-post".format(job.prefix),
                                 subtract_refset=job.form_steel_refset,
                                 shcs_path=_shcs12mm100Path,
                                 shcs_inset=PostShcsInset,
@@ -670,7 +670,7 @@ def _build_draw_die_riser(job: DrawDieJob, posts: nx.Box3d) -> nx.Box3d:
 
     new_part, component = _promote_draw_die_block(
         job, min_point, xlength, ywidth, RiserThickness,
-        name="{}-draw-die-riser".format(job.prefix),
+        name="{}draw-die-riser".format(job.prefix),
         color=CastColor,
         description="LOWER CAST RISER",
         material="GM241/G3500",
@@ -797,7 +797,7 @@ def _build_draw_die_cavity(job: DrawDieJob) -> nx.Box3d:
     min_point, xlength, ywidth, height = _cavity_size(job.part_box)
 
     _build_draw_die_form_steels(job, min_point, xlength, ywidth, height,
-                                name="{}-draw-die-cavity".format(job.prefix),
+                                name="{}draw-die-cavity".format(job.prefix),
                                 subtract_refset=job.form_steel_refset,
                                 shcs_path=_shcs16mm060Path,
                                 shcs_inset=CavityShcsInset,
@@ -852,7 +852,7 @@ def _build_draw_die_mounting_plate(job: DrawDieJob, cavity: nx.Box3d) -> nx.Box3
 
     new_part, component = _promote_draw_die_block(
         job, min_point, xlength, ywidth, thickness,
-        name="{}-draw-die-mounting-plate".format(job.prefix),
+        name="{}draw-die-mounting-plate".format(job.prefix),
         color=None,
         description="{:.3f} GRIND +.005/-.000 X {:.2f} X {:.2f}".format(thickness, xlength, ywidth),
         material="HRS",
@@ -1204,7 +1204,7 @@ def _keep_out_of_reference_set(refset: NXOpen.ReferenceSet,
 def _save_as_draw_die_part(placed: Sequence[NXOpen.Assemblies.Component], job: DrawDieJob, name: str) -> None:
     """
     Merlin.SaveAsDrawDiePart - Save As's the library part behind placed into the station's folder as
-    {gm|cts}-{name}-{token}.prt, so its settings can be changed without touching the library.
+    [cts-]{name}-{token}.prt, so its settings can be changed without touching the library.
     """
     if not placed:
         nx.print_("Draw Die: nothing placed for {} - no Save As.".format(name))
@@ -1212,7 +1212,7 @@ def _save_as_draw_die_part(placed: Sequence[NXOpen.Assemblies.Component], job: D
 
     try:
         status = cast(NXOpen.Part, nx.prototype(placed[0])).SaveAs(
-            "{}\\{}-{}-{}.prt".format(job.dir, job.prefix, name, merlin._random_file_token()))
+            "{}\\{}{}-{}.prt".format(job.dir, job.prefix, name, merlin._random_file_token()))
         if status is not None:
             status.Dispose()
     except Exception as ex:

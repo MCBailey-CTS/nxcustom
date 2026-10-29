@@ -6,12 +6,12 @@ Ui\\ProgressLogForm, all in git at 5d6e47f. Its menu button runs this file's mai
 
 Each PROGRAM value (trimmed, case-insensitive) routes to one existing program, fed the bodies directly instead of
 asking for them, in this order:
-  - BLANK    - GM Blank Station, -01 stations (GmBlankStation.build, is3d False)
-  - TRIM     - GM 2nd Trim Station, -02 stations (GmBlankStation.build, is3d True)
-  - PRC      - GM Pierce into LAD02 (buttons) and UAD02 (punches, retainers) (GmPierce.build, station "02", no
-               station menu; gm-pierce only, no secondary pass)
+  - BLANK    - GM Blank Station, -01 stations (BlankStation.build, is3d False)
+  - TRIM     - GM 2nd Trim Station, -02 stations (BlankStation.build, is3d True)
+  - PRC      - GM Pierce into LAD02 (buttons) and UAD02 (punches, retainers) (Pierce.build, station "02", no
+               station menu; pierce only, no secondary pass)
   - DRAW     - Draw Die into LAD02 and UAD02 (DrawDie.build)
-  - RESTRIKE - GM Cast Post, once in LAD02 (LWR-3D) and once in UAD02 (UPR-3D) (GmCastPost.build)
+  - RESTRIKE - GM Cast Post, once in LAD02 (LWR-3D) and once in UAD02 (UPR-3D) (CastPost.build)
   - DEADHIT  - GM Split Form with backing plate and SHCS from the backside in LAD02 (LWR-3D), the dialog's Rows x
                Cols over all the DEADHIT bodies, then exactly the Draw Die's upper half in UAD02 (cavity steels and
                mounting plate, UPR-3D) (DeadStrike.build_in_station, the dead-strike UFunc's builder)
@@ -34,7 +34,7 @@ Kept from the C#:
   - A DebugSignDotNet deploy (this file under ...\\bin\\DebugSignDotNet\\python) skips every pierce detail's
     spreadsheet - the C# #if DEBUGSIGNDOTNET.
   - Edit Spreadsheets (checked every time the dialog opens) off: no part's Excel sheet is opened - the pierce
-    details (GmPierce.build's skip_spreadsheets) and the draw die's keys and guided retainers (DrawDie.build's)
+    details (Pierce.build's skip_spreadsheets) and the draw die's keys and guided retainers (DrawDie.build's)
     keep their seed settings.
 
 The progress window is progress_window.ProgressWindow (ProgressWindow.ps1), a separate PowerShell window (Python in NX cannot show WinForms) that
@@ -93,7 +93,7 @@ DisplayedPrograms = ["BLANK", "DRAW", "PRC", "RESTRIKE", "TRIM", "DEADHIT"]
 ConstructionMaterials = {"Normal": "S7", "Heavy": "D2"}
 
 
-# A DebugSignDotNet build leaves every pierce detail's Excel sheet unopened (GmPierce.build's skip_spreadsheets).
+# A DebugSignDotNet build leaves every pierce detail's Excel sheet unopened (Pierce.build's skip_spreadsheets).
 AutoDesignSkipSpreadsheets = "\\bin\\debugsigndotnet\\" in _here.lower() + "\\"
 
 # NX will not build a Block Styler dialog from inside some callbacks (a menu or toolbar launch, it seems).
@@ -102,7 +102,7 @@ _ErrorCannotLaunchDialog = 3520048
 # Components from here (fasteners, jacks, keys) are placed, not created - left out of the created list.
 _LibraryFolder = "g:\0library\\"
 
-# UF_UI_SEL_FEATURE_SOLID_BODY - not in every UFConstants build, so the number GmPerfect.py uses too.
+# UF_UI_SEL_FEATURE_SOLID_BODY - not in every UFConstants build, so the number Perfect.py uses too.
 _SolidBodyDetail = 36
 
 # NXMessageBox.Show returns 1 for Yes on a Question dialog.
@@ -277,17 +277,17 @@ def _run(is_gm: bool, title: str, dialog: "_AutoDesignDialog") -> None:
             _print_created(program, top_level, before)
 
     def blank(bodies: List[NXOpen.Body]) -> None:
-        from GmBlankStation import GmBlankStation
-        GmBlankStation.build(False, material, bodies, quiet=True)
+        from BlankStation import BlankStation
+        BlankStation.build(False, material, bodies, quiet=True)
 
     def trim(bodies: List[NXOpen.Body]) -> None:
-        from GmBlankStation import GmBlankStation
-        GmBlankStation.build(True, material, bodies, quiet=True)
+        from BlankStation import BlankStation
+        BlankStation.build(True, material, bodies, quiet=True)
 
     def pierce(bodies: List[NXOpen.Body]) -> None:
-        from GmPierce import GmPierce
+        from Pierce import Pierce
         # Into lad02 / uad02 like the draw die, restrike and dead strike - no station menu mid-run.
-        created = GmPierce.build(is_gm, bodies, skip_spreadsheets, quiet=True, station="02")
+        created = Pierce.build(is_gm, bodies, skip_spreadsheets, quiet=True, station="02")
         log.write_line("Pierce: {} detail(s) created.".format(len(created)))
 
     def draw(bodies: List[NXOpen.Body]) -> None:
@@ -513,9 +513,9 @@ def _confirm_restrike_reference_sets(bodies: Sequence[NXOpen.Body]) -> bool:
 def _restrike_posts(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: str, is_upper: bool) -> None:
     """
     GM Cast Post on the restrike part body, built into station_name (lad02 / uad02): makes that station the work
-    component of the -000, as a user would before launching gm-cast-post, and subtracts UPR-3D / LWR-3D like it does.
+    component of the -000, as a user would before launching cast-post, and subtracts UPR-3D / LWR-3D like it does.
     """
-    from GmCastPost import GmCastPost
+    from CastPost import CastPost
 
     top_level = nx.display_part()
     root = nx.root_component(top_level)
@@ -535,7 +535,7 @@ def _restrike_posts(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: st
         drawdie._set_wcs_to_absolute(top_level)
         _log_line("Building the restrike post in {}...".format(station.DisplayName))
         # quiet, refsets_confirmed (_confirm_restrike_reference_sets asked already).
-        GmCastPost.build(is_gm, is_upper, cast(Sequence[NXOpen.TaggedObject], list(bodies)),
+        CastPost.build(is_gm, is_upper, cast(Sequence[NXOpen.TaggedObject], list(bodies)),
                          "UPR-3D" if is_upper else "LWR-3D", True, True)
         _log_line("Finished the restrike post in {}.".format(station.DisplayName))
     except Exception as ex:

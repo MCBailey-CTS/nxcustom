@@ -19,13 +19,13 @@ BEGIN_GROUP FULL_HITS
         LABEL Blank Station
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\GmBlankStation.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\BlankStation.py
 
     BUTTON GM_SECONDARY_TRIM_STATION
         LABEL Secondary Trim Station
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\GmSecondaryTrimStation.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\SecondaryTrimStation.py
 
     BUTTON DRAW_DIE
         LABEL Draw Die
@@ -55,13 +55,13 @@ BEGIN_GROUP FULL_HITS
         LABEL Pierce
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\GmPierce.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\Pierce.py
 
     BUTTON GM_SPLIT_FORM
         LABEL Split Form
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\GmSplitForm.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\SplitForm.py
 
 END_GROUP
 
@@ -71,19 +71,19 @@ BEGIN_GROUP MERLIN_CAST
             LABEL Cast Trim Pad
             RIBBON_STYLE SMALL_IMAGE_AND_TEXT
             BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-            ACTION ${NXCUSTOM_LIB}\ufunc\python\GmCastTrimPad.py
+            ACTION ${NXCUSTOM_LIB}\ufunc\python\CastTrimPad.py
 
         BUTTON GM_CAST_FORM_PAD
             LABEL Cast Form Pad
             RIBBON_STYLE SMALL_IMAGE_AND_TEXT
             BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-            ACTION ${NXCUSTOM_LIB}\ufunc\python\GmCastFormPad.py
+            ACTION ${NXCUSTOM_LIB}\ufunc\python\CastFormPad.py
 
         BUTTON GM_CAST_POST
             LABEL Cast Post
             RIBBON_STYLE SMALL_IMAGE_AND_TEXT
             BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-            ACTION ${NXCUSTOM_LIB}\ufunc\python\GmCastPost.py
+            ACTION ${NXCUSTOM_LIB}\ufunc\python\CastPost.py
 END_GROUP
 
 BEGIN_GROUP COMPONENTS
@@ -93,13 +93,13 @@ BEGIN_GROUP COMPONENTS
         LABEL Perfect
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\GmPerfect.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\Perfect.py
 
     BUTTON GM_COMPONENT
         LABEL Component
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\GmComponent.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\Component.py
 
     BUTTON POINT_COMPONENT
         LABEL Point Component
@@ -122,7 +122,7 @@ BEGIN_GROUP MISC
         LABEL Cast Boss
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\GmBoss.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\Boss.py
 
     BUTTON SAVE_AS
         LABEL Save As
