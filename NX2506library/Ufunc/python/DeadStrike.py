@@ -3,9 +3,13 @@ The dead-strike UFunc: a standalone Python UFunc (no C# class); its menu button 
 
 The dead strike tooling Auto Design builds for its DEADHIT program, on bodies picked by hand. Run from the -000.
   - Lower: a GM Split Form with backing plate and SHCS from the backside (SplitFormWithPlateBackside.execute_with)
-    over the picked bodies in LAD02, subtracting each body's component's LWR-3D, Rows x Cols blocks.
-  - Upper (since 2026-10-29): exactly the Draw Die's upper half (DrawDie.build_upper) - the 2 x 4 cavity steels and
-    the mounting plate in UAD02, subtracting UPR-3D. Rows / Cols do not apply to it.
+    over the picked bodies in LAD02, subtracting each body's component's LWR-3D.
+  - Upper (since 2026-10-29): the Draw Die's upper half (DrawDie.build_upper) with the cavity steels overhanging the
+    part 3/8" a side (DeadStrikeCavityOverhang) instead of the draw die's 1" - the cavity steels and the mounting
+    plate in UAD02, subtracting UPR-3D.
+  - Both sides take the dialog's grid (2026-10-29): Rows (x) blocks along X by Cols (y) along Y, the same on the
+    upper and the lower. (The split form's own rows run along Y and the draw die's 2 x 4 is 2 along X by 4 along Y,
+    so passing Rows / Cols straight through gave the lower Rows along Y and left the upper at 2 x 4.)
 
 The lower blocks are sized off the picked bodies (size_off_bodies), not the reference sets the split form UFunc uses:
 X / Y the bodies + .375" a side, the top at their highest point and the bottom 2.75"+ under their lowest. On
@@ -13,8 +17,8 @@ X / Y the bodies + .375" a side, the top at their highest point and the bottom 2
 blocks with a .375" wall left standing round the subtract.
 
 The dialog (DeadStrike.dlx, tools\\make-dlx.py): the Customer radio (None / TSG / GM, None on opening; GM builds with
-the GM parts, TSG throws NotImplementedError), the solid bodies (anywhere in the assembly), Rows / Cols (1-5, as
-the split form dialog, the lower's grid), and Lower / Upper boxes (both checked by default) to build only one side.
+the GM parts, TSG throws NotImplementedError), the solid bodies (anywhere in the assembly), Rows (x) / Cols (y) (1-5,
+both sides' grid), and Lower / Upper boxes (both checked by default) to build only one side.
 OK stays greyed out until TSG or GM is checked, a body is picked and a side is checked.
 
 All the bodies go into one build per side. The lower form's sizing and subtract switch the bodies' components'
@@ -101,9 +105,10 @@ def build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: s
     """
     The lower: GM Split Form with backing plate and SHCS from the backside over bodies, built into station_name
     (lad02): makes that station the work component of the -000, as a user would before opening the split form
-    dialog, which sizes and subtracts off LWR-3D. The upper is exactly the Draw Die's upper half (DrawDie.build_upper:
-    the cavity steels and mounting plate in UAD02, subtracting UPR-3D; rows / cols do not apply, station_name is not
-    used). log also gets each step (Auto Design's progress window); skip_spreadsheets and quiet go to the draw die.
+    dialog, which sizes and subtracts off LWR-3D. The upper is the Draw Die's upper half (DrawDie.build_upper: the
+    cavity steels, 3/8" past the part a side, and mounting plate in UAD02, subtracting UPR-3D; station_name is not
+    used). Both sides are rows blocks along X by cols along Y. log also gets each step (Auto Design's progress
+    window); skip_spreadsheets and quiet go to the draw die.
     """
     from SplitFormWithPlateBackside import SplitFormWithPlateBackside
 
@@ -122,9 +127,12 @@ def build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: s
         try:
             nx.set_display_part(top_level)
             nx.set_work_part(top_level)
-            say("Building the dead strike upper (the draw die's cavity steels and mounting plate)...")
+            say("Building the dead strike upper ({} x {}, the draw die's cavity steels and mounting plate)...".format(
+                rows, cols))
+            # 3/8" a side, not the draw die's 1"; rows along X (the draw die's columns) by cols along Y.
             drawdie.DrawDie.build_upper(is_gm, cast(Sequence[NXOpen.TaggedObject], list(bodies)), quiet,
-                                        skip_spreadsheets)
+                                        skip_spreadsheets, cavity_overhang=drawdie.DeadStrikeCavityOverhang,
+                                        columns=rows, rows=cols)
             say("Finished the dead strike upper.")
         finally:
             nx.set_display_part(top_level)
@@ -145,7 +153,8 @@ def build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: s
         drawdie._set_wcs_to_absolute(top_level)
         say("Building the dead strike split form ({} x {}) in {}...".format(rows, cols, station.DisplayName))
         # Sized off the bodies: the strip layout's UPR-3D / LWR-3D is a tool body far taller and wider than the part.
-        SplitFormWithPlateBackside.execute_with(is_gm, is_upper, rows, cols,
+        # The split form's rows run along Y and its cols along X, so Dead Strike's Rows (x) go in as its cols.
+        SplitFormWithPlateBackside.execute_with(is_gm, is_upper, cols, rows,
                                                   cast(Sequence[NXOpen.TaggedObject], list(bodies)),
                                                   size_off_bodies=True)
         say("Finished the dead strike split form in {}.".format(station.DisplayName))
@@ -190,7 +199,7 @@ def _resolve_bodies(refs: Sequence[BodyRef]) -> List[NXOpen.Body]:
 
 
 class _DeadStrikeDialog(Dialog):
-    """DeadStrike.dlx: the bodies, Rows / Cols, Lower / Upper."""
+    """DeadStrike.dlx: the bodies, Rows (x) / Cols (y), Lower / Upper."""
 
     dlx_name = "DeadStrike.dlx"
 

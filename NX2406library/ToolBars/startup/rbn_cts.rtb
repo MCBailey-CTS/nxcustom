@@ -101,13 +101,13 @@ BEGIN_GROUP CTS_DESIGN
         LABEL  Clone Assembly
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CloneAssembly.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\clone-assembly.dll("clone-assembly")
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\CloneAssembly.py
 
     BUTTON CloneStrip
         LABEL  Clone Strip
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CloneStrip.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\clone-strip.dll("clone-strip")
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\CloneStrip.py
 
     BUTTON ComponentBuilder
         LABEL  Component Builder
@@ -239,7 +239,7 @@ BEGIN_GROUP CTS_DESIGN
         LABEL  Plot Detail Drawings
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\PlotDetailDrawings.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\plot-detail-drawings.dll("UFUNC", "PlotDetailDrawings")
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\PlotDetailDrawings.py
 
     BUTTON AssemblyAutoDetail
         LABEL  Assembly Auto Detail

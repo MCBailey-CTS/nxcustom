@@ -1288,3 +1288,36 @@ def select_file_or_none(prompt_string: str, title: str, filter_string: str, defa
     if not responses or responses[-1] != UF_UI_OK or not names or not names[-1]:
         return None
     return str(names[-1])
+
+
+def select_folder_or_none(title: str, initial: str = "G:\\") -> Optional[str]:
+    """
+    A WinForms FolderBrowserDialog (NX Open has no folder picker): runs it in a hidden STA PowerShell and
+    reads the chosen path from its stdout. SelectedPath starts at initial. Returns None on cancel or failure.
+    """
+    import subprocess
+
+    def _quote(text: str) -> str:
+        return "'" + text.replace("'", "''") + "'"
+
+    script = (
+        "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8;"
+        "Add-Type -AssemblyName System.Windows.Forms;"
+        "$d = New-Object System.Windows.Forms.FolderBrowserDialog;"
+        "$d.Description = " + _quote(title) + ";"
+        "$d.SelectedPath = " + _quote(initial or "") + ";"
+        "$d.ShowNewFolderButton = $true;"
+        "$o = New-Object System.Windows.Forms.Form -Property @{TopMost = $true};"
+        "if ($d.ShowDialog($o) -eq [System.Windows.Forms.DialogResult]::OK) "
+        "{ [Console]::Out.Write($d.SelectedPath) };"
+        "$o.Dispose()"
+    )
+    try:
+        completed = subprocess.run(
+            ["powershell", "-NoProfile", "-STA", "-Command", script],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000))
+    except OSError:
+        return None
+    path = completed.stdout.decode("utf-8", "replace").strip()
+    return path or None

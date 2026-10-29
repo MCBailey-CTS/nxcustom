@@ -44,7 +44,7 @@ Kept from the C# (quirks included):
 
 Not ported: AutoDetailMakePlanView / AutoDetailGetPlanView (their only caller is commented out) and the form's window
 location (Properties.Settings). AutoDetailGetMinsMaxs's AskBoundingBoxAligned result was never read, so it is not
-called. The C# AutoDetailCreateMaterialList stays in C# for Etching's Smart Selection; _material_list here is its
+called. The C# AutoDetailCreateMaterialList went with the Etching form (2026-10-29); _material_list here is its
 port.
 
 Behaviour changes:

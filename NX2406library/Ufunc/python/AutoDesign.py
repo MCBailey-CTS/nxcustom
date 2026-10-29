@@ -12,16 +12,16 @@ asking for them, in this order:
                station menu; pierce only, no secondary pass)
   - DRAW     - Draw Die into LAD02 and UAD02 (DrawDie.build)
   - RESTRIKE - GM Cast Post, once in LAD02 (LWR-3D) and once in UAD02 (UPR-3D) (CastPost.build)
-  - DEADHIT  - GM Split Form with backing plate and SHCS from the backside in LAD02 (LWR-3D), the dialog's Rows x
-               Cols over all the DEADHIT bodies, then exactly the Draw Die's upper half in UAD02 (cavity steels and
-               mounting plate, UPR-3D) (DeadStrike.build_in_station, the dead-strike UFunc's builder)
+  - DEADHIT  - GM Split Form with backing plate and SHCS from the backside in LAD02 (LWR-3D), then the Draw Die's
+               upper half in UAD02 (cavity steels 3/8" past the part a side and mounting plate, UPR-3D), both the
+               dialog's Rows (x) x Cols (y) over all the DEADHIT bodies (DeadStrike.build_in_station, the dead-strike UFunc's builder)
 Unknown values print and are skipped. Each program starts from the -000 (display = work, WCS absolute) in its own
 try/except, so a failed draw die still leaves the restrike posts to be built.
 
 The dialog (AutoDesign.dlx, tools\\make-dlx.py) asks for all the strip's solids or a selection, and the construction -
 Normal (S7 trim steels) or Heavy (D2) - which only the blank and 2nd trim stations use; below that, each program's
 body count in the assembly (a read-out of what Select all would find), with DRAW's column / steels per row spinners
-(read but not used yet: the draw die does not take them) and DEADHIT's Rows / Cols (the split forms' grid).
+(read but not used yet: the draw die does not take them) and DEADHIT's Rows (x) / Cols (y) (both sides' grid).
 
 Kept from the C#:
   - The bodies are grouped as (owning component, prototype body), not occurrences, and re-resolved
@@ -313,7 +313,7 @@ def _run(is_gm: bool, title: str, dialog: "_AutoDesignDialog") -> None:
         # The lower form's sizing and subtract switch the bodies' components to LWR-3D and back, so the upper
         # re-resolves them rather than reusing the lower's.
         start_operation(AutoDesignDeadHit + " UAD02")
-        # The upper is the Draw Die's upper half (cavity steels + mounting plate); Rows / Cols are the lower's only.
+        # The upper is the Draw Die's upper half (cavity steels + mounting plate), on the same Rows (x) x Cols (y).
         build_in_station(is_gm, group(AutoDesignDeadHit), "uad02", True, dialog.deadhit_rows, dialog.deadhit_cols,
                          _log_line, skip_spreadsheets=not dialog.edit_spreadsheets, quiet=True)
 
@@ -332,10 +332,23 @@ def _run(is_gm: bool, title: str, dialog: "_AutoDesignDialog") -> None:
     finally:
         nx.set_display_part(top_level)
         nx.set_work_part(starting_work)
-        # Session.__UsingTimer prints the elapsed TimeSpan.
-        nx.info(drawdie._time_span(datetime.datetime.now() - start))
-        log.set_title("{} ({} of {}) - finished".format(title, counter[0], total))
-        log.write_line("Auto Design finished.")
+        # Session.__UsingTimer prints the elapsed TimeSpan (syslog); the progress window gets it readable.
+        elapsed = datetime.datetime.now() - start
+        nx.info(drawdie._time_span(elapsed))
+        log.set_title("{} ({} of {}) - finished in {}".format(title, counter[0], total, _elapsed_text(elapsed)))
+        log.write_line("Auto Design finished in {}.".format(_elapsed_text(elapsed)))
+
+
+def _elapsed_text(elapsed: datetime.timedelta) -> str:
+    """The run's time for the progress window: 1h 02m 05s, 5m 18s or 42s."""
+    seconds = int(round(elapsed.total_seconds()))
+    hours, rest = divmod(seconds, 3600)
+    minutes, seconds = divmod(rest, 60)
+    if hours:
+        return "{}h {:02d}m {:02d}s".format(hours, minutes, seconds)
+    if minutes:
+        return "{}m {:02d}s".format(minutes, seconds)
+    return "{}s".format(seconds)
 
 
 def _component_tags(top_level: NXOpen.BasePart) -> Set[int]:
