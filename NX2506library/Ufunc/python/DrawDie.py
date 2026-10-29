@@ -122,6 +122,13 @@ PostShcsInset = .625
 PostJackInset = .500
 
 CavityOverhang = 1.00
+# Keying blocks apart (2026-10-29): in a grid of form steels / split form blocks each block's keys move off the
+# centreline by its own grid position - the front / back keys along X by column x KeyShiftStep, the right / left keys
+# along Y by row x KeyShiftStep - so no block can be screwed into another block's place, even turned end for end
+# (every shift is >= 0, and only the (0, 0) block's pattern is symmetric). The SHCS too, to be doubly sure: the one
+# at the block's min corner moves inward by the same (x, y) (shift_first_corner); the other three stay, so none comes
+# nearer an edge. Turned end for end, the moved one is at the opposite corner, so it cannot match another block.
+KeyShiftStep = 0.0625
 # Dead Strike's upper (DrawDie.build_upper): the cavity steels overhang the part 3/8" a side, like its lower split
 # form, instead of the draw die's 1".
 DeadStrikeCavityOverhang = .375
@@ -1054,10 +1061,13 @@ def _build_one_form_steel(job: DrawDieJob, min_point: NXOpen.Point3d, column: in
     out_of = _z_matrix(_VectorZ if job.is_upper else _VectorZN)
 
     block_label = "{} block {}".format(name, index + 1)
+    # This block's own key / SHCS pattern (KeyShiftStep).
+    shift = key_shift_for(column, row, job.form_steel_columns)
 
     _draw_die_step("{} SHCS".format(block_label), lambda: _place_draw_die_children(
         "form steel SHCS", shcs_path,
-        [(NXOpen.Point3d(p.X, p.Y, mount_z), out_of) for p in _inset_corners(column_width, row_length, shcs_inset)],
+        [(NXOpen.Point3d(p.X, p.Y, mount_z), out_of)
+         for p in shift_first_corner(_inset_corners(column_width, row_length, shcs_inset), shift)],
         layer=99, subtract_refset="SHORT-TAP", body_refset=body_refset))
 
     def jack_screws() -> None:
@@ -1070,8 +1080,10 @@ def _build_one_form_steel(job: DrawDieJob, min_point: NXOpen.Point3d, column: in
     _draw_die_step("{} jack screws".format(block_label), jack_screws)
 
     def block_keys() -> None:
-        placed = (_place_draw_die_edge_keys(job, column_width, row_length, height) if keys_both_ways
-                  else _place_draw_die_front_back_keys(job, column_width, row_length, height))
+        # Off centre by this block's grid position, so no two steels key into the same place (KeyShiftStep).
+        placed = (_place_draw_die_edge_keys(job, column_width, row_length, height, shift) if keys_both_ways
+                  else _place_draw_die_front_back_keys(job, column_width, row_length, height,
+                                                       KeyShiftStep * (row * job.form_steel_columns + column)))
         body_refset.AddObjectsToReferenceSet(placed)
         keys.extend(placed)
 
@@ -1428,9 +1440,30 @@ def _apply_draw_die_sheet(placed: NXOpen.Assemblies.Component, label: str,
     return ok
 
 
-def _place_draw_die_front_back_keys(job: DrawDieJob, xlength: float, ywidth: float,
-                                    height: float) -> List[NXOpen.Assemblies.Component]:
-    """Merlin.PlaceDrawDieFrontBackKeys - two keys on the mounting face, X-centred, 1.5" in from each Y end."""
+def key_shift_for(column: int, row: int, columns: int) -> Tuple[float, float]:
+    """
+    The (x, y) key shift of the block at column / row of a grid (KeyShiftStep). With edge keys both ways the block's
+    column moves the front / back keys and its row the side keys. A one-column grid has nothing to tell its blocks
+    apart by along X, so there the row moves both.
+    """
+    if columns <= 1:
+        return KeyShiftStep * row, KeyShiftStep * row
+    return KeyShiftStep * column, KeyShiftStep * row
+
+
+def shift_first_corner(corners: Sequence[NXOpen.Point3d], shift: Tuple[float, float]) -> List[NXOpen.Point3d]:
+    """corners with the first - the min corner, inset in from MinX / MinY - moved inward (+X, +Y) by shift."""
+    moved = list(corners)
+    if moved:
+        first = moved[0]
+        moved[0] = NXOpen.Point3d(first.X + shift[0], first.Y + shift[1], first.Z)
+    return moved
+
+
+def _place_draw_die_front_back_keys(job: DrawDieJob, xlength: float, ywidth: float, height: float,
+                                    shift_x: float = 0.0) -> List[NXOpen.Assemblies.Component]:
+    """Merlin.PlaceDrawDieFrontBackKeys - two keys on the mounting face, X-centred (+ shift_x), 1.5" in from each Y
+    end."""
     path = _gmKeyPath if job.is_gm else _ctsSmartKeyMetric
     nudge = 0.0748 if job.is_gm else 0.0
     z = height if job.is_upper else 0.0
@@ -1438,14 +1471,14 @@ def _place_draw_die_front_back_keys(job: DrawDieJob, xlength: float, ywidth: flo
 
     return [
         nx.add_component(nx.display_part(), path, "BODY", None,
-                         NXOpen.Point3d(xlength / 2, 1.5 + nudge, z), orientation, 99),
+                         NXOpen.Point3d(xlength / 2 + shift_x, 1.5 + nudge, z), orientation, 99),
         nx.add_component(nx.display_part(), path, "BODY", None,
-                         NXOpen.Point3d(xlength / 2, ywidth - 1.5 - nudge, z), orientation, 99),
+                         NXOpen.Point3d(xlength / 2 + shift_x, ywidth - 1.5 - nudge, z), orientation, 99),
     ]
 
 
-def _place_draw_die_edge_keys(job: DrawDieJob, xlength: float, ywidth: float,
-                              height: float) -> List[NXOpen.Assemblies.Component]:
+def _place_draw_die_edge_keys(job: DrawDieJob, xlength: float, ywidth: float, height: float,
+                              key_shift: Tuple[float, float] = (0.0, 0.0)) -> List[NXOpen.Assemblies.Component]:
     """
     Merlin.PlaceDrawDieEdgeKeys - four keys on the mounting face, one in from each edge on the centrelines, through
     PlaceEdgeItems (which assumes an 8" block for the upper, hence the Z shift). Saves and restores the WCS.
@@ -1457,7 +1490,7 @@ def _place_draw_die_edge_keys(job: DrawDieJob, xlength: float, ywidth: float,
         return _place_edge_items(_gmKeyPath if job.is_gm else _ctsSmartKeyMetric, NXOpen.Point3d(0.0, 0.0, 0.0),
                                  xlength, ywidth, job.is_upper,
                                  front_back_nudge=0.0748 if job.is_gm else 0.0, x_edge_inset=2.4498,
-                                 extra_z=height - 8 if job.is_upper else 0.0, layer=99)
+                                 extra_z=height - 8 if job.is_upper else 0.0, layer=99, key_shift=key_shift)
     finally:
         wcs.SetOriginAndMatrix(NXOpen.Point3d(0.0, 0.0, 0.0), current_wcs)
 
@@ -1728,14 +1761,17 @@ def _stamp_fastener_subtract(fastener: NXOpen.Assemblies.Component, subtract_ref
 
 def _place_edge_items(path: str, origin: NXOpen.Point3d, xlength: float, y_extent: float, is_upper: bool,
                       front_back_nudge: float, x_edge_inset: float, extra_z: float = 0.0,
-                      layer: int = 99) -> List[NXOpen.Assemblies.Component]:
+                      layer: int = 99, key_shift: Tuple[float, float] = (0.0, 0.0)
+                      ) -> List[NXOpen.Assemblies.Component]:
     """
     Merlin.PlaceEdgeItems - X-centered front (-Y) and back (+Y) at inset 1.5 (+/- front_back_nudge), Y-centered
     right (+X) and left (-X) at x_edge_inset +/- (1.5 - .625). Upper sits them on top of an 8" block (+Z 8),
     rotates the WCS 90 degrees about Z, and orients front/back with the upper-key matrix and right/left with the
     rotated WCS; lower uses the side-key matrix front/back and identity right/left. Returns [front, back, right,
-    left]. The caller saves and restores the WCS.
+    left]. The caller saves and restores the WCS. key_shift (x, y) moves front/back along X and right/left along Y
+    (key_shift_for - KeyShiftStep).
     """
+    shift_x, shift_y = key_shift
     z_top = 8.0 if is_upper else 0.0
     lr_orient: Optional[NXOpen.Matrix3x3]
     if is_upper:
@@ -1756,15 +1792,16 @@ def _place_edge_items(path: str, origin: NXOpen.Point3d, xlength: float, y_exten
         return NXOpen.Point3d(origin.X + x, origin.Y + y, origin.Z + z)
 
     # -Y edge (front): X-centered near MinY
-    front = nx.add_component(display, path, "BODY", None, at(xlength / 2, 1.5 + front_back_nudge), fb_orient, layer)
+    front = nx.add_component(display, path, "BODY", None, at(xlength / 2 + shift_x, 1.5 + front_back_nudge),
+                             fb_orient, layer)
     # +Y edge (back): X-centered near MaxY
-    back = nx.add_component(display, path, "BODY", None, at(xlength / 2, y_extent - 1.5 - front_back_nudge),
-                            fb_orient, layer)
+    back = nx.add_component(display, path, "BODY", None,
+                            at(xlength / 2 + shift_x, y_extent - 1.5 - front_back_nudge), fb_orient, layer)
     # +X edge (right): Y-centered near MaxX
-    right = nx.add_component(display, path, "BODY", None, at(-x_edge_inset + xlength + (1.5 - .625), y_extent / 2),
-                             lr_orient, layer)
+    right = nx.add_component(display, path, "BODY", None,
+                             at(-x_edge_inset + xlength + (1.5 - .625), y_extent / 2 + shift_y), lr_orient, layer)
     # -X edge (left): Y-centered near MinX
-    left = nx.add_component(display, path, "BODY", None, at(x_edge_inset - (1.5 - .625), y_extent / 2),
+    left = nx.add_component(display, path, "BODY", None, at(x_edge_inset - (1.5 - .625), y_extent / 2 + shift_y),
                             lr_orient, layer)
     return [front, back, right, left]
 
@@ -1953,7 +1990,7 @@ class OpBodiesDialog(Dialog):
     """
     A Merlin dialog of three blocks - "customer" (None / TSG / GM), "bodies" (solid bodies, anywhere in the
     assembly) and "station" (a radio of op numbers, filled from numbers; the .dlx holds only a placeholder) - for
-    Draw Die (DrawDie.dlx) and Pierce (Pierce.dlx). None is checked on opening, the op is the work part's when it is
+    Draw Die (DrawDie.dlx) and Pierce (Pierce.dlx). The customer is set from the assembly on opening (None if unsure), the op is the work part's when it is
     one of them (else the first), and OK stays greyed out until TSG or GM is checked and a body is picked.
     spreadsheets: the .dlx also has an "edit_spreadsheets" toggle (Draw Die), checked on opening.
     """

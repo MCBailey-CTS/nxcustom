@@ -948,7 +948,8 @@ def _pick_pierce_stations(station: Optional[str] = None) -> Optional[_PierceStat
         number = options[index]
 
     stations = _PierceStations(number, found[number]["lad"], found[number]["uad"])
-    nx.info("Pierce: buttons into {}, punches and retainers into {}".format(stations.lad.DisplayName,
+    # Syslog only (2026-10-29): the station is already the one picked in the dialog.
+    nx.syslog("Pierce: buttons into {}, punches and retainers into {}".format(stations.lad.DisplayName,
                                                                               stations.uad.DisplayName))
     return stations
 

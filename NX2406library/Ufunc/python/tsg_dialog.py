@@ -16,6 +16,7 @@ which shows it, prints any exception from a callback to the listing window, and 
 from __future__ import annotations
 
 import os
+import re
 import sys
 from typing import Any, List, Optional, Sequence, cast
 
@@ -34,11 +35,45 @@ import tsg_nx as nx  # noqa: E402
 # UF_UI_SEL_SCOPE_ANY_IN_ASSEMBLY (Snap's SelectionScope.AnyInAssembly) - not in every UFConstants build.
 _ScopeAnyInAssembly = 3
 
-# The Merlin dialogs' Customer radio, ("enum", "customer", "Customer", Customers, "radio") in tools\make-dlx.py: None
-# is checked when the dialog opens (reset_customer, from shown()) and OK stays greyed out until TSG or GM is checked.
+# The Merlin dialogs' Customer radio, ("enum", "customer", "Customer", Customers, "radio") in tools\make-dlx.py: when
+# the dialog opens (reset_customer, from shown()) it is set from the display assembly's stations (detect_customer,
+# 2026-10-29) - TSG for lsp / usp sub plates, GM for lad / uad / upd / lftr / las / uas / acum - and left on None
+# when there are neither or both. OK stays greyed out until TSG or GM is checked.
 # GM adds the GM library parts as children; TSG (the CTS parts) is not implemented yet - is_gm_customer throws.
 CustomerNone, CustomerTsg, CustomerGm = "None", "TSG", "GM"
 Customers = [CustomerNone, CustomerTsg, CustomerGm]
+
+# {job}-{op}-{station}: the TSG sub plates and the GM die sets (ComponentAssignName's GM station table).
+_TsgStation = re.compile(r"^\d+-\d+-(lsp|usp)", re.IGNORECASE)
+_GmStation = re.compile(r"^\d+-\d+-(lad|uad|upd|lftr|las|uas|acum)", re.IGNORECASE)
+
+
+def detect_customer(part: Optional[NXOpen.Part] = None) -> str:
+    """
+    TSG or GM by the stations in part's assembly (default the display part), the part itself included: TSG when
+    only lsp / usp stations are found, GM when only lad / uad / upd / lftr / las / uas / acum, otherwise None.
+    Unloaded components count (by display name). Never throws - None on any error.
+    """
+    try:
+        root_part = part if part is not None else nx.display_part()
+        if root_part is None:
+            return CustomerNone
+        names = [root_part.Leaf]
+        root = root_part.ComponentAssembly.RootComponent
+        stack = [root] if root is not None else []
+        while stack:
+            component = stack.pop()
+            for child in component.GetChildren():
+                names.append(child.DisplayName)
+                stack.append(child)
+        tsg = any(_TsgStation.match(name or "") for name in names)
+        gm = any(_GmStation.match(name or "") for name in names)
+        if tsg == gm:
+            return CustomerNone
+        return CustomerTsg if tsg else CustomerGm
+    except Exception as ex:
+        nx.syslog("detect_customer: {}".format(ex))
+        return CustomerNone
 
 
 class Dialog(object):
@@ -95,8 +130,11 @@ class Dialog(object):
         return self.dialog.TopBlock.FindBlock(block_id)
 
     def reset_customer(self) -> None:
-        """Checks None on the "customer" radio. Call from shown(): the dialog memory would bring back the last pick."""
-        self.block("customer").ValueAsString = CustomerNone
+        """
+        Sets the "customer" radio from the display assembly (detect_customer: TSG, GM, or None when it cannot tell).
+        Call from shown(): the dialog memory would bring back the last pick.
+        """
+        self.block("customer").ValueAsString = detect_customer()
 
     def customer(self) -> str:
         """The "customer" radio's value: None, TSG or GM."""

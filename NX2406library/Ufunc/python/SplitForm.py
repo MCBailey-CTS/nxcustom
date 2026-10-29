@@ -254,12 +254,14 @@ def _create_split_form(is_upper: bool, top_level: NXOpen.Part, start_work: NXOpe
 
                 # The mounting face: the top of an upper, the bottom of a lower.
                 fastener_z = box.MaxZ if is_upper else box.MinZ
-                fastener_origins = [
+                # This block's own key / SHCS pattern (DrawDie.KeyShiftStep): the min-corner SHCS moves inward.
+                block_shift = drawdie.key_shift_for(column, row, columns)
+                fastener_origins = drawdie.shift_first_corner([
                     _add(NXOpen.Point3d(box.MinX, box.MinY, fastener_z), inset, inset, 0),
                     _add(NXOpen.Point3d(box.MaxX, box.MinY, fastener_z), -inset, inset, 0),
                     _add(NXOpen.Point3d(box.MaxX, box.MaxY, fastener_z), -inset, -inset, 0),
                     _add(NXOpen.Point3d(box.MinX, box.MaxY, fastener_z), inset, -inset, 0),
-                ]
+                ], block_shift)
 
                 fasteners = [nx.add_component(nx.display_part(), shcs_path, reference_set=shcs_refset, origin=o,
                                               orientation=fastener_orientation, layer=99)
@@ -271,8 +273,9 @@ def _create_split_form(is_upper: bool, top_level: NXOpen.Part, start_work: NXOpe
                 # the one thing that measured from the assembly-space stack position - after the re-base each
                 # block's own corner is its part's origin.
                 this_block_origin = NXOpen.Point3d(0.0, 0.0, 0.0)
+                # Off centre by this block's grid position, so no two blocks key into the same place.
                 keys = _place_split_keys(is_upper, column_width, this_block_origin, block_height, is_gm, layer=99,
-                                         block_z=block_z)
+                                         block_z=block_z, key_shift=block_shift)
                 nx.display_part().WCS.SetOriginAndMatrix(NXOpen.Point3d(0.0, 0.0, 0.0), current_wcs)
                 body_reference_set.AddObjectsToReferenceSet(keys)
                 if plate:
@@ -656,16 +659,17 @@ def _parse_boolean_operation(item: str) -> Tuple[str, NXOpen.Features.Feature.Bo
 
 
 def _place_split_keys(is_upper: bool, xlength: float, this_block_origin: NXOpen.Point3d, block_height: float,
-                      is_gm: bool, layer: int = 1, block_z: float = SplitFormHeight) -> List[NXOpen.Assemblies.Component]:
+                      is_gm: bool, layer: int = 1, block_z: float = SplitFormHeight,
+                      key_shift: Tuple[float, float] = (0.0, 0.0)) -> List[NXOpen.Assemblies.Component]:
     """
     Merlin.PlaceSplitKeys - PlaceEdgeItems with the GM / CTS key, x_edge_inset 2.4498 and the .0748 front/back nudge
     on GM only. The caller saves and restores the WCS (an upper rotates it). An upper's keys sit on top of the block,
-    block_z up (PlaceEdgeItems assumes the old 8").
+    block_z up (PlaceEdgeItems assumes the old 8"). key_shift moves the keys off centre (DrawDie.key_shift_for).
     """
     return drawdie._place_edge_items(_gmKeyPath if is_gm else _ctsSmartKeyMetric, this_block_origin, xlength,
                                      block_height, is_upper, front_back_nudge=0.0748 if is_gm else 0.0,
                                      x_edge_inset=2.4498, extra_z=block_z - SplitFormHeight if is_upper else 0.0,
-                                     layer=layer)
+                                     layer=layer, key_shift=key_shift)
 
 
 def _find_bottom_face() -> NXOpen.Face:
