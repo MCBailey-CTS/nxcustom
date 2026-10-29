@@ -879,7 +879,7 @@ def _pick_pierce_stations(station: Optional[str] = None) -> Optional[_PierceStat
     """
     The station numbers with both a ladNN and a uadNN under the display part. station ("02") is used when present;
     otherwise one is used as is and several are offered in a menu. None (after an error box) when there are none or
-    station is missing, or (printed) when the menu is cancelled.
+    station is missing, or (silently, the run marked cancelled) when the menu is cancelled.
     """
     root = nx.root_component(nx.display_part())
     found: Dict[str, Dict[str, Component]] = {}
@@ -911,8 +911,9 @@ def _pick_pierce_stations(station: Optional[str] = None) -> Optional[_PierceStat
         response = int(cast(Any, nx.ufsession_.Ui).DisplayMenu("Pierce into station", 0, options, len(options)))
         index = response - 5
         if not 0 <= index < len(options):
-            nx.print_("Pierce: no station picked (menu response {}) - nothing built.".format(response))
-            nx.progress("Pierce: no station picked (menu response {}) - nothing built.".format(response))
+            # A cancel prints nothing: the syslog and the run's END banner only.
+            nx.syslog("Pierce: no station picked (menu response {}) - nothing built.".format(response))
+            nx.mark_cancelled("the station menu")
             return None
         number = options[index]
 

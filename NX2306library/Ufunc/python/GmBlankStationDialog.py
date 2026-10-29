@@ -37,7 +37,7 @@ _SolidBodyDetail = 36
 
 
 def ask(title: str) -> Optional[Tuple[List[NXOpen.Body], str]]:
-    """Shows the dialog titled title; (picked slug bodies, "D2" | "S7") once accepted, None otherwise (printed)."""
+    """Shows the dialog titled title; (picked slug bodies, "D2" | "S7") once accepted, None otherwise."""
     try:
         dialog = _BlankStationDialog(title)
         accepted = dialog.run()
@@ -50,8 +50,8 @@ def ask(title: str) -> Optional[Tuple[List[NXOpen.Body], str]]:
                       "toolbar button.".format(title, _ErrorCannotLaunchDialog))
         return None
 
+    # A cancel prints nothing: Dialog.run already marked the run cancelled.
     if not accepted or not dialog.bodies:
-        nx.print_("{} dialog was not accepted - nothing built.".format(title))
         return None
 
     return dialog.bodies, dialog.material

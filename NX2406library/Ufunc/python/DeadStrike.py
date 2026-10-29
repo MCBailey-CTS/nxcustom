@@ -1,21 +1,25 @@
 """
 The dead-strike UFunc: a standalone Python UFunc (no C# class); its menu button runs this file's main().
 
-The dead strike tooling Auto Design builds for its DEADHIT program, on bodies picked by hand: a GM Split Form with
-backing plate and SHCS from the backside (GmSplitFormWithPlateBackside.execute_with) over the picked bodies, the lower
-one in LAD02 (subtracting each body's component's LWR-3D) and the upper one in UAD02 (UPR-3D), Rows x Cols blocks
-each. Run from the -000.
+The dead strike tooling Auto Design builds for its DEADHIT program, on bodies picked by hand. Run from the -000.
+  - Lower: a GM Split Form with backing plate and SHCS from the backside (GmSplitFormWithPlateBackside.execute_with)
+    over the picked bodies in LAD02, subtracting each body's component's LWR-3D, Rows x Cols blocks.
+  - Upper (since 2026-10-29): exactly the Draw Die's upper half (DrawDie.build_upper) - the 2 x 4 cavity steels and
+    the mounting plate in UAD02, subtracting UPR-3D. Rows / Cols do not apply to it.
 
-The blocks are sized off the picked bodies (size_off_bodies), not the reference sets the split form UFunc uses: X / Y
-the bodies + .375" a side, a lower's top at their highest point and bottom 2.75"+ under their lowest, an upper the
-other way round. On 006066-010 the layout's LWR-3D / UPR-3D are tool bodies 20" x 42" running to Z 21 / -18, which
-made 26" / 23" tall blocks with a .375" wall left standing round the subtract.
+The lower blocks are sized off the picked bodies (size_off_bodies), not the reference sets the split form UFunc uses:
+X / Y the bodies + .375" a side, the top at their highest point and the bottom 2.75"+ under their lowest. On
+006066-010 the layout's LWR-3D / UPR-3D are tool bodies 20" x 42" running to Z 21 / -18, which made 26" / 23" tall
+blocks with a .375" wall left standing round the subtract.
 
 The dialog (DeadStrike.dlx, tools\\make-dlx.py): the solid bodies (anywhere in the assembly), Rows / Cols (1-5, as
-the split form dialog), and Lower / Upper boxes (both checked by default) to build only one side. OK stays greyed
-out until a body is picked and a side is checked.
+the split form dialog, the lower's grid), and Lower / Upper boxes (both checked by default) to build only one side.
+OK stays greyed out until a body is picked and a side is checked. While it is open, each checked side's blocks (red)
+and backing / mounting plate (211) are outlined with temporary lines (GmSplitForm.preview_boxes for the lower,
+DrawDie.upper_preview_boxes for the upper, each in its station's coordinates), redrawn on every change and erased
+when the dialog closes.
 
-All the bodies go into one split form per side. The lower form's sizing and subtract switch the bodies' components'
+All the bodies go into one build per side. The lower form's sizing and subtract switch the bodies' components'
 reference sets and back, which kills the picked body occurrences, so the upper looks them up again
 (Component.FindOccurrence on the prototype body). A missing station or a failed side is printed and the other side
 still builds.
@@ -30,7 +34,7 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import Callable, List, Optional, Sequence, Tuple, cast
+from typing import Any, Callable, List, Optional, Sequence, Tuple, cast
 
 # Session.Execute does not put the script's folder on sys.path, so the shared modules would not import.
 _here = os.path.dirname(os.path.abspath(__file__))
@@ -67,7 +71,11 @@ class DeadStrike(object):
     def execute(is_gm: bool = True) -> None:
         """The dialog, then both sides' split forms (or the one side checked)."""
         dialog = _DeadStrikeDialog(title_with_version("Dead Strike"))
-        if not dialog.run():
+        try:
+            accepted = dialog.run()
+        finally:
+            _erase_preview()
+        if not accepted:
             return
         build(is_gm, dialog.bodies, dialog.rows, dialog.cols, dialog.lower, dialog.upper)
 
@@ -91,11 +99,14 @@ def build(is_gm: bool, bodies: Sequence[NXOpen.Body], rows: int, cols: int, lowe
 
 
 def build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: str, is_upper: bool, rows: int,
-                     cols: int, log: Optional[Callable[[str], None]] = None) -> None:
+                     cols: int, log: Optional[Callable[[str], None]] = None, skip_spreadsheets: bool = False,
+                     quiet: bool = False) -> None:
     """
-    GM Split Form with backing plate and SHCS from the backside over bodies, built into station_name (lad02 / uad02):
-    makes that station the work component of the -000, as a user would before opening the split form dialog, which
-    sizes and subtracts off UPR-3D / LWR-3D. log also gets each step (Auto Design's progress window).
+    The lower: GM Split Form with backing plate and SHCS from the backside over bodies, built into station_name
+    (lad02): makes that station the work component of the -000, as a user would before opening the split form
+    dialog, which sizes and subtracts off LWR-3D. The upper is exactly the Draw Die's upper half (DrawDie.build_upper:
+    the cavity steels and mounting plate in UAD02, subtracting UPR-3D; rows / cols do not apply, station_name is not
+    used). log also gets each step (Auto Design's progress window); skip_spreadsheets and quiet go to the draw die.
     """
     from GmSplitFormWithPlateBackside import GmSplitFormWithPlateBackside
 
@@ -110,10 +121,20 @@ def build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: s
         nx.print_("Dead Strike: no bodies left for {} - nothing built there.".format(station_name.upper()))
         return
 
-    root = nx.root_component(top_level)
-    station = None
-    if root is not None:
-        station = next((c for c in nx.descendants(root) if station_name in c.DisplayName.lower()), None)
+    if is_upper:
+        try:
+            nx.set_display_part(top_level)
+            nx.set_work_part(top_level)
+            say("Building the dead strike upper (the draw die's cavity steels and mounting plate)...")
+            drawdie.DrawDie.build_upper(is_gm, cast(Sequence[NXOpen.TaggedObject], list(bodies)), quiet,
+                                        skip_spreadsheets)
+            say("Finished the dead strike upper.")
+        finally:
+            nx.set_display_part(top_level)
+            nx.set_work_part(top_level)
+        return
+
+    station = _find_station(top_level, station_name)
 
     if station is None:
         say("Could not find {} - no dead strike split form built there.".format(station_name.upper()))
@@ -138,6 +159,108 @@ def build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: s
     finally:
         nx.set_display_part(top_level)
         nx.set_work_part(top_level)
+
+
+def _find_station(top_level: NXOpen.Part, station_name: str) -> Optional[NXOpen.Assemblies.Component]:
+    """The first component under top_level whose display name holds station_name (lad02 / uad02)."""
+    root = nx.root_component(top_level)
+    if root is None:
+        return None
+    return next((c for c in nx.descendants(root) if station_name in c.DisplayName.lower()), None)
+
+
+# ---------------------------------------------------------------------------------------------------
+# Preview: the outlines of the blocks and backing plate each side would build, as temporary lines
+# ---------------------------------------------------------------------------------------------------
+
+# Block outlines; the backing plate's.
+PreviewBlockColor = 186
+PreviewPlateColor = 211
+
+# The 12 edges of a box, as pairs of corner indices (corner bit 0 = +X, bit 1 = +Y, bit 2 = +Z).
+_BoxEdges = [(0, 1), (2, 3), (4, 5), (6, 7), (0, 2), (1, 3), (4, 6), (5, 7), (0, 4), (1, 5), (2, 6), (3, 7)]
+
+
+def _to_assembly(station: Optional[NXOpen.Assemblies.Component], p: NXOpen.Point3d) -> List[float]:
+    """A point in the station's part, in the display part's coordinates (the orientation's rows are its axes)."""
+    if station is None:
+        return [p.X, p.Y, p.Z]
+    position, o = station.GetPosition()
+    return [position.X + p.X * o.Xx + p.Y * o.Yx + p.Z * o.Zx,
+            position.Y + p.X * o.Xy + p.Y * o.Yy + p.Z * o.Zy,
+            position.Z + p.X * o.Xz + p.Y * o.Yz + p.Z * o.Zz]
+
+
+def _draw_box(station: Optional[NXOpen.Assemblies.Component], origin: NXOpen.Point3d, x: float, y: float, z: float,
+              color: int) -> None:
+    """One box's 12 edges as temporary lines; they go on the next regenerate."""
+    # The Python binding's names (NXOpen_UF.pyd): NXOpen.UF.Obj.DispProps and NXOpen.UF.Disp.ViewType - not the
+    # .NET UFObj / DispViewType, which do not exist here. Neither is in the stubs.
+    uf: Any = NXOpen.UF
+    attrib = uf.Obj.DispProps()
+    attrib.Color = color
+    attrib.LineWidth = uf.UFConstants.UF_OBJ_WIDTH_THICK
+    attrib.Font = uf.UFConstants.UF_OBJ_FONT_SOLID
+    attrib.HighlightStatus = False
+    attrib.Layer = 1
+    attrib.BlankStatus = uf.UFConstants.UF_OBJ_NOT_BLANKED
+    disp: Any = nx.ufsession_.Disp
+    # Only read for UF_DISP_USE_VIEW_TAG; USE_ACTIVE_PLUS draws in every active view.
+    view_tag = nx.display_part().Views.WorkView.Tag
+    corners = [_to_assembly(station, NXOpen.Point3d(origin.X + (x if i & 1 else 0.0), origin.Y + (y if i & 2 else 0.0),
+                                                    origin.Z + (z if i & 4 else 0.0)))
+               for i in range(8)]
+    for a, b in _BoxEdges:
+        disp.DisplayTemporaryLine(view_tag, uf.Disp.ViewType.USE_ACTIVE_PLUS, corners[a], corners[b], attrib)
+
+
+def _box_in_station(station: Optional[NXOpen.Assemblies.Component], box: nx.Box3d) -> nx.Box3d:
+    """
+    A display-part box in the station's part coordinates - the box round its 8 corners mapped in, as
+    DrawDie._map_box_to_station maps it (without making the station the work part, which a dialog must not do).
+    """
+    if station is None:
+        return box
+    position, o = station.GetPosition()
+    rows = [(o.Xx, o.Xy, o.Xz), (o.Yx, o.Yy, o.Yz), (o.Zx, o.Zy, o.Zz)]
+    corners = []
+    for x in (box.MinX, box.MaxX):
+        for y in (box.MinY, box.MaxY):
+            for z in (box.MinZ, box.MaxZ):
+                d = (x - position.X, y - position.Y, z - position.Z)
+                corners.append([r[0] * d[0] + r[1] * d[1] + r[2] * d[2] for r in rows])
+    return nx.Box3d(min(c[0] for c in corners), min(c[1] for c in corners), min(c[2] for c in corners),
+                    max(c[0] for c in corners), max(c[1] for c in corners), max(c[2] for c in corners))
+
+
+def _draw_preview(bodies: Sequence[NXOpen.Body], rows: int, cols: int, lower: bool, upper: bool) -> None:
+    """
+    Clears the last preview, then draws each checked side's blocks and plate over bodies, sized as the build sizes
+    them and placed through that side's station the way the build's station coordinates land in the display part:
+    the lower's split form (GmSplitForm.preview_boxes, which takes the bodies' display-part box as station
+    coordinates, as the split form build does) in lad02, the upper's draw die cavity steels and mounting plate
+    (DrawDie.upper_preview_boxes, off the box mapped into uad02, as the draw die maps it) in uad02.
+    """
+    import GmSplitForm as split
+
+    _erase_preview()
+    if not bodies:
+        return
+    box = nx.combine_boxes([nx.body_box(b) for b in bodies])
+    top_level = nx.display_part()
+    for checked, station_name, is_upper in ((lower, LowerStation, False), (upper, UpperStation, True)):
+        if not checked:
+            continue
+        station = _find_station(top_level, station_name)
+        outlines = (drawdie.upper_preview_boxes(_box_in_station(station, box)) if is_upper
+                    else split.preview_boxes(box, is_upper, rows, cols))
+        for index, (origin, x, y, z) in enumerate(outlines):
+            _draw_box(station, origin, x, y, z, PreviewPlateColor if index == len(outlines) - 1 else PreviewBlockColor)
+
+
+def _erase_preview() -> None:
+    """Temporary lines go on a regenerate."""
+    nx.ufsession_.Disp.RegenerateDisplay()
 
 
 def _body_ref(body: NXOpen.Body) -> BodyRef:
@@ -188,6 +311,19 @@ class _DeadStrikeDialog(Dialog):
         # Value properties: set once the dialog is up. Not remembered (the .dlx), so both sides every time.
         self.block("lower").Value = True
         self.block("upper").Value = True
+        self._preview()
+
+    def update(self, block: NXOpen.BlockStyler.UIBlock) -> None:
+        # Any change - bodies, Rows / Cols, Lower / Upper - redraws the outlines.
+        self._preview()
+
+    def _preview(self) -> None:
+        """The outlines of what OK would build; a failure goes to the syslog and leaves the dialog working."""
+        try:
+            _draw_preview(self._picked_bodies(), int(self.block("rows").Value), int(self.block("cols").Value),
+                          bool(self.block("lower").Value), bool(self.block("upper").Value))
+        except Exception as ex:
+            nx.syslog("Dead Strike: the preview failed: {}".format(ex))
 
     def enable_ok(self) -> bool:
         return ((bool(self.block("lower").Value) or bool(self.block("upper").Value))

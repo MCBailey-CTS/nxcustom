@@ -304,8 +304,8 @@ def build_blank_stations(is3d: bool, bodies1: Sequence[NXOpen.Body], material: s
     z_boxes: List[Tuple[nx.Box3d, nx.Box3d]] = [(box, box) for box, _ in body_data]
     if is3d:
         measured = _measure_3d_refset_boxes(body_data)
+        # No at the missing reference set question (it marked the run cancelled).
         if measured is None:
-            nx.print_("Secondary Trim Station: cancelled at the missing reference set question - nothing built.")
             return
         z_boxes = measured
 

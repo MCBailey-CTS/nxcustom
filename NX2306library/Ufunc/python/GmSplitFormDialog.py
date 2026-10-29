@@ -66,8 +66,8 @@ class GmSplitFormDialog(object):
                 title, _ErrorCannotLaunchDialog))
             return
 
+        # A cancel prints nothing: Dialog.run already marked the run cancelled.
         if not accepted or dialog.body is None:
-            nx.print_("{} dialog was not accepted - nothing built.".format(title))
             return
 
         # The dialog stands in for the station detection, the split-count menus and the body pick.

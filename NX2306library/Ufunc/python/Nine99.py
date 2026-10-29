@@ -3,6 +3,9 @@ Python port of the nine-99-block UFunc (Nine99Block.Block999, src\\UFuncs\\Nine9
 (9771eec "Nine99Block set up like a Merlin block" + d3fc8bb).
 The C# wrapper was deleted 2026-10-22 (in git at 1cb53d8): the UFunc's menu button runs this file's main().
 
+First (2026-10-29), a Warning box when the display assembly holds any component that is still the library
+G:\\0Library\\Unikix\\Smart Unikix Pins.prt (never saved as its own pin part), listed by parent; the run then goes on.
+
 Select components, take the solid body on layer 1 of each one's part, find that body's occurrence under the
 picked component, and build one block over the bounding box of all of them in the display part (grown .75" on
 the four sides, each length rounded up to .125", the -Z face colored 42). Then:
@@ -86,12 +89,18 @@ Block999JackInsetX = .625
 # The jig jacks sit this far in from their Y faces (the trim details' TSG jack inset).
 Block999JackInsetY = 1.75
 
+# The library smart part's leaf (G:\0Library\Unikix\Smart Unikix Pins.prt), lower case; a component still on it was
+# never saved as its own pin part. The warning box lists at most this many parents.
+UnikixPinsLeaf = "smart unikix pins"
+UnikixWarningMaxLines = 20
+
 
 class Nine99Block(object):
 
     @staticmethod
     def execute() -> None:
-        """Nine99Block.execute - pick, then build."""
+        """Nine99Block.execute - the unsaved Unikix pin warning, pick, then build."""
+        _warn_unsaved_unikix_pins()
         Nine99Block.run(nx.select_many_components("Select components for Block999"))
 
     @staticmethod
@@ -213,6 +222,53 @@ class Nine99Block(object):
 
         nx.ufsession_.Disp.RegenerateDisplay()
         nx.display_part().ModelingViews.WorkView.Fit()
+
+
+def _unsaved_unikix_pins(top_level: NXOpen.BasePart) -> List[NXOpen.Assemblies.Component]:
+    """
+    Every component under top_level that is still the library smart part (UnikixPinsLeaf), not a pin saved as its
+    own job part: the Blank Station drops G:\\0Library\\Unikix\\Smart Unikix Pins.prt into each punch as is. Matched
+    on the part name, so a copy that kept it counts too; an unloaded one by its display name.
+    """
+    root = nx.root_component(top_level)
+    if root is None:
+        return []
+    found: List[NXOpen.Assemblies.Component] = []
+    for component in nx.descendants(root):
+        try:
+            prototype = component.Prototype
+            leaf = prototype.Leaf if prototype is not None else component.DisplayName
+        except Exception:
+            leaf = component.DisplayName
+        if (leaf or "").strip().lower() == UnikixPinsLeaf:
+            found.append(component)
+    return found
+
+
+def _warn_unsaved_unikix_pins() -> None:
+    """A Warning box listing where each unsaved Smart Unikix Pins sits (by parent), when the assembly has any."""
+    pins = _unsaved_unikix_pins(nx.display_part())
+    if not pins:
+        return
+
+    by_parent: dict = {}
+    for pin in pins:
+        parent = pin.Parent
+        name = parent.DisplayName if parent is not None else nx.display_part().Leaf
+        by_parent[name] = by_parent.get(name, 0) + 1
+
+    lines = ["{} x{}".format(name, count) for name, count in sorted(by_parent.items())]
+    shown = lines[:UnikixWarningMaxLines]
+    if len(lines) > len(shown):
+        shown.append("... and {} more (all of them in the syslog)".format(len(lines) - len(shown)))
+    for line in lines:
+        nx.syslog("Block999: unsaved Smart Unikix Pins in {}".format(line))
+
+    nx.message_box(
+        "Block999",
+        NXOpen.NXMessageBox.DialogType.Warning,
+        "{} Smart Unikix Pins in this assembly are not saved as their own part (still the library smart part):\n\n"
+        "{}".format(len(pins), "\n".join(shown)))
 
 
 def _subtract_punch_links(punch: NXOpen.Assemblies.Component, block_target: NXOpen.Body) -> None:

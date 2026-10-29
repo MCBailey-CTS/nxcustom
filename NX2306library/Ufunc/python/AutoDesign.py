@@ -12,9 +12,9 @@ asking for them, in this order:
                station menu; gm-pierce only, no secondary pass)
   - DRAW     - Draw Die into LAD02 and UAD02 (DrawDie.build)
   - RESTRIKE - GM Cast Post, once in LAD02 (LWR-3D) and once in UAD02 (UPR-3D) (GmCastPost.build)
-  - DEADHIT  - GM Split Form with backing plate and SHCS from the backside, once in LAD02 (LWR-3D) and once in UAD02
-               (UPR-3D), the dialog's Rows x Cols over all the DEADHIT bodies (DeadStrike.build_in_station, the
-               dead-strike UFunc's builder)
+  - DEADHIT  - GM Split Form with backing plate and SHCS from the backside in LAD02 (LWR-3D), the dialog's Rows x
+               Cols over all the DEADHIT bodies, then exactly the Draw Die's upper half in UAD02 (cavity steels and
+               mounting plate, UPR-3D) (DeadStrike.build_in_station, the dead-strike UFunc's builder)
 Unknown values print and are skipped. Each program starts from the -000 (display = work, WCS absolute) in its own
 try/except, so a failed draw die still leaves the restrike posts to be built.
 
@@ -169,8 +169,8 @@ class AutoDesign(object):
                           "toolbar button.".format(title, _ErrorCannotLaunchDialog))
             return
 
+        # A cancel prints nothing: Dialog.run already marked the run cancelled.
         if not accepted:
-            nx.print_("{} dialog was not accepted - nothing built.".format(title))
             return
 
         _log = _ProgressLog(title)
@@ -311,8 +311,9 @@ def _run(is_gm: bool, title: str, dialog: "_AutoDesignDialog") -> None:
         # The lower form's sizing and subtract switch the bodies' components to LWR-3D and back, so the upper
         # re-resolves them rather than reusing the lower's.
         start_operation(AutoDesignDeadHit + " UAD02")
+        # The upper is the Draw Die's upper half (cavity steels + mounting plate); Rows / Cols are the lower's only.
         build_in_station(is_gm, group(AutoDesignDeadHit), "uad02", True, dialog.deadhit_rows, dialog.deadhit_cols,
-                         _log_line)
+                         _log_line, skip_spreadsheets=not dialog.edit_spreadsheets, quiet=True)
 
     start = datetime.datetime.now()
     log.follow()

@@ -208,11 +208,26 @@ class DrawDie(object):
         and "Created reference set" lines; skip_spreadsheets leaves every key's and guided retainer's sheet unopened
         (AutoDesign's Edit Spreadsheets off).
         """
+        DrawDie._build_halves(is_gm, bodies, quiet, skip_spreadsheets, lower=True, upper=True)
+
+    @staticmethod
+    def build_upper(is_gm: bool, bodies: Sequence[NXOpen.TaggedObject], quiet: bool = False,
+                    skip_spreadsheets: bool = False) -> None:
+        """
+        build, the upper half only: the cavity form steels and the mounting plate in UAD02, subtracting UPR-3D.
+        Dead Strike's upper (and so Auto Design's DEADHIT upper) is exactly this.
+        """
+        DrawDie._build_halves(is_gm, bodies, quiet, skip_spreadsheets, lower=False, upper=True)
+
+    @staticmethod
+    def _build_halves(is_gm: bool, bodies: Sequence[NXOpen.TaggedObject], quiet: bool, skip_spreadsheets: bool,
+                      lower: bool, upper: bool) -> None:
         global _skip_spreadsheets
         _skip_spreadsheets = bool(skip_spreadsheets)
         try:
             with nx.quiet_listing(quiet):
-                build_draw_die(bool(is_gm), [cast(NXOpen.Body, body) for body in bodies])
+                build_draw_die(bool(is_gm), [cast(NXOpen.Body, body) for body in bodies], build_lower_half=lower,
+                               build_upper_half=upper)
         except Exception as ex:
             nx.print_exception(ex)
         finally:
@@ -289,11 +304,13 @@ _BuildLower = _BuildBinder or _BuildPosts or _BuildRiser
 _BuildUpper = _BuildCavity or _BuildMountingPlate
 
 
-def _try_find_draw_die_stations() -> Optional[Tuple[Optional[NXOpen.Assemblies.Component],
+def _try_find_draw_die_stations(lower: bool = True, upper: bool = True
+                                ) -> Optional[Tuple[Optional[NXOpen.Assemblies.Component],
                                                     Optional[NXOpen.Assemblies.Component]]]:
     """
     Merlin.TryFindDrawDieStations - LAD02 / UAD02 under the display part, each looked up only when its half has a
-    stage (None otherwise). Shows an error naming the missing ones and returns None when any is missing.
+    stage and is wanted (lower / upper; None otherwise). Shows an error naming the missing ones and returns None when
+    any is missing.
     """
     root = nx.root_component(nx.display_part())
     descendants = list(nx.descendants(root)) if root is not None else []
@@ -301,10 +318,12 @@ def _try_find_draw_die_stations() -> Optional[Tuple[Optional[NXOpen.Assemblies.C
     def find_station(name: str) -> Optional[NXOpen.Assemblies.Component]:
         return next((c for c in descendants if name in c.DisplayName.lower()), None)
 
-    station_lad = find_station(DrawDieLowerStation) if _BuildLower else None
-    station_uad = find_station(DrawDieUpperStation) if _BuildUpper else None
-    missing = [name.upper() for station, name, wanted in ((station_lad, DrawDieLowerStation, _BuildLower),
-                                                           (station_uad, DrawDieUpperStation, _BuildUpper))
+    want_lower = _BuildLower and lower
+    want_upper = _BuildUpper and upper
+    station_lad = find_station(DrawDieLowerStation) if want_lower else None
+    station_uad = find_station(DrawDieUpperStation) if want_upper else None
+    missing = [name.upper() for station, name, wanted in ((station_lad, DrawDieLowerStation, want_lower),
+                                                           (station_uad, DrawDieUpperStation, want_upper))
                if wanted and station is None]
 
     if missing:
@@ -314,20 +333,25 @@ def _try_find_draw_die_stations() -> Optional[Tuple[Optional[NXOpen.Assemblies.C
     return station_lad, station_uad
 
 
-def build_draw_die(is_gm: bool, bodies: Sequence[NXOpen.Body]) -> None:
+def build_draw_die(is_gm: bool, bodies: Sequence[NXOpen.Body], build_lower_half: bool = True,
+                   build_upper_half: bool = True) -> None:
     """
     Merlin.BuildDrawDie - the build half of static_draw_die, on part bodies the caller already has, so AutoDesign
     can drive it. Run from the -000; the caller brings the units and -000 gates. Builds the lower stages (binder,
-    posts, riser) into LAD02 and the upper ones (cavity, mounting plate) into UAD02. Each stage is caught on its own,
-    so a failed binder still leaves the posts and riser to be built, and a failed lower half the upper one.
+    posts, riser) into LAD02 and the upper ones (cavity, mounting plate) into UAD02 - only the halves asked for
+    (Dead Strike builds the upper alone). Each stage is caught on its own, so a failed binder still leaves the posts
+    and riser to be built, and a failed lower half the upper one.
     """
-    stations = _try_find_draw_die_stations()
+    stations = _try_find_draw_die_stations(build_lower_half, build_upper_half)
     if stations is None:
         return
 
     station_lad, station_uad = stations
-    build_binder, build_posts, build_riser = _BuildBinder, _BuildPosts, _BuildRiser
-    build_cavity, build_mounting_plate = _BuildCavity, _BuildMountingPlate
+    build_binder = _BuildBinder and build_lower_half
+    build_posts = _BuildPosts and build_lower_half
+    build_riser = _BuildRiser and build_lower_half
+    build_cavity = _BuildCavity and build_upper_half
+    build_mounting_plate = _BuildMountingPlate and build_upper_half
     build_lower = station_lad is not None
     build_upper = station_uad is not None
 
@@ -770,11 +794,7 @@ def _build_draw_die_cavity(job: DrawDieJob) -> nx.Box3d:
     Merlin.BuildDrawDieCavity - eight cavity form steels: the part's box + 1" per side, split like the posts, at
     least 2.75" thick over the part's highest point, UPR-3D subtracted. Returns the overall box.
     """
-    box = job.part_box
-    xlength = nx.round_to_125(box.MaxX - box.MinX) + 2 * CavityOverhang
-    ywidth = nx.round_to_125(box.MaxY - box.MinY) + 2 * CavityOverhang
-    height = nx.round_to_125(box.MaxZ - box.MinZ + CavityMinThickness)
-    min_point = _centered_min(box, xlength, ywidth, box.MinZ)
+    min_point, xlength, ywidth, height = _cavity_size(job.part_box)
 
     _build_draw_die_form_steels(job, min_point, xlength, ywidth, height,
                                 name="{}-draw-die-cavity".format(job.prefix),
@@ -789,15 +809,46 @@ def _build_draw_die_cavity(job: DrawDieJob) -> nx.Box3d:
     return _box_from(min_point, xlength, ywidth, height)
 
 
+def _cavity_size(box: nx.Box3d) -> Tuple[NXOpen.Point3d, float, float, float]:
+    """(min corner, xlength, ywidth, height) of the cavity steels over the part's box, in station coordinates."""
+    xlength = nx.round_to_125(box.MaxX - box.MinX) + 2 * CavityOverhang
+    ywidth = nx.round_to_125(box.MaxY - box.MinY) + 2 * CavityOverhang
+    height = nx.round_to_125(box.MaxZ - box.MinZ + CavityMinThickness)
+    return _centered_min(box, xlength, ywidth, box.MinZ), xlength, ywidth, height
+
+
+def _mounting_plate_size(cavity: nx.Box3d) -> Tuple[NXOpen.Point3d, float, float, float]:
+    """(min corner, xlength, ywidth, thickness) of the mounting plate on top of the cavity steels."""
+    xlength = cavity.MaxX - cavity.MinX + 2 * PlateOverhangX
+    ywidth = cavity.MaxY - cavity.MinY + 2 * PlateOverhangY
+    min_point = NXOpen.Point3d(cavity.MinX - PlateOverhangX, cavity.MinY - PlateOverhangY, cavity.MaxZ)
+    return min_point, xlength, ywidth, PlateThickness
+
+
+def upper_preview_boxes(part_box: nx.Box3d) -> List[Tuple[NXOpen.Point3d, float, float, float]]:
+    """
+    The (origin, x, y, z) boxes the upper half builds over part_box (in UAD02's coordinates): the FormSteelColumns x
+    FormSteelRows cavity steels, then the mounting plate last. Empty when the box is too small to split.
+    """
+    min_point, xlength, ywidth, height = _cavity_size(part_box)
+    column_width = (xlength - (FormSteelColumns - 1) * merlin.SplitGap) / FormSteelColumns
+    row_length = (ywidth - (FormSteelRows - 1) * merlin.SplitGap) / FormSteelRows
+    if column_width <= 0 or row_length <= 0:
+        return []
+    boxes = [(NXOpen.Point3d(min_point.X + column * (column_width + merlin.SplitGap),
+                             min_point.Y + row * (row_length + merlin.SplitGap), min_point.Z),
+              column_width, row_length, height)
+             for column in range(FormSteelColumns) for row in range(FormSteelRows)]
+    boxes.append(_mounting_plate_size(_box_from(min_point, xlength, ywidth, height)))
+    return boxes
+
+
 def _build_draw_die_mounting_plate(job: DrawDieJob, cavity: nx.Box3d) -> nx.Box3d:
     """
     Merlin.BuildDrawDieMountingPlate - on top of the cavity steels: 1.75" per side wider and 2.50" per end longer,
     2" thick. Children: 10 x 20mm-shcs-060-2x (5 per long side), 8 jack screws, 4 corner hoist rings, 4 keys.
     """
-    xlength = cavity.MaxX - cavity.MinX + 2 * PlateOverhangX
-    ywidth = cavity.MaxY - cavity.MinY + 2 * PlateOverhangY
-    min_point = NXOpen.Point3d(cavity.MinX - PlateOverhangX, cavity.MinY - PlateOverhangY, cavity.MaxZ)
-    thickness = PlateThickness
+    min_point, xlength, ywidth, thickness = _mounting_plate_size(cavity)
 
     new_part, component = _promote_draw_die_block(
         job, min_point, xlength, ywidth, thickness,

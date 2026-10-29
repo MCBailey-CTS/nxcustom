@@ -725,7 +725,9 @@ def confirm_missing_reference_sets(label: str, purpose: str, components: Iterabl
         purpose, "\r\n".join(missing))
     # 1 is Yes on a Question box.
     if message_box(label, NXOpen.NXMessageBox.DialogType.Question, message) != MessageBoxYes:
-        print_("{} cancelled: {}".format(label, "; ".join(missing)))
+        # A No is a cancel: the syslog and the run's END banner, not the listing window.
+        syslog("{} cancelled: {}".format(label, "; ".join(missing)))
+        mark_cancelled("the missing reference set question")
         return False
 
     for line in missing:

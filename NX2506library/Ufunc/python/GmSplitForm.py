@@ -451,6 +451,22 @@ def _compute_refset_block_dimensions(label: str, bodies: Sequence[NXOpen.Body],
             return None
         box = nx.combine_boxes(loose + [nx.reference_set_box(c, refset, label) or picked[c.Tag] for c in owners])
 
+    xlength, ywidth, height, block_origin, block_z = _block_dimensions(box, is_upper, offset)
+    min_z = block_origin.Z
+
+    nx.info("{}: {} Z {} .. {} - form steel Z {} .. {} ({}\" {} the part)".format(
+        label, refset, drawdie._f3(box.MinZ), drawdie._f3(box.MaxZ), drawdie._f3(min_z),
+        drawdie._f3(min_z + block_z), FormSteelMinThickness, "over" if is_upper else "under"))
+    return xlength, ywidth, height, block_origin, block_z
+
+
+def _block_dimensions(box: nx.Box3d, is_upper: bool, offset: float
+                      ) -> Tuple[float, float, float, NXOpen.Point3d, float]:
+    """
+    (xlength, ywidth, height, block_origin, block_z) off the part's box: each span rounded up to 1/8" plus offset a
+    side, centred; block_z the part's Z span + FormSteelMinThickness rounded up to 1/8", a lower's top at the part's
+    highest point, an upper's bottom at its lowest.
+    """
     length = box.MaxX - box.MinX
     width = box.MaxY - box.MinY
     height = box.MaxZ - box.MinZ
@@ -459,35 +475,64 @@ def _compute_refset_block_dimensions(label: str, bodies: Sequence[NXOpen.Body],
     block_z = nx.round_to_125(height + FormSteelMinThickness)
     min_z = box.MinZ if is_upper else box.MaxZ - block_z
     block_origin = NXOpen.Point3d(box.MinX - (xlength - length) / 2, box.MinY - (ywidth - width) / 2, min_z)
-
-    nx.info("{}: {} Z {} .. {} - form steel Z {} .. {} ({}\" {} the part)".format(
-        label, refset, drawdie._f3(box.MinZ), drawdie._f3(box.MaxZ), drawdie._f3(min_z),
-        drawdie._f3(min_z + block_z), FormSteelMinThickness, "over" if is_upper else "under"))
     return xlength, ywidth, height, block_origin, block_z
 
 
-def _create_grid_blocks(block_origin: NXOpen.Point3d, orientation: NXOpen.Matrix3x3, xlength: float, ywidth: float,
-                        rows: int, cols: int, block_z: float
-                        ) -> Optional[Tuple[float, float, List[Tuple[int, int, NXOpen.Features.Block]]]]:
+def _grid_cells(block_origin: NXOpen.Point3d, xlength: float, ywidth: float, rows: int, cols: int
+                ) -> Optional[Tuple[float, float, List[Tuple[int, int, NXOpen.Point3d]]]]:
     """
-    The box cut into rows along Y by cols along X, SplitFormGap apart both ways, column by column like the draw
-    die's form steels: (column_width, row_width, [(column, row, block)]). None (printed) when the box is too small.
+    The box cut into rows along Y by cols along X, SplitFormGap apart both ways, column by column:
+    (column_width, row_width, [(column, row, cell origin)]). None when the box is too small.
     """
     gap = SplitFormGap
     row_width = (ywidth - (rows - 1) * gap) / rows
     column_width = (xlength - (cols - 1) * gap) / cols
 
     if column_width <= 0 or row_width <= 0:
+        return None
+
+    cells = [(column, row, _add(block_origin, column * (column_width + gap), row * (row_width + gap), 0.0))
+             for column in range(cols)
+             for row in range(rows)]
+    return column_width, row_width, cells
+
+
+def _create_grid_blocks(block_origin: NXOpen.Point3d, orientation: NXOpen.Matrix3x3, xlength: float, ywidth: float,
+                        rows: int, cols: int, block_z: float
+                        ) -> Optional[Tuple[float, float, List[Tuple[int, int, NXOpen.Features.Block]]]]:
+    """
+    The box cut into rows along Y by cols along X (_grid_cells), like the draw die's form steels:
+    (column_width, row_width, [(column, row, block)]). None (printed) when the box is too small.
+    """
+    grid = _grid_cells(block_origin, xlength, ywidth, rows, cols)
+    if grid is None:
         nx.print_("{} x {} is too small to split {} x {}.".format(drawdie._f3(xlength), drawdie._f3(ywidth), cols,
                                                                  rows))
         return None
 
-    blocks = [(column, row,
-               _create_block(_add(block_origin, column * (column_width + gap), row * (row_width + gap), 0.0),
-                             orientation, column_width, row_width, block_z))
-              for column in range(cols)
-              for row in range(rows)]
+    column_width, row_width, cells = grid
+    blocks = [(column, row, _create_block(origin, orientation, column_width, row_width, block_z))
+              for column, row, origin in cells]
     return column_width, row_width, blocks
+
+
+def preview_boxes(box: nx.Box3d, is_upper: bool, rows: int, cols: int, plate: bool = True
+                  ) -> List[Tuple[NXOpen.Point3d, float, float, float]]:
+    """
+    The (origin, x, y, z) boxes a size_off_bodies split form over a part box builds, in the coordinates the build
+    uses (the station's): each grid block, then the backing plate (_create_backside_backing_plate's offsets) when
+    plate. Empty when the box is too small to split. Dead Strike's dialog draws them.
+    """
+    xlength, ywidth, _height, block_origin, block_z = _block_dimensions(box, is_upper, SplitFormOffset)
+    grid = _grid_cells(block_origin, xlength, ywidth, rows, cols)
+    if grid is None:
+        return []
+    column_width, row_width, cells = grid
+    boxes = [(origin, column_width, row_width, block_z) for _column, _row, origin in cells]
+    if plate:
+        boxes.append((_add(block_origin, -1.375, -2.75, block_z if is_upper else -1.5),
+                      xlength + 1.375 * 2, ywidth + 2.75 * 2, 1.5))
+    return boxes
 
 
 def _split_colors() -> List[int]:
