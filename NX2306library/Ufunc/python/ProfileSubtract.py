@@ -22,7 +22,7 @@ so one bad face does not drop the rest):
   - with the target's part displayed and made the work part, a curve is copied off every edge of the linked face, so
     the curves are in the part's own coordinates (Boss found that taking them from the assembly offsets them by the
     component's position a second time);
-  - the linked face is deleted; the edge curves stay in the target's part;
+  - the linked face stays in the target's part (2026-10-29; it used to be deleted), and so do the edge curves;
   - the curves are offset outward by the offset (a non-associative Offset Curve - plain curves, no feature,
     2026-10-29 - the edge curves kept; a negative offset goes inward, 0 skips it). Which side the builder offsets to
     follows the loop's direction, so the result is measured and deleted and redone reversed if its box came out
@@ -92,7 +92,8 @@ class ProfileSubtract(object):
     def execute() -> None:
         """
         The targets dialog (a face per target body), then the tools dialog for one target body (many faces) or for
-        many (one face), then build per body, the new faces colored like that body's first picked face. The target bodies, blanked once picked, are unblanked at the end - cancelled, finished or failed.
+        many (one face), then build per body, the new faces colored like that body's first picked face. The target
+        bodies, blanked once picked, are unblanked at the end - cancelled, finished or failed.
         """
         title = title_with_version("Profile Subtract")
         targets_dialog = _TargetsDialog(title)
@@ -137,7 +138,7 @@ def build(target: NXOpen.Body, tool_faces: Sequence[NXOpen.Face], offset: float,
           color: Optional[int] = None) -> int:
     """
     Per tool face: links it into the target's owning part without its holes, copies the linked face's edges to curves
-    there, deletes the link, offsets the curves outward by offset (millimetres with offset_in_mm, else inches),
+    there (the link is kept), offsets the curves outward by offset (millimetres with offset_in_mm, else inches),
     extrudes them ExtrudeInches up and down the face's normal and subtracts that from the target body, the faces the
     subtract made colored color (unless None). A profile that misses the body (NX error 670030) is noted, its extrude
     deleted, and not logged as an exception. Returns how many faces were subtracted.
@@ -205,7 +206,7 @@ def _profile_curves(face: NXOpen.Face, assembly: NXOpen.Part,
                     target_component: Optional[NXOpen.Assemblies.Component],
                     target_part: NXOpen.Part) -> Tuple[List[NXOpen.Curve], NXOpen.Vector3d]:
     """
-    One tool face: linked into target_part without holes, its edges copied to curves there, the link deleted. Returns
+    One tool face: linked into target_part without holes, its edges copied to curves there, the link kept. Returns
     the curves and the linked face's normal. Leaves target_part displayed and the work part.
     """
     # The face is an occurrence picked in the assembly, so the link is made from there.
@@ -219,14 +220,12 @@ def _profile_curves(face: NXOpen.Face, assembly: NXOpen.Part,
     # In the target's part, in its own coordinates.
     nx.set_display_part(target_part)
     nx.set_work_part(target_part)
-    try:
-        faces = list(linked.GetFaces())
-        if len(faces) == 0:
-            raise RuntimeError("The linked tool face has no face")
-        normal = _normal_vector(faces[0])
-        curves = [nx.edge_to_curve(edge) for edge in linked.GetEdges()]
-    finally:
-        _snap_delete([linked])
+    # The link stays in the target's part (2026-10-29; it used to be deleted once the curves were copied).
+    faces = list(linked.GetFaces())
+    if len(faces) == 0:
+        raise RuntimeError("The linked tool face has no face")
+    normal = _normal_vector(faces[0])
+    curves = [nx.edge_to_curve(edge) for edge in linked.GetEdges()]
 
     return curves, normal
 

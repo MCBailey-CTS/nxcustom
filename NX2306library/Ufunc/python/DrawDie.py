@@ -1477,6 +1477,12 @@ def _place_draw_die_front_back_keys(job: DrawDieJob, xlength: float, ywidth: flo
     ]
 
 
+# The upper's (cavity steels', mounting plate's) right / left keys: 2.4498 put them 1.5748" in from the X edges,
+# 0.0748 into the block past the 1.5" the front / back keys sit at, so they are backed off to 1.5" (2026-10-29).
+# The lower riser's stay on 2.4498.
+_UpperXKeyEdgeInset = 2.4498 - 0.0748
+
+
 def _place_draw_die_edge_keys(job: DrawDieJob, xlength: float, ywidth: float, height: float,
                               key_shift: Tuple[float, float] = (0.0, 0.0)) -> List[NXOpen.Assemblies.Component]:
     """
@@ -1489,7 +1495,8 @@ def _place_draw_die_edge_keys(job: DrawDieJob, xlength: float, ywidth: float, he
     try:
         return _place_edge_items(_gmKeyPath if job.is_gm else _ctsSmartKeyMetric, NXOpen.Point3d(0.0, 0.0, 0.0),
                                  xlength, ywidth, job.is_upper,
-                                 front_back_nudge=0.0748 if job.is_gm else 0.0, x_edge_inset=2.4498,
+                                 front_back_nudge=0.0748 if job.is_gm else 0.0,
+                                 x_edge_inset=_UpperXKeyEdgeInset if job.is_upper else 2.4498,
                                  extra_z=height - 8 if job.is_upper else 0.0, layer=99, key_shift=key_shift)
     finally:
         wcs.SetOriginAndMatrix(NXOpen.Point3d(0.0, 0.0, 0.0), current_wcs)
