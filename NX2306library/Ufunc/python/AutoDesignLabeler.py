@@ -4,7 +4,8 @@ main(). It replaced the WinForms AutoDesignLabeler form and src\\Static\\AutoDes
 which were never on a ribbon.
 
 Labels strip solids for Auto Design (AutoDesign.py): the picked bodies get the PROGRAM object attribute Auto Design
-groups them by - Blank BLANK, Trim TRIM, Pierce PRC, Draw DRAW, Restrike RESTRIKE, Dead Hit DEADHIT.
+groups them by - Blank BLANK, Trim TRIM, Pierce PRC, Draw DRAW, Restrike RESTRIKE, Dead Hit DEADHIT. Flange Up and
+Flange Down are on the radio but not implemented yet: OK / Apply with one of them prints that and labels nothing.
 
 The dialog (AutoDesignLabeler.dlx, tools\\make-dlx.py): the solid bodies (anywhere in the assembly), a line listing
 their PROGRAM values now, and the Program radio (the form's six buttons). OK labels and closes; Apply labels and
@@ -54,6 +55,9 @@ Programs: Dict[str, str] = {
     "Restrike": "RESTRIKE",
     "Dead Hit": "DEADHIT",
 }
+
+# Program radio items with no PROGRAM value yet (2026-10-29): OK / Apply print that and label nothing.
+NotImplementedPrograms = ["Flange Up", "Flange Down"]
 
 # UF_UI_SEL_FEATURE_SOLID_BODY - not in every UFConstants build, so the number Perfect.py uses too.
 _SolidBodyDetail = 36
@@ -129,7 +133,11 @@ class _LabelerDialog(Dialog):
         if not bodies:
             self.message("Select the strip solid bodies.")
             return False
-        label(bodies, Programs[str(self.block("program").ValueAsString)])
+        choice = str(self.block("program").ValueAsString)
+        if choice in NotImplementedPrograms:
+            nx.print_("Auto Design Labeler: {} is not implemented - nothing labeled.".format(choice))
+            return True
+        label(bodies, Programs[choice])
         return True
 
     def apply(self) -> bool:

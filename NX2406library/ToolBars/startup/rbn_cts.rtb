@@ -60,7 +60,7 @@ BEGIN_GROUP CTS_LAYOUT
         LABEL  Profile Trim And Form
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\Toolbars\bitmaps\ProfileTrimAndForm.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\profile-trim-and-form.dll("profile-trim-and-form")
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\ProfileTrimAndForm.py
 
     BUTTON BlankDevelopment
         LABEL  Blank Development
