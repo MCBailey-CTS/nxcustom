@@ -3,14 +3,20 @@ Python port of the draw-die UFunc (Merlin.StaticDrawDie, src\\UFuncs\\MerlinDraw
 The C# wrapper was deleted 2026-10-22 (in git at 1cb53d8): the UFunc's menu button runs this file's main().
 
 The Merlin builder for a full draw station minus the nitrogen, from the "DRAW DIE PROGRAM" spec. Run from the
--000; one run builds both halves:
-  - LAD02: the lower cast binder (BINDER-3D), eight post form steels (LWR-3D) and the lower cast riser under them.
-  - UAD02: eight cavity form steels (UPR-3D) and the mounting plate on top of them.
+-000; one run builds both halves into the op picked in the dialog (LAD02 / UAD02 for Auto Design and Dead Strike):
+  - LADnn: the lower cast binder (BINDER-3D), eight post form steels (LWR-3D) and the lower cast riser under them.
+  - UADnn: eight cavity form steels (UPR-3D) and the mounting plate on top of them.
+
+The draw-die UFunc picks through a Block Styler dialog (DrawDie.dlx, tools\\make-dlx.py, 2026-10-29): the Customer
+radio (None / TSG / GM, None on opening; TSG throws NotImplementedError), the part's solid bodies and a radio of the
+ops - the display part's station numbers with both a ladNN and a uadNN, read when it opens (none is an error box
+before it; the work part's number is checked first when it is one). OK stays greyed out until TSG or GM is checked
+and a body is picked. OpBodiesDialog is shared with Pierce.py (Pierce.dlx).
 All sizes are measured off the selected part bodies' box in the -000, mapped into each station's coordinates.
 
 Two ways in:
-  - File -> Execute -> NX Open on this file runs main(), which does the body pick itself (the C# entry point
-    picks inside StaticDrawDie, so this is the like-for-like entry) with is_gm = True, as the draw-die UFunc does.
+  - File -> Execute -> NX Open on this file runs main(): the gates, the dialog, then the build, as the draw-die
+    UFunc does.
   - Session.Execute("DrawDie.py", "DrawDie", "execute", is_gm) from C#.
   - Session.Execute("DrawDie.py", "DrawDie", "build", is_gm, bodies) - the build half only (Merlin.BuildDrawDie,
     build_draw_die): no units / -000 gates and no pick; the stations are looked up again. AutoDesign calls this.
@@ -36,6 +42,7 @@ import datetime
 import math
 import os
 import random
+import re
 import sys
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, TypeVar, cast
 
@@ -57,6 +64,7 @@ import NXOpen.UF  # noqa: E402
 
 import tsg_nx as nx  # noqa: E402
 import PointComponent as merlin  # noqa: E402
+from tsg_dialog import CustomerNone, Dialog, is_gm_customer, title_with_version  # noqa: E402
 
 _T = TypeVar("_T")
 
@@ -87,9 +95,17 @@ BinderPadBalancerOffBottom = 4.00
 BinderGuidedRetainerInset = 55 / 25.4
 BinderGuidedRetainerOffBottom = 1 / 25.4
 
-# The stations the two halves are built into, matched (lower case) in the -000's display names.
-DrawDieLowerStation = "lad02"
-DrawDieUpperStation = "uad02"
+# The stations the two halves are built into: "lad" / "uad" + the op number, matched (lower case) in the -000's
+# display names. Auto Design and Dead Strike build into DefaultStation; the draw-die UFunc's dialog picks the op.
+DrawDieLowerStation = "lad"
+DrawDieUpperStation = "uad"
+DefaultStation = "02"
+
+# A station occurrence's display name: lad / uad and its two-digit op number.
+_OpStationPattern = re.compile(r"(lad|uad)(\d\d)")
+
+# UF_UI_SEL_FEATURE_SOLID_BODY - not in every UFConstants build, so the number Perfect.py uses too.
+_SolidBodyDetail = 36
 
 # The subtract reference sets the selected part must carry, matched ignoring case.
 DrawDieBinderRefset = "BINDER-3D"
@@ -271,8 +287,9 @@ class DrawDieJob(object):
 
 def static_draw_die(is_gm: bool) -> None:
     """
-    Merlin.StaticDrawDie - run from the -000: the units and -000 gates, the station check (before the pick, so a job
-    missing a station fails before the user selects anything), the body pick, then build_draw_die.
+    Merlin.StaticDrawDie - run from the -000: the units and -000 gates, the ops with both a LADnn and a UADnn (none
+    is an error before the dialog), then the dialog (customer, part bodies, op) and build_draw_die into that op. The
+    dialog's Customer radio decides is_gm (TSG throws NotImplementedError); the argument is not used.
     """
     ok, message = _check_info_units()
     if not ok:
@@ -283,18 +300,18 @@ def static_draw_die(is_gm: bool) -> None:
         nx.show_error("Draw Die must be run from the 000.")
         return
 
-    # Checked before the pick so a job missing a station fails before the user selects anything.
-    if _try_find_draw_die_stations() is None:
+    # Checked before the dialog so a job with no station fails before the user selects anything.
+    numbers = sorted(find_op_stations())
+    if len(numbers) == 0:
+        nx.show_error("Draw Die could not find an op with both a LADnn and a UADnn under {}.".format(
+            nx.display_part().Leaf))
         return
 
-    label = "Draw Die"
-    version = nx.assembly_file_version()
-    bodies = _select_bodies("Select solid bodies for {}: {}".format(label, version), "{}: {}".format(label, version))
-
-    if not bodies:
+    dialog = OpBodiesDialog("DrawDie.dlx", title_with_version("Draw Die"), numbers, "Select the part's solid bodies.")
+    if not dialog.run():
         return
 
-    build_draw_die(is_gm, bodies)
+    build_draw_die(is_gm_customer(dialog.customer_choice), dialog.bodies, station=dialog.station)
 
 
 # The C# stage dialog is commented out - every stage is built, as if all its boxes were ticked.
@@ -304,13 +321,27 @@ _BuildLower = _BuildBinder or _BuildPosts or _BuildRiser
 _BuildUpper = _BuildCavity or _BuildMountingPlate
 
 
-def _try_find_draw_die_stations(lower: bool = True, upper: bool = True
+def find_op_stations() -> Dict[str, Dict[str, NXOpen.Assemblies.Component]]:
+    """
+    Op number ("02") -> {"lad": ..., "uad": ...} station occurrences under the display part, for the numbers with
+    both. The first occurrence of each wins. Shared with Pierce.py.
+    """
+    root = nx.root_component(nx.display_part())
+    found: Dict[str, Dict[str, NXOpen.Assemblies.Component]] = {}
+    for component in (nx.descendants(root) if root is not None else []):
+        match = _OpStationPattern.search(component.DisplayName.lower())
+        if match is not None:
+            found.setdefault(match.group(2), {}).setdefault(match.group(1), component)
+    return {number: kinds for number, kinds in found.items() if "lad" in kinds and "uad" in kinds}
+
+
+def _try_find_draw_die_stations(lower: bool = True, upper: bool = True, station: str = DefaultStation
                                 ) -> Optional[Tuple[Optional[NXOpen.Assemblies.Component],
                                                     Optional[NXOpen.Assemblies.Component]]]:
     """
-    Merlin.TryFindDrawDieStations - LAD02 / UAD02 under the display part, each looked up only when its half has a
-    stage and is wanted (lower / upper; None otherwise). Shows an error naming the missing ones and returns None when
-    any is missing.
+    Merlin.TryFindDrawDieStations - LADnn / UADnn (nn = station) under the display part, each looked up only when
+    its half has a stage and is wanted (lower / upper; None otherwise). Shows an error naming the missing ones and
+    returns None when any is missing.
     """
     root = nx.root_component(nx.display_part())
     descendants = list(nx.descendants(root)) if root is not None else []
@@ -320,11 +351,13 @@ def _try_find_draw_die_stations(lower: bool = True, upper: bool = True
 
     want_lower = _BuildLower and lower
     want_upper = _BuildUpper and upper
-    station_lad = find_station(DrawDieLowerStation) if want_lower else None
-    station_uad = find_station(DrawDieUpperStation) if want_upper else None
-    missing = [name.upper() for station, name, wanted in ((station_lad, DrawDieLowerStation, want_lower),
-                                                           (station_uad, DrawDieUpperStation, want_upper))
-               if wanted and station is None]
+    lower_name = DrawDieLowerStation + station
+    upper_name = DrawDieUpperStation + station
+    station_lad = find_station(lower_name) if want_lower else None
+    station_uad = find_station(upper_name) if want_upper else None
+    missing = [name.upper() for found, name, wanted in ((station_lad, lower_name, want_lower),
+                                                         (station_uad, upper_name, want_upper))
+               if wanted and found is None]
 
     if missing:
         nx.show_error("Draw Die could not find {} under {}.".format(" or ".join(missing), nx.display_part().Leaf))
@@ -334,15 +367,16 @@ def _try_find_draw_die_stations(lower: bool = True, upper: bool = True
 
 
 def build_draw_die(is_gm: bool, bodies: Sequence[NXOpen.Body], build_lower_half: bool = True,
-                   build_upper_half: bool = True) -> None:
+                   build_upper_half: bool = True, station: str = DefaultStation) -> None:
     """
     Merlin.BuildDrawDie - the build half of static_draw_die, on part bodies the caller already has, so AutoDesign
     can drive it. Run from the -000; the caller brings the units and -000 gates. Builds the lower stages (binder,
-    posts, riser) into LAD02 and the upper ones (cavity, mounting plate) into UAD02 - only the halves asked for
+    posts, riser) into LADnn and the upper ones (cavity, mounting plate) into UADnn (nn = station, 02 unless the
+    dialog picked another op) - only the halves asked for
     (Dead Strike builds the upper alone). Each stage is caught on its own, so a failed binder still leaves the posts
     and riser to be built, and a failed lower half the upper one.
     """
-    stations = _try_find_draw_die_stations(build_lower_half, build_upper_half)
+    stations = _try_find_draw_die_stations(build_lower_half, build_upper_half, station)
     if stations is None:
         return
 
@@ -1884,17 +1918,69 @@ def _time_span(elapsed: datetime.timedelta) -> str:
     return "{:02d}:{:02d}:{:02d}.{:07d}".format(hours, minutes, seconds, fraction)
 
 
+class OpBodiesDialog(Dialog):
+    """
+    A Merlin dialog of three blocks - "customer" (None / TSG / GM), "bodies" (solid bodies, anywhere in the
+    assembly) and "station" (a radio of op numbers, filled from numbers; the .dlx holds only a placeholder) - for
+    Draw Die (DrawDie.dlx) and Pierce (Pierce.dlx). None is checked on opening, the op is the work part's when it is
+    one of them (else the first), and OK stays greyed out until TSG or GM is checked and a body is picked.
+    """
+
+    def __init__(self, dlx_name: str, title: str, numbers: Sequence[str], no_bodies_message: str) -> None:
+        self.dlx_name = dlx_name
+        self.title = title
+        self.numbers = list(numbers)
+        self.no_bodies_message = no_bodies_message
+        super().__init__()
+        # Captured in ok(): the blocks are gone once Launch returns.
+        self.customer_choice = CustomerNone
+        self.bodies: List[NXOpen.Body] = []
+        self.station = self.numbers[0]
+
+    def initialize(self) -> None:
+        mask = NXOpen.Selection.MaskTriple(NXOpen.UF.UFConstants.UF_solid_type, 0, _SolidBodyDetail)
+        self.block("bodies").SetSelectionFilter(NXOpen.Selection.SelectionAction.ClearAndEnableSpecific, [mask])
+        # The bodies live in the strip components below the -000.
+        self.assembly_scope(self.block("bodies"))
+        # The ops come from the assembly; the .dlx only holds a placeholder.
+        self.block("station").SetEnumMembers(self.numbers)
+
+    def shown(self) -> None:
+        self.reset_customer()
+        # The work part's op when it is one of them (the user set it as a station), else the first.
+        match = _OpStationPattern.search(nx.work_part().Leaf.lower())
+        number = match.group(2) if match is not None and match.group(2) in self.numbers else self.numbers[0]
+        self.block("station").ValueAsString = number
+
+    def enable_ok(self) -> bool:
+        return self.customer_picked() and len(self._picked_bodies()) > 0
+
+    def ok(self) -> bool:
+        self.bodies = self._picked_bodies()
+        # enable_ok greys OK out for these; they are a backstop.
+        if not self.customer_picked():
+            self.message("Check TSG or GM.")
+            return False
+        if not self.bodies:
+            self.message(self.no_bodies_message)
+            return False
+        self.customer_choice = self.customer()
+        self.station = str(self.block("station").ValueAsString)
+        return True
+
+    def _picked_bodies(self) -> List[NXOpen.Body]:
+        return [cast(NXOpen.Body, o) for o in self.selected(self.block("bodies"))
+                if isinstance(o, NXOpen.Body) and cast(NXOpen.Body, o).IsSolidBody]
+
+
 def main() -> None:
     """The draw-die UFunc - its menu button runs this file. An escaping exception is printed."""
     import usage_db
-    from tsg_dialog import ask_is_gm
 
     with usage_db.run("draw-die"):
         try:
-            # The Customer dialog stands in for the "Are you sure" box: GM builds with the GM parts, TSG throws.
-            is_gm = ask_is_gm("Draw Die")
-            if is_gm is not None:
-                DrawDie.execute(is_gm)
+            # The Draw Die dialog asks for the customer (and stands in for the "Are you sure" box).
+            DrawDie.execute(True)
         except Exception as ex:
             nx.print_exception(ex)
 

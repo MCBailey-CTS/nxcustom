@@ -115,7 +115,7 @@ def build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: s
 
     if len(bodies) == 0:
         say("No dead strike bodies left for {} - nothing built there.".format(station_name.upper()))
-        nx.print_("Dead Strike: no bodies left for {} - nothing built there.".format(station_name.upper()))
+        nx.warn("Dead Strike: no bodies left for {} - nothing built there.".format(station_name.upper()))
         return
 
     if is_upper:
@@ -180,7 +180,7 @@ def _resolve_bodies(refs: Sequence[BodyRef]) -> List[NXOpen.Body]:
         try:
             live = body if owner is None else owner.FindOccurrence(body)
             if not isinstance(live, NXOpen.Body):
-                nx.print_("Dead Strike: {} no longer shows one of its bodies (reference set?) - left out.".format(
+                nx.warn("Dead Strike: {} no longer shows one of its bodies (reference set?) - left out.".format(
                     owner.DisplayName if owner is not None else ""))
                 continue
             bodies.append(live)

@@ -215,7 +215,7 @@ def _run(is_gm: bool, title: str, dialog: "_AutoDesignDialog") -> None:
     for unknown in sorted(k for k in groups if k not in Programs):
         log.write_line("{} = {}: {} body(ies) - not a program, skipped.".format(
             AutoDesignAttribute, unknown, len(groups[unknown])))
-        nx.print_("Auto Design: {} body(ies) have {} = {}, which is not a program - skipped.".format(
+        nx.warn("Auto Design: {} body(ies) have {} = {}, which is not a program - skipped.".format(
             len(groups[unknown]), AutoDesignAttribute, unknown))
 
     # Unchecked in the dialog: left out of everything below (counts, the operation total, the runs).
@@ -369,7 +369,7 @@ def _print_created(program: str, top_level: NXOpen.BasePart, before: Set[int]) -
                 continue
             line = "{}: created {} in {}".format(program, component.DisplayName,
                                                  parent.DisplayName if parent is not None else top_level.Leaf)
-            nx.print_("Auto Design: " + line)
+            nx.syslog("Auto Design: " + line)
             _log_line(line)
     except Exception as ex:
         nx.print_exception(ex)
@@ -398,7 +398,7 @@ def _resolve_bodies(program: str, refs: Sequence[BodyRef]) -> List[NXOpen.Body]:
             if not isinstance(live, NXOpen.Body):
                 name = owner.DisplayName if owner is not None else ""
                 _log_line("{}: a body of {} is no longer shown - left out.".format(program, name))
-                nx.print_("Auto Design: {}: {} no longer shows one of its bodies (reference set?) - left out."
+                nx.warn("Auto Design: {}: {} no longer shows one of its bodies (reference set?) - left out."
                           .format(program, name))
                 continue
             bodies.append(live)
@@ -502,7 +502,7 @@ def _confirm_restrike_reference_sets(bodies: Sequence[NXOpen.Body]) -> bool:
 
     if response != _MessageBoxYes:
         _log_line("Restrike skipped: a component is missing LWR-3D / UPR-3D.")
-        nx.print_("Auto Design: restrike skipped - " + "; ".join(missing))
+        nx.warn("Auto Design: restrike skipped - " + "; ".join(missing))
         return False
 
     for line in missing:

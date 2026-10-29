@@ -588,7 +588,7 @@ def _build_one_slug(i: int, count: int, is3d: bool, box: nx.Box3d, owning_comp: 
     if is3d:
         try:
             if not nx.has_reference_set(nx.prototype(owning_comp), "LWR-3D"):
-                nx.print_("Component {} does not have reference set LWR-3D, skipping boolean".format(
+                nx.warn("Component {} does not have reference set LWR-3D, skipping boolean".format(
                     owning_comp.DisplayName))
             else:
                 nx.set_reference_set(owning_comp, "LWR-3D")
@@ -611,7 +611,7 @@ def _build_one_slug(i: int, count: int, is3d: bool, box: nx.Box3d, owning_comp: 
         if nx.has_reference_set(nx.prototype(owning_comp), "PAD-PROFILE"):
             drawdie._subtract_refset_from_dynamic_block(nx.work_part(), owning_comp, "PAD-PROFILE")
         else:
-            nx.print_("Component {} does not have reference set PAD-PROFILE, skipping the window boolean".format(
+            nx.warn("Component {} does not have reference set PAD-PROFILE, skipping the window boolean".format(
                 owning_comp.DisplayName))
         nx.set_display_part(current)
 
@@ -834,7 +834,7 @@ def _create_retainer(current: NXOpen.Part, owning_comp: NXOpen.Assemblies.Compon
     if nx.has_reference_set(nx.prototype(owning_comp), "UPR-PROFILE"):
         drawdie._subtract_refset_from_dynamic_block(nx.work_part(), owning_comp, "UPR-PROFILE")
     else:
-        nx.print_("Component {} does not have reference set UPR-PROFILE, skipping the retainer boolean".format(
+        nx.warn("Component {} does not have reference set UPR-PROFILE, skipping the retainer boolean".format(
             owning_comp.DisplayName))
 
 
@@ -889,7 +889,7 @@ def _create_punch(current: NXOpen.Part, owning_comp: NXOpen.Assemblies.Component
         finally:
             nx.set_reference_set(owning_comp, "BODY")
     else:
-        nx.print_("Component {} does not have reference set UPR-PROFILE, skipping the punch intersect".format(
+        nx.warn("Component {} does not have reference set UPR-PROFILE, skipping the punch intersect".format(
             owning_comp.DisplayName))
 
 
@@ -953,7 +953,7 @@ def _intersect_temp_block_with_upper(current: NXOpen.Part, station_lad: NXOpen.P
     None when the component has no UPR-3D or NX refuses the intersect - both print and leave the temp block whole.
     """
     if not nx.has_reference_set(nx.prototype(owning_comp), UpperZRefset):
-        nx.print_("Component {} does not have reference set {}, skipping the temp block intersect".format(
+        nx.warn("Component {} does not have reference set {}, skipping the temp block intersect".format(
             owning_comp.DisplayName, UpperZRefset))
         return None
 
@@ -993,7 +993,7 @@ def _link_upper_and_lower_into_station(current: NXOpen.Part, station_lad: NXOpen
         members = set() if refset is None else {
             m.Tag for m in refset.AskAllDirectMembers() if isinstance(m, NXOpen.Body) and m.IsSolidBody}
         if not members:
-            nx.print_("Component {} has no {} solid bodies, skipping the {} / {} intersect".format(
+            nx.warn("Component {} has no {} solid bodies, skipping the {} / {} intersect".format(
                 owning_comp.DisplayName, name, UpperZRefset, LowerZRefset))
             return None
         wanted[name] = members
@@ -1012,7 +1012,7 @@ def _link_upper_and_lower_into_station(current: NXOpen.Part, station_lad: NXOpen
             nx.set_reference_set(owning_comp, previous_refset)
 
     if not upper or not lower:
-        nx.print_("Component {}: the {} / {} link brought in no body, skipping the intersect".format(
+        nx.warn("Component {}: the {} / {} link brought in no body, skipping the intersect".format(
             owning_comp.DisplayName, UpperZRefset, LowerZRefset))
         return None
     if len(upper) > 1:
@@ -1209,7 +1209,7 @@ def _create_lower_trim_steel(current: NXOpen.Part, box: nx.Box3d, owning_comp: N
     if nx.has_reference_set(nx.prototype(owning_comp), "LWR-PROFILE"):
         drawdie._subtract_refset_from_dynamic_block(nx.work_part(), owning_comp, "LWR-PROFILE")
     else:
-        nx.print_("Component {} does not have reference set LWR-PROFILE, skipping the lower trim steel boolean".format(
+        nx.warn("Component {} does not have reference set LWR-PROFILE, skipping the lower trim steel boolean".format(
             owning_comp.DisplayName))
 
 
@@ -1254,7 +1254,7 @@ def _rebase_block_flip_z(component: NXOpen.Assemblies.Component, parent: NXOpen.
     block = nx.first_block_feature(new_part)
 
     if block is None:
-        nx.print_("{} has no block feature - leaving its origin alone".format(new_part.Leaf))
+        nx.warn("{} has no block feature - leaving its origin alone".format(new_part.Leaf))
         return
 
     nx.set_display_part(new_part)

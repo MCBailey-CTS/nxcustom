@@ -88,7 +88,6 @@ from __future__ import annotations
 import datetime
 import math
 import os
-import re
 import sys
 from typing import Any, Callable, Dict, Iterable, List, NamedTuple, Optional, Sequence, Tuple, TypeVar, cast
 
@@ -108,7 +107,7 @@ import NXOpen.UF  # noqa: E402
 import tsg_nx as nx  # noqa: E402
 import PointComponent as merlin  # noqa: E402
 import DrawDie as drawdie  # noqa: E402
-from tsg_dialog import CustomerNone, Dialog, is_gm_customer, title_with_version  # noqa: E402
+from tsg_dialog import is_gm_customer, title_with_version  # noqa: E402
 
 _T = TypeVar("_T")
 _K = TypeVar("_K")
@@ -879,21 +878,13 @@ class _PierceStations(NamedTuple):
     uad: Component
 
 
-_StationPattern = re.compile(r"(lad|uad)(\d\d)")
-
 # UF_UI_display_menu shows at most 14 items.
 _MaxMenuItems = 14
 
 
 def _find_pierce_stations() -> Dict[str, Dict[str, Component]]:
-    """Station number ("02") -> {"lad": ..., "uad": ...} occurrences, for numbers with both under the display part."""
-    root = nx.root_component(nx.display_part())
-    found: Dict[str, Dict[str, Component]] = {}
-    for component in (nx.descendants(root) if root is not None else []):
-        match = _StationPattern.search(component.DisplayName.lower())
-        if match is not None:
-            found.setdefault(match.group(2), {}).setdefault(match.group(1), component)
-    return {number: kinds for number, kinds in found.items() if "lad" in kinds and "uad" in kinds}
+    """Op number ("02") -> {"lad": ..., "uad": ...} occurrences with both under the display part (DrawDie's lookup)."""
+    return drawdie.find_op_stations()
 
 
 def _ask_pierce(label: str) -> Optional[Tuple[bool, List[NXOpen.Body], str]]:
@@ -913,7 +904,7 @@ def _ask_pierce(label: str) -> Optional[Tuple[bool, List[NXOpen.Body], str]]:
             nx.display_part().Leaf))
         return None
 
-    dialog = _PierceDialog(title_with_version(label), numbers)
+    dialog = drawdie.OpBodiesDialog("Pierce.dlx", title_with_version(label), numbers, "Select the slug bodies.")
     if not dialog.run():
         return None
 
@@ -1758,60 +1749,6 @@ def _truncated_string(num: float, decimal_places: int) -> str:
 def _enum_name(value: object) -> str:
     """An NX enum as .NET prints it - the member name."""
     return str(value).rsplit(".", 1)[-1]
-
-
-# UF_UI_SEL_FEATURE_SOLID_BODY - not in every UFConstants build, so the number Perfect.py uses too.
-_SolidBodyDetail = 36
-
-
-class _PierceDialog(Dialog):
-    """Pierce.dlx: the Customer radio, the slug bodies and the op radio (filled from the assembly)."""
-
-    dlx_name = "Pierce.dlx"
-
-    def __init__(self, title: str, numbers: List[str]) -> None:
-        self.title = title
-        self.numbers = list(numbers)
-        super().__init__()
-        # Captured in ok(): the blocks are gone once Launch returns.
-        self.customer_choice = CustomerNone
-        self.bodies: List[NXOpen.Body] = []
-        self.station = self.numbers[0]
-
-    def initialize(self) -> None:
-        mask = NXOpen.Selection.MaskTriple(NXOpen.UF.UFConstants.UF_solid_type, 0, _SolidBodyDetail)
-        self.block("bodies").SetSelectionFilter(NXOpen.Selection.SelectionAction.ClearAndEnableSpecific, [mask])
-        # The slugs live in the strip components below the -000.
-        self.assembly_scope(self.block("bodies"))
-        # The ops come from the assembly; the .dlx only holds a placeholder.
-        self.block("station").SetEnumMembers(self.numbers)
-
-    def shown(self) -> None:
-        self.reset_customer()
-        # The work part's op when it is one of them (the user set it as a station), else the first.
-        match = _StationPattern.search(nx.work_part().Leaf.lower())
-        number = match.group(2) if match is not None and match.group(2) in self.numbers else self.numbers[0]
-        self.block("station").ValueAsString = number
-
-    def enable_ok(self) -> bool:
-        return self.customer_picked() and len(self._picked_bodies()) > 0
-
-    def ok(self) -> bool:
-        self.bodies = self._picked_bodies()
-        # enable_ok greys OK out for these; they are a backstop.
-        if not self.customer_picked():
-            self.message("Check TSG or GM.")
-            return False
-        if not self.bodies:
-            self.message("Select the slug bodies.")
-            return False
-        self.customer_choice = self.customer()
-        self.station = str(self.block("station").ValueAsString)
-        return True
-
-    def _picked_bodies(self) -> List[NXOpen.Body]:
-        return [cast(NXOpen.Body, o) for o in self.selected(self.block("bodies"))
-                if isinstance(o, NXOpen.Body) and cast(NXOpen.Body, o).IsSolidBody]
 
 
 def main() -> None:

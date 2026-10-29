@@ -140,7 +140,7 @@ def static_gm_cast_trim_pad(is_gm: bool) -> None:
             _build_trim_pad(is_gm, is_upper, bodies)
         finally:
             # Session.__UsingTimer prints the elapsed TimeSpan.
-            nx.print_(drawdie._time_span(datetime.datetime.now() - start))
+            nx.warn(drawdie._time_span(datetime.datetime.now() - start))
     except Exception as ex:
         nx.print_exception(ex)
 

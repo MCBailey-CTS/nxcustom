@@ -213,7 +213,7 @@ def build_gm_cast_posts(is_gm: bool, is_upper: bool, bodies: List[NXOpen.Body], 
     finally:
         # Session.__UsingTimer prints the elapsed TimeSpan.
         if not nx.quiet:
-            nx.print_(drawdie._time_span(datetime.datetime.now() - start))
+            nx.warn(drawdie._time_span(datetime.datetime.now() - start))
 
     # Leave the session on the -000 with the work part we started on.
     nx.set_display_part(top_level)
@@ -447,7 +447,7 @@ def _subtract_components(get_target: Callable[[], NXOpen.Body],
     """
     for comp in components:
         if not nx.has_reference_set(nx.prototype(comp), refset):
-            nx.print_("Component {} does not have reference set {}, skipping boolean".format(comp.DisplayName, refset))
+            nx.warn("Component {} does not have reference set {}, skipping boolean".format(comp.DisplayName, refset))
             continue
 
         try:
@@ -456,7 +456,7 @@ def _subtract_components(get_target: Callable[[], NXOpen.Body],
             # Only solid bodies are linked - a reference set holding nothing but sheets (a binder surface, say) would
             # otherwise fail in the boolean with an error that does not say why.
             if len(nx.solid_body_members(comp)) == 0:
-                nx.print_("Component {}: reference set {} has no solid bodies, skipping boolean".format(
+                nx.warn("Component {}: reference set {} has no solid bodies, skipping boolean".format(
                     comp.DisplayName, refset))
                 continue
 
