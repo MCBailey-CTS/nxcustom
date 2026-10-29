@@ -15,6 +15,12 @@ BEGIN_GROUP FULL_HITS
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\python\AutoDesign.py
 
+    BUTTON AUTO_DESIGN_LABELER
+        LABEL Auto Design Labeler
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\python\AutoDesignLabeler.py
+
     BUTTON GM_BLANK_STATION
         LABEL Blank Station
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
