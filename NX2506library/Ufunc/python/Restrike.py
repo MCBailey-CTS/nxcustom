@@ -2,15 +2,21 @@
 The restrike UFunc: a standalone Python UFunc (no C# class); its menu button runs this file's main().
 
 Auto Design's RESTRIKE program on bodies picked by hand: a GM Cast Post (CastPost.build) on each picked body, once
-in LAD02 (the lower post, off and subtracting each body's component's LWR-3D) and once in UAD02 (the upper post,
-UPR-3D). Run from the -000; the work part does not matter, the stations are found by display name under it.
+in the op's LADnn (the lower post, off and subtracting each body's component's LWR-3D) and once in its UADnn (the
+upper post, UPR-3D). Run from the -000; the work part does not matter, the stations are found by display name under it.
+
+The dialog (Restrike.dlx, tools\\make-dlx.py, 2026-10-29) is Draw Die's DrawDie.OpBodiesDialog: the Customer radio
+(None / TSG / GM, None on opening; TSG throws NotImplementedError), the solid bodies and a radio of the ops with both
+a ladNN and a uadNN under the -000 (none is an error box before it; the work part's op is checked first). OK stays
+greyed out until TSG or GM is checked and a body is picked. Auto Design's RESTRIKE (its own _restrike_posts) still
+builds into 02.
 
 One Question box covers both posts when a picked component is missing LWR-3D or UPR-3D: Yes builds those off the
 picked body, No cancels before anything is built. The lower post's subtract switches the bodies' components' reference
 sets and back, which kills the picked body occurrences, so the upper looks them up again (DeadStrike._resolve_bodies).
 A missing station or a failed side is printed and the other side still builds.
 
-The body pick is the choice to run, so there is no "Are you sure" box; a cancelled pick marks the run cancelled.
+The dialog is the choice to run, so there is no "Are you sure" box; cancelling it marks the run cancelled.
 
 Run standalone: File -> Execute -> NX Open on this file runs main().
 """
@@ -35,48 +41,56 @@ import NXOpen  # noqa: E402
 import tsg_nx as nx  # noqa: E402
 import DrawDie as drawdie  # noqa: E402
 from DeadStrike import _body_ref, _resolve_bodies  # noqa: E402
+from tsg_dialog import is_gm_customer, title_with_version  # noqa: E402
 
 ufunc_name = "restrike"
 
-LowerStation = "lad02"
-UpperStation = "uad02"
+LowerStation = "lad"
+UpperStation = "uad"
 
 
 class Restrike(object):
 
     @staticmethod
     def execute(is_gm: bool = True) -> None:
-        """The units gate, the body pick, then the lower and upper posts."""
+        """
+        The units gate, the dialog (customer, bodies, op), then the lower and upper posts in that op. The dialog's
+        Customer radio decides is_gm (TSG throws NotImplementedError); the argument is not used.
+        """
         ok, message = drawdie._check_info_units()
         if not ok:
             nx.show_error(message)
             return
 
-        label = "Restrike"
-        version = nx.assembly_file_version()
-        bodies = drawdie._select_bodies("Select solid bodies for {}: {}".format(label, version),
-                                        "{}: {}".format(label, version))
-        if len(bodies) == 0:
-            nx.mark_cancelled("the body pick")
+        numbers = sorted(drawdie.find_op_stations())
+        if len(numbers) == 0:
+            nx.show_error("Restrike could not find an op with both a LADnn and a UADnn under {}.".format(
+                nx.display_part().Leaf))
             return
 
-        if not _confirm_reference_sets(bodies):
+        dialog = drawdie.OpBodiesDialog("Restrike.dlx", title_with_version("Restrike"), numbers,
+                                        "Select the restrike solid bodies.")
+        if not dialog.run():
+            return
+        is_gm = is_gm_customer(dialog.customer_choice)
+
+        if not _confirm_reference_sets(dialog.bodies):
             nx.mark_cancelled("the missing reference set question")
             return
 
-        build(is_gm, bodies)
+        build(is_gm, dialog.bodies, dialog.station)
 
 
-def build(is_gm: bool, bodies: Sequence[NXOpen.Body]) -> None:
-    """The lower post in LAD02, then the upper in UAD02 on the bodies looked up again."""
+def build(is_gm: bool, bodies: Sequence[NXOpen.Body], station: str = drawdie.DefaultStation) -> None:
+    """The lower post in LADnn, then the upper in UADnn (nn = station) on the bodies looked up again."""
     top_level = nx.display_part()
     starting_work = nx.work_part()
     refs = [_body_ref(b) for b in bodies]
     nx.session_.SetUndoMark(NXOpen.Session.MarkVisibility.Visible, "Restrike")
 
     try:
-        _build_in_station(is_gm, _resolve_bodies(refs), LowerStation, False)
-        _build_in_station(is_gm, _resolve_bodies(refs), UpperStation, True)
+        _build_in_station(is_gm, _resolve_bodies(refs), LowerStation + station, False)
+        _build_in_station(is_gm, _resolve_bodies(refs), UpperStation + station, True)
     finally:
         nx.set_display_part(top_level)
         nx.set_work_part(starting_work)
@@ -84,7 +98,7 @@ def build(is_gm: bool, bodies: Sequence[NXOpen.Body]) -> None:
 
 def _build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: str, is_upper: bool) -> None:
     """
-    GM Cast Post on bodies, built into station_name (lad02 / uad02): makes that station the work component of the
+    GM Cast Post on bodies, built into station_name (ladNN / uadNN): makes that station the work component of the
     -000, as a user would before launching cast-post, and subtracts UPR-3D / LWR-3D like it does.
     """
     from CastPost import CastPost
@@ -158,14 +172,11 @@ def _confirm_reference_sets(bodies: Sequence[NXOpen.Body]) -> bool:
 def main() -> None:
     """The restrike UFunc - its menu button runs this file. An escaping exception is printed."""
     import usage_db
-    from tsg_dialog import ask_is_gm
 
     with usage_db.run(ufunc_name):
         try:
-            # The Customer dialog first: GM builds with the GM parts, TSG throws.
-            is_gm = ask_is_gm("Restrike")
-            if is_gm is not None:
-                Restrike.execute(is_gm)
+            # The Restrike dialog asks for the customer.
+            Restrike.execute(True)
         except Exception as ex:
             nx.print_exception(ex)
 
