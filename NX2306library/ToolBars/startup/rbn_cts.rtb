@@ -143,7 +143,7 @@ BEGIN_GROUP CTS_DESIGN
         LABEL  Tap Ream Control
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\TapReamControl.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\tap-ream-contro.dll("UFUNC", "TapReamControl")
+        ACTION ${NXCUSTOM_LIB}\ufunc\tap-ream-control.dll("UFUNC", "TapReamControl")
 
     BUTTON DesignCheck
         LABEL  Design Check
@@ -387,7 +387,7 @@ BEGIN_GROUP CTS_UTILITY
         LABEL UnHighlight
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\UnHighlight.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\("UFUNC", "UnHighlight").dll("unhighlight")
+        ACTION ${NXCUSTOM_LIB}\ufunc\unhighlight.dll("UFUNC", "UnHighlight")
 
     BUTTON InterferenceCheck
         LABEL Interference Check

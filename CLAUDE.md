@@ -87,8 +87,6 @@ Adding a button means three coordinated things: the DLL in `Ufunc/`, a matching 
 
 These are pre-existing defects, worth knowing before debugging a "button does nothing" report:
 
-- Line ~146: `tap-ream-contro.dll` — typo; the file on disk is `tap-ream-control.dll`.
-- Line ~384: `ACTION ${NXCUSTOM_LIB}\ufunc\("UFUNC", "UnHighlight").dll("unhighlight")` — the DLL name and argument list were transposed; should be `unhighlight.dll("UFUNC", "UnHighlight")`.
 - Two buttons (`part_doctor`, `identify`) still resolve GRIP programs through an absolute **NX1899** path on `P:\CTS_Programs\...` rather than `${NXCUSTOM_LIB}\Grip\`.
 - `ToolBars/startup/rbn_merlin.rtb` points every button at `G:\CTS\junk\merlin\*.dll` — a developer scratch directory outside this repo, not `${NXCUSTOM_LIB}`. This tab is in-progress work, not a stable deployment.
 
