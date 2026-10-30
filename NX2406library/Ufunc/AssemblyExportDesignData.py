@@ -359,9 +359,11 @@ def _design(top_level_assembly: NXOpen.Part,
     skip_unchanged (Full Design's "Skip unchanged", 2026-10-23): instead of deleting the op data folders and
     rebuilding everything, a part keeps its files - and is neither updated nor exported again - when it had no
     unsaved changes and every file it would export already exists and is no older than its .prt (_unchanged_parts).
-    Castings likewise. Files in the op data folders that this run would not write are deleted, so what is left
-    matches a full rebuild. Changes that live only in other files (a library fastener edited, a parent's WAVE
-    geometry with the detail not updated and saved) are not seen; untick it for a clean rebuild."""
+    Castings likewise. Since 2026-10-30 the library parts under a detail (_library_children: its fasteners) count
+    too - one edited (or unsaved) after the detail's exports makes the detail changed. Files in the op data folders
+    that this run would not write are deleted, so what is left matches a full rebuild. Changes that live only in
+    other files (a parent's WAVE geometry with the detail not updated and saved, an unloaded fastener) are not
+    seen; untick it for a clean rebuild."""
     with nx.display_part_reset():
         nx.prompt("Filtering components to export.")
         folder = _GFolder.create(top_level_assembly.FullPath)
@@ -643,9 +645,17 @@ def _design(top_level_assembly: NXOpen.Part,
                 [j["output"] for j in jobs] + [f for p in casting_parts for f in _casting_outputs(p, folder)]))
             if skip_unchanged:
                 # The top level's own files (the assembly STEP) depend on every child: always rebuilt.
-                unchanged = _unchanged_parts(jobs, modified_before_save, {top_level_assembly.FullPath.lower()})
+                never = {top_level_assembly.FullPath.lower()}
+                # A detail is also changed when a library fastener under it was edited after its exports.
+                dependencies = {p.FullPath.lower(): _library_children(p) for p in valid_parts
+                                if detail_regex.search(p.Leaf) and p.FullPath.lower() not in never}
+                unchanged = _unchanged_parts(jobs, modified_before_save, never, dependencies)
+                library_changed = _unchanged_parts(jobs, modified_before_save, never, {}) - unchanged
                 skipped_castings = [p for p in casting_parts if p.FullPath.lower() not in modified_before_save
-                                    and all(_is_up_to_date(f, p.FullPath) for f in _casting_outputs(p, folder))]
+                                    and not any(d in modified_before_save
+                                                for d in dependencies.get(p.FullPath.lower(), []))
+                                    and all(_is_up_to_date(f, p.FullPath, dependencies.get(p.FullPath.lower(), []))
+                                            for f in _casting_outputs(p, folder))]
                 keep = {j["output"].lower() for j in jobs}
                 keep.update(f.lower() for p in casting_parts for f in _casting_outputs(p, folder))
                 deleted = _delete_files_except(op_data_directories, keep)
@@ -661,6 +671,9 @@ def _design(top_level_assembly: NXOpen.Part,
                 nx.print_("Skip unchanged: {} part(s) unchanged - kept {} file(s) and {} casting(s); deleted {} "
                           "file(s) this run would not write.".format(len(unchanged), len(skipped_jobs),
                                                                      len(skipped_castings), deleted))
+                if library_changed:
+                    nx.print_("Skip unchanged: {} part(s) rebuilt for a changed library part under them: {}".format(
+                        len(library_changed), ", ".join(sorted(ntpath.basename(k) for k in library_changed))))
 
             if pool.workers <= 0:
                 to_update = {u["part"].lower() for u in updates}
@@ -883,24 +896,45 @@ def _casting_outputs(part: NXOpen.Part, folder: _GFolder) -> List[str]:
     return ["{}\\{}{}".format(directory, part.Leaf, ext) for ext in (".stp", ".x_t")]
 
 
-def _is_up_to_date(output: str, part_path: str) -> bool:
-    """Whether `output` exists, is not empty and is no older than the part file."""
+def _is_up_to_date(output: str, part_path: str, dependencies: Iterable[str] = ()) -> bool:
+    """Whether `output` exists, is not empty and is no older than the part file or any of `dependencies` (the
+    part's library children, _library_children). A dependency that cannot be read counts as newer."""
     try:
-        return os.path.getsize(output) > 0 and os.path.getmtime(output) >= os.path.getmtime(part_path)
+        newest = max([os.path.getmtime(part_path)] + [os.path.getmtime(d) for d in dependencies])
+        return os.path.getsize(output) > 0 and os.path.getmtime(output) >= newest
     except OSError:
         return False
 
 
-def _unchanged_parts(jobs: Sequence[Job], modified: Set[str], never: Set[str]) -> Set[str]:
+def _library_children(part: NXOpen.BasePart) -> List[str]:
+    """Skip unchanged: the paths (lower case) of the parts of every loaded, unsuppressed component under `part`
+    that is not a detail - the library fasteners (G:\\0Library, the custom fastener sets, any other library part)
+    whose subtracts and drawings the part's exports depend on, but which this run never updates or exports."""
+    root = part.ComponentAssembly.RootComponent
+    if root is None:
+        return []
+    detail_regex = re.compile(_RegexDetail, re.IGNORECASE)
+    paths: Set[str] = set()
+    for comp in nx.descendants(root, include_root=False):
+        prototype = comp.Prototype
+        if isinstance(prototype, NXOpen.Part) and not detail_regex.search(prototype.Leaf):
+            paths.add(prototype.FullPath.lower())
+    return sorted(paths)
+
+
+def _unchanged_parts(jobs: Sequence[Job], modified: Set[str], never: Set[str],
+                     dependencies: Dict[str, List[str]]) -> Set[str]:
     """Skip unchanged: the part paths (lower case) whose every job's output is up to date with the part file and
-    that had no unsaved changes before Design's save. A part in `never` is always rebuilt."""
+    its library children (`dependencies`, by part path), and that had no unsaved changes before Design's save, nor
+    did any of those children. A part in `never` is always rebuilt."""
     by_part: Dict[str, List[Job]] = {}
     for job in jobs:
         by_part.setdefault(job["part"].lower(), []).append(job)
 
     return {key for key, part_jobs in by_part.items()
             if key not in modified and key not in never
-            and all(_is_up_to_date(j["output"], j["part"]) for j in part_jobs)}
+            and not any(d in modified for d in dependencies.get(key, []))
+            and all(_is_up_to_date(j["output"], j["part"], dependencies.get(key, [])) for j in part_jobs)}
 
 
 def _delete_files_except(directories: Iterable[str], keep: Set[str]) -> int:
