@@ -58,8 +58,8 @@ _here = os.path.dirname(os.path.abspath(__file__))
 if _here not in sys.path:
     sys.path.insert(0, _here)
 
-# In the source tree ExportStrip.py is in the sibling src\UFuncs folder; deployed, everything is in one folder.
-_shared_ufuncs = os.path.join(os.path.dirname(_here), "UFuncs")
+# ExportStrip.py is an entry file, in the folder above this one (src\UFuncs, deployed Ufunc\).
+_shared_ufuncs = os.path.dirname(_here)
 if os.path.isdir(_shared_ufuncs) and _shared_ufuncs not in sys.path:
     sys.path.insert(1, _shared_ufuncs)
 

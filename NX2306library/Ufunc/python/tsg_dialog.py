@@ -18,7 +18,7 @@ from __future__ import annotations
 import os
 import re
 import sys
-from typing import Any, List, Optional, Sequence, cast
+from typing import Any, List, Optional, Sequence, Tuple, cast
 
 # Session.Execute does not put the script's folder on sys.path, so the shared module would not import.
 _here = os.path.dirname(os.path.abspath(__file__))
@@ -327,6 +327,70 @@ class CustomerDialog(Dialog):
     def ok(self) -> bool:
         self.choice = self.customer()
         return self.customer_picked()
+
+
+class CustomerBodiesDialog(Dialog):
+    """
+    The Customer radio and a "bodies" selection (any in assembly) in one form - Perfect.dlx, CastTrimPad.dlx,
+    CastFormPad.dlx, CastPost.dlx and Component.dlx (tools\\make-dlx.py), in place of the Customer dialog followed by a
+    separate body pick. OK is greyed out until TSG or GM is checked and a body is picked. solid_only filters the
+    selection to solid bodies (SNAP's solid-body mask); otherwise any body, as DrawDie._select_bodies picks.
+    """
+
+    def __init__(self, dlx_name: str, title: str, solid_only: bool = True) -> None:
+        self.dlx_name = dlx_name
+        self.title = title
+        self.solid_only = solid_only
+        super().__init__()
+        # Captured in ok(): the blocks are gone once Launch returns.
+        self.bodies: List[NXOpen.Body] = []
+        self.customer_choice = CustomerNone
+
+    def initialize(self) -> None:
+        # UF_UI_SEL_FEATURE_SOLID_BODY (36) or UF_UI_SEL_FEATURE_BODY.
+        subtype = 36 if self.solid_only else NXOpen.UF.UFConstants.UF_UI_SEL_FEATURE_BODY
+        mask = NXOpen.Selection.MaskTriple(NXOpen.UF.UFConstants.UF_solid_type, 0, subtype)
+        self.block("bodies").SetSelectionFilter(NXOpen.Selection.SelectionAction.ClearAndEnableSpecific, [mask])
+        # The strip's solids live in components below the display part.
+        self.assembly_scope(self.block("bodies"))
+
+    def shown(self) -> None:
+        self.reset_customer()
+
+    def enable_ok(self) -> bool:
+        return self.customer_picked() and len(self._picked_bodies()) > 0
+
+    def ok(self) -> bool:
+        self.bodies = self._picked_bodies()
+
+        # enable_ok greys OK out for these; they are a backstop.
+        if not self.customer_picked():
+            self.message("Check TSG or GM.")
+            return False
+        if not self.bodies:
+            self.message("Select the {}bodies.".format("solid " if self.solid_only else ""))
+            return False
+
+        self.customer_choice = self.customer()
+        return True
+
+    def _picked_bodies(self) -> List[NXOpen.Body]:
+        bodies = [cast(NXOpen.Body, o) for o in self.selected(self.block("bodies")) if isinstance(o, NXOpen.Body)]
+        return [b for b in bodies if b.IsSolidBody] if self.solid_only else bodies
+
+
+def ask_customer_and_bodies(dlx_name: str, title: str,
+                            solid_only: bool = True) -> Optional[Tuple[bool, List[NXOpen.Body]]]:
+    """
+    CustomerBodiesDialog titled '{version} - title': (is_gm, bodies) once OK is pressed, None when it is cancelled
+    (Dialog.run marked the run cancelled). TSG (is_gm False) uses the CTS parts. The picked bodies are unhighlighted.
+    """
+    dialog = CustomerBodiesDialog(dlx_name, title_with_version(title), solid_only)
+    if not dialog.run():
+        return None
+    for body in dialog.bodies:
+        body.Unhighlight()
+    return is_gm_customer(dialog.customer_choice), dialog.bodies
 
 
 def ask_is_gm(title: str) -> Optional[bool]:

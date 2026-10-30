@@ -13,31 +13,31 @@ BEGIN_GROUP FULL_HITS
         LABEL Auto Design
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\AutoDesign.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\AutoDesign.py
 
     BUTTON AUTO_DESIGN_LABELER
         LABEL Auto Design Labeler
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\AutoDesignLabeler.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\AutoDesignLabeler.py
 
     BUTTON GM_BLANK_STATION
         LABEL Blank Station
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\BlankStation.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\BlankStation.py
 
     BUTTON GM_SECONDARY_TRIM_STATION
         LABEL Secondary Trim Station
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\SecondaryTrimStation.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\SecondaryTrimStation.py
 
     BUTTON DRAW_DIE
         LABEL Draw Die
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\DrawDie.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\DrawDie.py
 
     BUTTON FLANGE_HIT
         LABEL Flange Hit
@@ -49,25 +49,25 @@ BEGIN_GROUP FULL_HITS
         LABEL Dead Hit
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\DeadStrike.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\DeadStrike.py
 
     BUTTON RESTRIKE
         LABEL Restrike
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\Restrike.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\Restrike.py
 
     BUTTON PIERCE
         LABEL Pierce
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\Pierce.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\Pierce.py
 
     BUTTON GM_SPLIT_FORM
         LABEL Split Form
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\SplitForm.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\SplitForm.py
 
 END_GROUP
 
@@ -77,19 +77,19 @@ BEGIN_GROUP MERLIN_CAST
             LABEL Cast Trim Pad
             RIBBON_STYLE SMALL_IMAGE_AND_TEXT
             BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-            ACTION ${NXCUSTOM_LIB}\ufunc\python\CastTrimPad.py
+            ACTION ${NXCUSTOM_LIB}\ufunc\CastTrimPad.py
 
         BUTTON GM_CAST_FORM_PAD
             LABEL Cast Form Pad
             RIBBON_STYLE SMALL_IMAGE_AND_TEXT
             BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-            ACTION ${NXCUSTOM_LIB}\ufunc\python\CastFormPad.py
+            ACTION ${NXCUSTOM_LIB}\ufunc\CastFormPad.py
 
         BUTTON GM_CAST_POST
             LABEL Cast Post
             RIBBON_STYLE SMALL_IMAGE_AND_TEXT
             BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-            ACTION ${NXCUSTOM_LIB}\ufunc\python\CastPost.py
+            ACTION ${NXCUSTOM_LIB}\ufunc\CastPost.py
 END_GROUP
 
 BEGIN_GROUP COMPONENTS
@@ -99,13 +99,13 @@ BEGIN_GROUP COMPONENTS
         LABEL Perfect
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\Perfect.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\Perfect.py
 
     BUTTON GM_COMPONENT
         LABEL Component
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\Component.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\Component.py
 
     BUTTON POINT_COMPONENT
         LABEL Point Component
@@ -122,13 +122,13 @@ BEGIN_GROUP MISC
         LABEL Profile Subtract
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\ProfileSubtract.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\ProfileSubtract.py
 
     BUTTON CAST_BOSS
         LABEL Cast Boss
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\Boss.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\Boss.py
 
     BUTTON SAVE_AS
         LABEL Save As
@@ -146,7 +146,7 @@ BEGIN_GROUP MISC
         LABEL 999
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\Nine99.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\Nine99.py
 
 END_GROUP
 
@@ -179,11 +179,11 @@ BEGIN_GROUP NITRO_PLATE
         LABEL Lower
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\NitroPlateLower.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\NitroPlateLower.py
 
     BUTTON NITRO_PLATE_UPPER
         LABEL Upper
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\python\NitroPlate.py
+        ACTION ${NXCUSTOM_LIB}\ufunc\NitroPlate.py
 END_GROUP

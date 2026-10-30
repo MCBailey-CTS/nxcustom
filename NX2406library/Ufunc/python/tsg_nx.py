@@ -52,14 +52,15 @@ def print_(message: object) -> None:
 
 def library_file(name: str, near: str = "") -> str:
     """
-    The path of a file the UFuncs ship beside their scripts (a .dlx, a .ps1). Deployed, bin\\<config>\\python holds
-    them all; in the source tree they are split between src\\UFuncs and src\\python, so this looks beside near (a
-    module's __file__) first, then beside this module, then in the sibling UFuncs folder. A missing file comes back
-    as the first place looked, so the caller's error names a sensible path.
+    The path of a file the UFuncs ship beside their scripts (a .dlx, a .ps1). An entry file's own .dlx is beside
+    it (src\\UFuncs, deployed Ufunc\\); the shared ones are beside this module (src\\UFuncs\\python, deployed
+    Ufunc\\python). So this looks beside near (a module's __file__) first, then beside this module, then in the
+    entry files' folder above it. A missing file comes back as the first place looked, so the caller's error names
+    a sensible path.
     """
     here = os.path.dirname(os.path.abspath(__file__))
     folders = [os.path.dirname(os.path.abspath(near))] if near else []
-    folders += [here, os.path.join(os.path.dirname(here), "UFuncs")]
+    folders += [here, os.path.dirname(here)]
     for folder in folders:
         path = os.path.join(folder, name)
         if os.path.isfile(path):
