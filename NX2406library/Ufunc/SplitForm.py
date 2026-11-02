@@ -611,8 +611,9 @@ def _subtract_components(get_target: Callable[[], NXOpen.Body],
     """
     Merlin.SubtractComponents - per component: skip with a print unless it has refset, switch to it, skip with a
     print when it carries no solid body, link it into the work part and subtract it from get_target() (re-fetched each
-    time), restore BODY. A failed boolean (3520001) prints a line before the exception; any other failure prints and
-    moves on. Unlike PointComponent._subtract_components this keeps the C#'s solid-body check.
+    time), restore BODY. A failed boolean (3520001) prints a line before the exception; one whose tool misses the
+    target (670030) prints the parts and nothing else; any other failure prints and moves on. Unlike
+    PointComponent._subtract_components this keeps the C#'s solid-body check.
     """
     for comp in components:
         if comp is None:
@@ -637,6 +638,11 @@ def _subtract_components(get_target: Callable[[], NXOpen.Body],
             linked = nx.create_linked_body(comp)
             nx.subtract(get_target(), linked.GetBodies())
         except NXOpen.NXException as ex:
+            # The tool misses the target: a note naming the parts, not an exception (no tblExceptions row).
+            if ex.ErrorCode == nx.ErrorNoInterference:
+                nx.print_("Could not subtract {} ({}) from {}: it does not touch the target body".format(
+                    comp.DisplayName, refset, nx.work_part().Leaf))
+                continue
             if ex.ErrorCode == merlin.ErrorBooleanFailed:
                 nx.print_("Failed to boolean {} with reference set {}".format(comp.DisplayName, refset))
             nx.print_exception(ex)

@@ -185,7 +185,7 @@ BEGIN_GROUP CTS_DESIGN
         LABEL  Block Att Dialog
         RIBBON_STYLE MEDIUM_IMAGE
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\BlockAttributer.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\block-att-dialog.dll("block-att-dialog")
+        ACTION ${NXCUSTOM_LIB}\ufunc\BlockAttDialog.py
 
     BUTTON CycleComponents
         LABEL  Cycle Components

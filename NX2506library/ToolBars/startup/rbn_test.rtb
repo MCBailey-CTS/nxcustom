@@ -19,7 +19,7 @@ BEGIN_GROUP TEST
         LABEL  Block Att Dialog
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\BlockAttributer.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\block-att-dialog.dll("block-att-dialog")
+        ACTION ${NXCUSTOM_LIB}\ufunc\BlockAttDialog.py
 
     BUTTON TestUnloadSharedImage
         LABEL Unload Image

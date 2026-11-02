@@ -6,13 +6,19 @@ deleted that day (in git at 97eb2a6). This module was src\\python\\assembly_wave
 ran after their C# picks (2026-10-21).
 
 The form's 14 buttons are the Operation menu of one Block Styler dialog (AssemblyWavelink.dlx, _WavelinkDialog)
-holding the target / tool picks, the boolean's reference set and Blank Tool Components; OK or Apply runs
-wave_link_fasteners, wave_link_subtool or wave_link_boolean below. The dialog has NEVER BEEN RUN IN NX.
+holding the target / tool picks, the boolean's reference set and Blank Tool Components; its Apply button runs
+wave_link_fasteners, wave_link_subtool or wave_link_boolean below. First opened in NX 2026-10-30 (as an
+OK / Apply / Cancel dialog, whose OK closed it); the operations themselves are not yet confirmed there.
+
+Since 2026-10-30 the dialog is modeless, like the form was: NX stays usable while it is up, and only Close ends it
+(Apply runs an operation and stays open). main() returns as soon as it is shown, so the usage run (tblUFuncsExe, the
+syslog banners) is closed when the dialog closes, and GetUnloadOption keeps this file loaded until NX exits
+(UnloadLibrary disposes the dialog). A second launch while it is open just says so.
 """
 
 import os
 import sys
-from typing import Dict, List, Optional, Sequence, Set, Tuple, cast
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, cast
 
 # Session.Execute does not put the script's folder on sys.path, so the shared module would not import.
 _here = os.path.dirname(os.path.abspath(__file__))
@@ -32,7 +38,7 @@ import NXOpen.UF  # noqa: E402
 
 import tsg_nx as nx  # noqa: E402
 from CopyAttributes import _is_assembly_holder  # noqa: E402
-from tsg_dialog import Dialog, components_of, title_with_version  # noqa: E402
+from tsg_dialog import Dialog, components_of, dispose_modeless, show_modeless, title_with_version  # noqa: E402
 
 # Static.SubToolRefSetNames - matched against the upper-cased reference set name.
 _SubToolRefSetNames = ("SUB_TOOL", "SUB-TOOL", "SUBTOOL")
@@ -371,8 +377,11 @@ class _WavelinkDialog(Dialog):
       - Tool components;
       - Reference set (the booleans only): the reference sets every picked tool has, BODY left out except for Link;
       - Blank Tool Components (chkBlankTools; Sub-Tool never read it).
-    The pickers' filters are applied as picks come in: a pick they reject is dropped from the selection. OK runs the
-    operation and closes; Apply runs it, clears both picks and stays open, as the form did.
+    The pickers' filters run as the cursor passes over an object (filter(), 2026-10-30): one they reject does not
+    highlight and cannot be picked. update() applies them again to what is already picked, since changing the
+    operation or the targets can make an earlier pick invalid (and keeps Sub-Tool to the latest target). The
+    dialog is modeless and Close only: its Apply button runs the operation, clears both picks and stays open, as the
+    form did (an OK closed the modeless dialog too, 2026-10-30). Closing it without an Apply marks the run cancelled.
     """
 
     dlx_name = "AssemblyWavelink.dlx"
@@ -381,6 +390,9 @@ class _WavelinkDialog(Dialog):
         self.title = title
         super().__init__()
         self._reference_sets: List[str] = []
+        # The usage run execute() opened; the operations file their exceptions under it (other UFuncs may run while
+        # the dialog is up).
+        self.usage_run: Optional[Any] = None
 
     def initialize(self) -> None:
         mask = NXOpen.Selection.MaskTriple(NXOpen.UF.UFConstants.UF_solid_type, 0, _UF_UI_SEL_FEATURE_SOLID_BODY)
@@ -393,6 +405,12 @@ class _WavelinkDialog(Dialog):
         self._refresh()
 
     def update(self, block: NXOpen.BlockStyler.UIBlock) -> None:
+        if block == self.block("apply"):
+            try:
+                self._apply()
+            finally:
+                self._refresh()
+            return
         if block == self.block("operation") or block == self.block("targets"):
             self._filter_targets()
             self._filter_tools()
@@ -400,15 +418,33 @@ class _WavelinkDialog(Dialog):
             self._filter_tools()
         self._refresh()
 
-    def enable_ok(self) -> bool:
+    def filter(self, block: NXOpen.BlockStyler.UIBlock, obj: NXOpen.TaggedObject) -> bool:
+        if block == self.block("targets"):
+            return isinstance(obj, NXOpen.Body) and self._target_ok(obj)
+        if block == self.block("tools"):
+            return isinstance(obj, NXOpen.Assemblies.Component) and self._tool_ok(obj, self._target_owners())
+        return True
+
+    def _can_apply(self) -> bool:
         if not self._targets() or not self._tools():
             return False
         return not self._is_boolean() or self._reference_set() is not None
 
-    def ok(self) -> bool:
+    def _apply(self) -> None:
+        """The Apply button: run the operation, then clear both picks for the next one."""
+        if not self._run_operation():
+            return
+        self.applied = True
+        self.block("targets").SetSelectedObjects([])
+        self.block("tools").SetSelectedObjects([])
+
+    def _run_operation(self) -> bool:
+        if self.usage_run is not None:
+            import usage_db
+            usage_db.resume(self.usage_run)
         targets, tools = self._targets(), self._tools()
         if not targets or not tools:
-            # enable_ok greys OK out for this; it is a backstop.
+            # _refresh greys Apply out for this; it is a backstop.
             self.message("Select the target bodies and the tool components.")
             return False
         operation = self._operation()
@@ -427,14 +463,6 @@ class _WavelinkDialog(Dialog):
                 return False
             AssemblyWavelink.wave_link_boolean(blank_tools, _BooleanOperations[operation], reference_set, targets,
                                                tools)
-        return True
-
-    def apply(self) -> bool:
-        if not self.ok():
-            return False
-        self.block("targets").SetSelectedObjects([])
-        self.block("tools").SetSelectedObjects([])
-        self._refresh()
         return True
 
     # ----- picks -----
@@ -483,8 +511,12 @@ class _WavelinkDialog(Dialog):
         if len(kept) != len(picked):
             self.block("targets").SetSelectedObjects(kept)
 
+    def _target_owners(self) -> Set[int]:
+        """The tags of the picked targets' components - a tool may not be one of them."""
+        return {b.OwningComponent.Tag for b in self._targets() if b.OwningComponent is not None}
+
     def _filter_tools(self) -> None:
-        owners = {b.OwningComponent.Tag for b in self._targets() if b.OwningComponent is not None}
+        owners = self._target_owners()
         picked = self._tools()
         kept = [t for t in picked if self._tool_ok(t, owners)]
         if len(kept) != len(picked):
@@ -499,6 +531,13 @@ class _WavelinkDialog(Dialog):
         return value if value in self._reference_sets else None
 
     def _refresh(self) -> None:
+        try:
+            self._refresh_reference_sets()
+        finally:
+            # Apply stands in for the OK a Close-only dialog has not got: greyed out until there is something to run.
+            self.block("apply").Enable = self._can_apply()
+
+    def _refresh_reference_sets(self) -> None:
         boolean = self._is_boolean()
         self.block("reference_set").Show = boolean
         self.block("blank_tools").Enable = self._operation() != _OperationSubTool
@@ -515,24 +554,51 @@ class _WavelinkDialog(Dialog):
 
 
 def execute() -> None:
-    """The form, as a modal Block Styler dialog."""
+    """
+    The form, as a modeless Block Styler dialog: shows it and returns. Opens the usage run, which the dialog's close
+    ends (or this, when the dialog never opened).
+    """
+    import usage_db
+
+    current = usage_db.start_run(ufunc_name)
     try:
-        _WavelinkDialog(title_with_version("Assembly Wavelink")).run()
+        dialog = _WavelinkDialog(title_with_version("Assembly Wavelink"))
+        dialog.usage_run = current
+        if not show_modeless(ufunc_name, dialog, lambda response: usage_db.finish_run(current)):
+            usage_db.mark_cancelled("already open")
+            usage_db.finish_run(current)
     except NXOpen.NXException as ex:
         if ex.ErrorCode != _ErrorCannotLaunchDialog:
+            usage_db.finish_run(current, ex)
             raise
         nx.print_exception(ex)
+        usage_db.finish_run(current)
+    except BaseException as ex:
+        usage_db.finish_run(current, ex)
+        raise
 
 
 def main() -> None:
     """The assembly-wavelink UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
+    try:
+        execute()
+    except Exception as ex:
+        nx.print_exception(ex)
 
-    with usage_db.run(ufunc_name):
-        try:
-            execute()
-        except Exception as ex:
-            nx.print_exception(ex)
+
+# Session.LibraryUnloadOption.AtTermination (Immediately 1, Explicitly 2, AtTermination 3 in NXOpen.dll 2306). NX's
+# Python has no LibraryUnloadOption enum, so the number.
+_UnloadAtTermination = 3
+
+
+def GetUnloadOption(arg: Any) -> int:
+    """NX: keep this file loaded while the modeless dialog may be up - until NX exits."""
+    return _UnloadAtTermination
+
+
+def UnloadLibrary(arg: Any) -> None:
+    """NX, at exit: dispose the dialog (open or closed)."""
+    dispose_modeless(ufunc_name)
 
 
 if __name__ == "__main__":

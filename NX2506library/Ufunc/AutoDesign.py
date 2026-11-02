@@ -15,13 +15,17 @@ asking for them, in this order:
   - DEADHIT  - GM Split Form with backing plate and SHCS from the backside in LAD02 (LWR-3D), then the Draw Die's
                upper half in UAD02 (cavity steels 3/8" past the part a side and mounting plate, UPR-3D), both the
                dialog's Rows (x) x Cols (y) over all the DEADHIT bodies (DeadStrike.build_in_station, the dead-strike UFunc's builder)
+  - FLANGEUP - Flange Up into LAD02 (cast lower holding pad, riser, lower flange up steels) and UAD02 (cast upper
+               holding pad, upper flange up steels) (FlangeUp.build, 2026-11-02), with the dialog's flange side and
+               steel rows / cols; a missing PAD-PROFILE / LWR-PROFILE skips that boolean without asking
 Unknown values print and are skipped. Each program starts from the -000 (display = work, WCS absolute) in its own
 try/except, so a failed draw die still leaves the restrike posts to be built.
 
 The dialog (AutoDesign.dlx, tools\\make-dlx.py) asks for all the strip's solids or a selection, and the construction -
 Normal (S7 trim steels) or Heavy (D2) - which only the blank and 2nd trim stations use; below that, each program's
 body count in the assembly (a read-out of what Select all would find), with DRAW's column / steels per row spinners
-(read but not used yet: the draw die does not take them) and DEADHIT's Rows (x) / Cols (y) (both sides' grid).
+(read but not used yet: the draw die does not take them), DEADHIT's Rows (x) / Cols (y) (both sides' grid) and FLANGEUP's
+flange side and steel rows / cols.
 
 Kept from the C#:
   - The bodies are grouped as (owning component, prototype body), not occurrences, and re-resolved
@@ -31,7 +35,7 @@ Kept from the C#:
     then told not to ask again.
   - Every build runs quiet (no per-builder elapsed times or "Created reference set" lines); the run prints one
     overall time.
-  - A DebugSignDotNet deploy (this file under ...\\bin\\DebugSignDotNet\\python) skips every pierce detail's
+  - A DebugSignDotNet deploy (this file under ...\\bin\\DebugSignDotNet) skips every pierce detail's
     spreadsheet - the C# #if DEBUGSIGNDOTNET.
   - Edit Spreadsheets (checked every time the dialog opens) off: no part's Excel sheet is opened - the pierce
     details (Pierce.build's skip_spreadsheets) and the draw die's keys and guided retainers (DrawDie.build's)
@@ -82,12 +86,14 @@ AutoDesignPierce = "PRC"
 AutoDesignDraw = "DRAW"
 AutoDesignRestrike = "RESTRIKE"
 AutoDesignDeadHit = "DEADHIT"
+AutoDesignFlangeUp = "FLANGEUP"
 
 # The order the programs run in.
-Programs = [AutoDesignBlank, AutoDesignTrim, AutoDesignPierce, AutoDesignDraw, AutoDesignRestrike, AutoDesignDeadHit]
+Programs = [AutoDesignBlank, AutoDesignTrim, AutoDesignPierce, AutoDesignDraw, AutoDesignRestrike, AutoDesignDeadHit,
+            AutoDesignFlangeUp]
 
 # The programs the dialog always shows a count for, in this order (the .dlx has a count_{program} label for each).
-DisplayedPrograms = ["BLANK", "DRAW", "PRC", "RESTRIKE", "TRIM", "DEADHIT"]
+DisplayedPrograms = ["BLANK", "DRAW", "PRC", "RESTRIKE", "TRIM", "DEADHIT", "FLANGEUP"]
 
 # The trim-steel material for each construction (the dialog's Normal / Heavy).
 ConstructionMaterials = {"Normal": "S7", "Heavy": "D2"}
@@ -306,6 +312,18 @@ def _run(is_gm: bool, title: str, dialog: "_AutoDesignDialog") -> None:
         start_operation(AutoDesignRestrike + " UAD02")
         _restrike_posts(is_gm, group(AutoDesignRestrike), "uad02", is_upper=True)
 
+    def flange_up(bodies: List[NXOpen.Body]) -> None:
+        import FlangeUp as flangeup
+        options = flangeup.FlangeUpOptions(drawdie.DefaultStation, True, True, dialog.flangeup_lower_rows,
+                                           dialog.flangeup_flange, dialog.flangeup_upper_rows,
+                                           dialog.flangeup_upper_cols)
+        # No question mid-run: a missing PAD-PROFILE / LWR-PROFILE just skips that boolean (build's own lookup).
+        drawdie._skip_spreadsheets = skip_spreadsheets
+        try:
+            flangeup.build(is_gm, bodies, options)
+        finally:
+            drawdie._skip_spreadsheets = False
+
     def dead_hit(bodies: List[NXOpen.Body]) -> None:
         from DeadStrike import build_in_station
         start_operation(AutoDesignDeadHit + " LAD02")
@@ -326,6 +344,7 @@ def _run(is_gm: bool, title: str, dialog: "_AutoDesignDialog") -> None:
         run_program(AutoDesignDraw, draw)
         run_program(AutoDesignRestrike, restrike)
         run_program(AutoDesignDeadHit, dead_hit)
+        run_program(AutoDesignFlangeUp, flange_up)
     except Exception as ex:
         log.write_line("Auto Design failed: {}".format(ex))
         nx.print_exception(ex)
@@ -568,7 +587,7 @@ class _AutoDesignDialog(Dialog):
     """
     AutoDesign.dlx: Select all / Select solids, the body picker (shown only for Select solids), Normal / Heavy, and
     a checkbox per program labelled with its body count in the assembly (only the checked ones run), with DRAW's
-    columns / steels per row and DEADHIT's rows / cols.
+    columns / steels per row, DEADHIT's rows / cols and FLANGEUP's flange side and steel rows / cols.
     """
 
     dlx_name = "AutoDesign.dlx"
@@ -586,6 +605,10 @@ class _AutoDesignDialog(Dialog):
         self.draw_steels_per_row = 4
         self.deadhit_rows = 2
         self.deadhit_cols = 1
+        self.flangeup_flange = "Both Sides"
+        self.flangeup_lower_rows = 2
+        self.flangeup_upper_rows = 2
+        self.flangeup_upper_cols = 1
         self.edit_spreadsheets = True
         self.run_programs: Set[str] = set(Programs)
         self.customer_choice = CustomerNone
@@ -639,6 +662,10 @@ class _AutoDesignDialog(Dialog):
         self.draw_steels_per_row = int(self.block("draw_steels").Value)
         self.deadhit_rows = int(self.block("deadhit_rows").Value)
         self.deadhit_cols = int(self.block("deadhit_cols").Value)
+        self.flangeup_flange = str(self.block("flangeup_flange").ValueAsString)
+        self.flangeup_lower_rows = int(self.block("flangeup_lower_rows").Value)
+        self.flangeup_upper_rows = int(self.block("flangeup_upper_rows").Value)
+        self.flangeup_upper_cols = int(self.block("flangeup_upper_cols").Value)
         self.edit_spreadsheets = bool(self.block("edit_spreadsheets").Value)
         self.run_programs = self._checked_programs()
         if not self.run_programs:

@@ -22,6 +22,7 @@ from __future__ import annotations
 import importlib
 import os
 import sys
+import time
 from typing import Any, Optional, cast
 
 # Session.Execute does not put the script's folder on sys.path, so the shared modules would not import.
@@ -75,8 +76,30 @@ class SplitFormDialog(object):
 
         # The dialog stands in for the station detection, the split-count menus and the body pick.
         target = getattr(importlib.import_module(module), class_name)
-        target.execute_with(is_gm, dialog.is_upper, dialog.rows, dialog.cols, [dialog.body], dialog.plate,
-                            dialog.backside)
+
+        # The listing window gets only errors (progress and timings go to the syslog); the outcome and the time it
+        # took go in a message box.
+        import usage_db
+        errors_before = usage_db.exceptions_logged()
+        started = time.time()
+        with nx.quiet_listing():
+            target.execute_with(is_gm, dialog.is_upper, dialog.rows, dialog.cols, [dialog.body], dialog.plate,
+                                dialog.backside)
+        elapsed = _elapsed_text(time.time() - started)
+        errors = usage_db.exceptions_logged() - errors_before
+        if errors:
+            nx.message_box(title, NXOpen.NXMessageBox.DialogType.Warning,
+                           "Complete in {} with {} error(s) - see the Information window.".format(elapsed, errors))
+        else:
+            nx.message_box(title, NXOpen.NXMessageBox.DialogType.Information, "Complete in {}.".format(elapsed))
+
+
+def _elapsed_text(seconds: float) -> str:
+    """'42.3 seconds', or '2 min 05 s' from a minute up."""
+    if seconds < 60:
+        return "{:.1f} seconds".format(seconds)
+    minutes, rest = divmod(int(round(seconds)), 60)
+    return "{} min {:02d} s".format(minutes, rest)
 
 
 def detect_is_upper() -> Optional[bool]:

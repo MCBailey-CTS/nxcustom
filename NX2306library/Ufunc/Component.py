@@ -4,7 +4,9 @@ src\\UFuncs\\Merlin.cs, regions "Static Entry Points - GM Component / Split / Fo
 Component & Split").
 The C# wrapper was deleted 2026-10-22 (in git at 1cb53d8): the UFunc's menu button runs this file's main().
 
-Run from an upper or lower station (uad/upd/ush/usp or lad/lsh/lsp as the work part). Select solid bodies; their box,
+Run from an upper or lower station (uad/upd/ush/usp or lad/lsh/lsp as the work part). When the work part is not one,
+the dialog adds a "Build in" radio of the display assembly's loaded stations ({job}-{op}-{station}[NN], as Cast Trim
+Pad's; 2026-10-30) and the pick becomes the work component. Select solid bodies; their box,
 +.375" on every side (each span rounded up to 1/8"), becomes one 8" block from Z -4 in the station, colored 107 with
 its mounting face (+Z upper / -Z lower) colored 42. It is promoted to [cts-]component, re-based onto the block (the
 opposite corner for an upper), and gets:
@@ -58,7 +60,7 @@ import PointComponent as merlin  # noqa: E402
 import DrawDie as drawdie  # noqa: E402
 import CastTrimPad as trimpad  # noqa: E402
 import SplitForm as split  # noqa: E402
-from tsg_dialog import ask_customer_and_bodies  # noqa: E402
+from tsg_dialog import is_gm_customer, title_with_version  # noqa: E402
 
 # ---------------------------------------------------------------------------------------------------
 # Constants (Merlin's, inches unless the name says otherwise)
@@ -86,21 +88,34 @@ class Component(object):
 def static_gm_component(is_gm: bool) -> None:
     """
     Merlin.StaticGmComponent - TryBeginGmEntry (units gate, upper/lower from the work part, the Component dialog
-    (Component.dlx: customer + solid bodies), UPR-3D / LWR-3D, WCS to absolute), then the build.
+    (Component.dlx: customer + solid bodies, plus the "Build in" station radio when the work part is not a station),
+    UPR-3D / LWR-3D, WCS to absolute), then the build.
     """
     ok, message = drawdie._check_info_units()
     if not ok:
         nx.show_error(message)
         return
 
-    is_upper = trimpad._try_detect_is_upper()
-    if is_upper is None:
+    is_upper = trimpad._station_is_upper(nx.work_part().Leaf)
+    stations = [] if is_upper is not None else trimpad._station_components()
+    if is_upper is None and not stations:
+        nx.show_error(trimpad._StationError)
         return
 
-    picked = ask_customer_and_bodies("Component.dlx", "Component", solid_only=True)
-    if picked is None:
+    dialog = trimpad.BuildInDialog(title_with_version("Component"), [nx.prototype(c).Leaf for c in stations],
+                                   "Component.dlx", solid_only=True)
+    if not dialog.run():
         return
-    is_gm, bodies = picked
+    is_gm = is_gm_customer(dialog.customer_choice)
+    bodies = dialog.bodies
+    for body in bodies:
+        body.Unhighlight()
+
+    if stations:
+        station = next(c for c in stations if nx.prototype(c).Leaf == dialog.station)
+        nx.set_work_component(station)
+        is_upper = trimpad._station_is_upper(dialog.station)
+    assert is_upper is not None
 
     reference_set = "UPR-3D" if is_upper else "LWR-3D"
     drawdie._set_wcs_to_absolute(nx.display_part())

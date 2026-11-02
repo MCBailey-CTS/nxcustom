@@ -747,14 +747,18 @@ def confirm_missing_reference_sets(label: str, purpose: str, components: Iterabl
     return True
 
 
-def find_or_create_reference_set(part: NXOpen.BasePart, name: str) -> NXOpen.ReferenceSet:
-    """Merlin.FindOrCreateReferenceSet - the part's reference set, created and named when absent."""
+def find_or_create_reference_set(part: NXOpen.BasePart, name: str, report: bool = True) -> NXOpen.ReferenceSet:
+    """
+    Merlin.FindOrCreateReferenceSet - the part's reference set, created and named when absent. report=False leaves
+    out the "Created reference set" line.
+    """
     existing = find_reference_set_or_null(part, name)
     if existing is not None:
         return existing
     created = part.CreateReferenceSet()
     created.SetName(name)
-    info('Created reference set "{}" in {}'.format(name, part.Leaf))
+    if report:
+        info('Created reference set "{}" in {}'.format(name, part.Leaf))
     return created
 
 

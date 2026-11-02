@@ -141,8 +141,8 @@ def _build_one_perfect(is_gm: bool, body: NXOpen.Body, offset: float) -> None:
     # Origin on the block rather than the assembly's. Nothing below places geometry from assembly coordinates.
     drawdie._rebase_block_to_part_origin(base_new, current_display)
     nx.setup_station_expressions(nx.prototype(base_new))
-    nx.find_or_create_reference_set(base_new.OwningPart, "BODY").AddObjectsToReferenceSet([base_new])
-    refset = nx.find_or_create_reference_set(nx.work_part(), "BODY")
+    nx.find_or_create_reference_set(base_new.OwningPart, "BODY", report=False).AddObjectsToReferenceSet([base_new])
+    refset = nx.find_or_create_reference_set(nx.work_part(), "BODY", report=False)
     refset.AddObjectsToReferenceSet(list(nx.work_part().Bodies))
     new_part = nx.work_part()
     first_block = nx.first_block_feature(new_part)

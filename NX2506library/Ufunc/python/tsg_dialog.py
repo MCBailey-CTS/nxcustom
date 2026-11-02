@@ -8,9 +8,10 @@ generated; HelloDialog.py is the original example.
 
 Subclass Dialog, name its .dlx, look up the blocks in initialize(), set value properties in shown() (dialog memory
 overwrites them when set from initialize()), react to changes in update(block), say whether OK can be pressed in
-enable_ok(), and do the work in ok() - return False to keep the dialog open (a missing input, say). Run it with
+enable_ok(), refuse objects a selection block's type mask lets through in filter(block, obj), and do the work in ok() - return False to keep the dialog open (a missing input, say). Run it with
     MyDialog().run()
-which shows it, prints any exception from a callback to the listing window, and always disposes it.
+which shows it, prints any exception from a callback to the listing window, and always disposes it. A dialog that
+stays open beside NX while the user works (modeless) uses show_modeless(key, dialog, on_close) instead.
 """
 
 from __future__ import annotations
@@ -18,7 +19,7 @@ from __future__ import annotations
 import os
 import re
 import sys
-from typing import Any, List, Optional, Sequence, Tuple, cast
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, cast
 
 # Session.Execute does not put the script's folder on sys.path, so the shared module would not import.
 _here = os.path.dirname(os.path.abspath(__file__))
@@ -34,6 +35,15 @@ import tsg_nx as nx  # noqa: E402
 
 # UF_UI_SEL_SCOPE_ANY_IN_ASSEMBLY (Snap's SelectionScope.AnyInAssembly) - not in every UFConstants build.
 _ScopeAnyInAssembly = 3
+
+# Modeless dialogs by key (show_modeless): the open one, and the closed ones not yet disposed. Kept here, in an imported
+# module the interpreter caches, rather than in the entry file, which NX may run again in a fresh namespace.
+_modeless_open: Dict[str, "Dialog"] = {}
+_modeless_closed: List["Dialog"] = []
+
+# What a Block Styler filter callback returns: UF_UI_SEL_ACCEPT / UF_UI_SEL_REJECT (uf_ui_types.h).
+_SelAccept = 1
+_SelReject = 0
 
 # The Merlin dialogs' Customer radio, ("enum", "customer", "Customer", Customers, "radio") in tools\make-dlx.py: when
 # the dialog opens (reset_customer, from shown()) it is set from the display assembly's stations (detect_customer,
@@ -96,6 +106,13 @@ class Dialog(object):
         self.dialog.AddOkHandler(self._ok_cb)
         self.dialog.AddApplyHandler(self._apply_cb)
         self.dialog.AddEnableOKButtonHandler(self._enable_ok_cb)
+        # NX calls the filter for every object under the cursor, so only a dialog that overrides filter() gets one.
+        if type(self).filter is not Dialog.filter:
+            self.dialog.AddFilterHandler(self._filter_cb)
+        self._filter_failed = False
+        # show(): set while the dialog is modeless; called once with the response when it closes.
+        self._on_close: Optional[Callable[[str], None]] = None
+        self._closed = False
         # Set by OK. The blocks are gone once Launch returns, so anything the caller needs is captured in ok().
         self.accepted = False
         # Set by an accepted Apply (OkApplyCancel dialogs): the work was done even if the dialog is then cancelled.
@@ -114,6 +131,14 @@ class Dialog(object):
 
     def enable_ok(self) -> bool:
         """Whether OK can be pressed (NX greys it out otherwise)."""
+        return True
+
+    def filter(self, block: NXOpen.BlockStyler.UIBlock, obj: NXOpen.TaggedObject) -> bool:
+        """
+        Whether a selection block (compare block with self.block(id)) may pick obj, asked as the cursor passes over
+        it - a refused object does not highlight and cannot be picked. Runs on top of the block's type mask
+        (SetSelectionFilter), so keep it cheap. Overriding it is what registers the filter.
+        """
         return True
 
     def ok(self) -> bool:
@@ -160,6 +185,23 @@ class Dialog(object):
         if not self.accepted and not self.applied and not self.close_only:
             nx.mark_cancelled("the {} dialog".format(self.title or self.dlx_name))
         return self.accepted
+
+    def show(self, on_close: Optional[Callable[[str], None]] = None) -> None:
+        """
+        Shows the dialog modeless - NX stays usable while it is up - and returns at once. When it closes (OK, Cancel
+        / Close or the X) its tblDialogs row is written, an unused dialog marks the run cancelled, and on_close gets
+        the response ("ok", "apply", "close" or "cancel"). The caller keeps the dialog and disposes it after it has
+        closed (show_modeless does both).
+        """
+        self._on_close = on_close or (lambda response: None)
+        self.dialog.AddCloseHandler(self._close_cb)
+        self.dialog.Show()
+
+    def dispose(self) -> None:
+        try:
+            self.dialog.Dispose()
+        except Exception as ex:
+            nx.syslog("Dialog.dispose ({}): {}".format(self.title or self.dlx_name, ex))
 
     @staticmethod
     def component_filter(selection: NXOpen.BlockStyler.SelectObject) -> None:
@@ -252,6 +294,17 @@ class Dialog(object):
             nx.print_exception(ex)
             return False
 
+    def _filter_cb(self, block: NXOpen.BlockStyler.UIBlock, obj: NXOpen.TaggedObject) -> int:
+        try:
+            return _SelAccept if self.filter(block, obj) else _SelReject
+        except Exception as ex:
+            # Accept, so a broken filter does not lock the pick, and print only the first failure: NX asks again on
+            # every mouse move.
+            if not self._filter_failed:
+                self._filter_failed = True
+                nx.print_exception(ex, "the {} dialog's selection filter".format(self.title or self.dlx_name))
+            return _SelAccept
+
     def _update_cb(self, block: NXOpen.BlockStyler.UIBlock) -> int:
         try:
             self.update(block)
@@ -264,11 +317,31 @@ class Dialog(object):
             if not self.ok():
                 return 1
             self.accepted = True
+            # OK closes a modeless dialog too; _closed_modeless runs once whether or not the close handler follows.
+            self._closed_modeless()
             return 0
         except Exception as ex:
             nx.print_exception(ex)
             # Close anyway: the failure is in the listing window and a retry would usually fail the same way.
             return 0
+
+    def _close_cb(self) -> int:
+        try:
+            self._closed_modeless()
+        except Exception as ex:
+            nx.print_exception(ex)
+        return 0
+
+    def _closed_modeless(self) -> None:
+        if self._on_close is None or self._closed:
+            return
+        self._closed = True
+        response = ("ok" if self.accepted else "apply" if self.applied
+                    else "close" if self.close_only else "cancel")
+        nx.log_dialog("block-dialog", self.title or self.dlx_name, None, None, response)
+        if not self.accepted and not self.applied and not self.close_only:
+            nx.mark_cancelled("the {} dialog".format(self.title or self.dlx_name))
+        self._on_close(response)
 
     def _apply_cb(self) -> int:
         try:
@@ -279,6 +352,51 @@ class Dialog(object):
         except Exception as ex:
             nx.print_exception(ex)
             return 1
+
+
+def show_modeless(key: str, dialog: Dialog, on_close: Optional[Callable[[str], None]] = None) -> bool:
+    """
+    Shows dialog modeless under key (a UFunc name), first disposing the closed dialogs left from earlier runs. False,
+    with a message box and dialog disposed, when one is already open under key - the user goes on with that one.
+    on_close gets the response when it closes; the dialog is disposed on the next show_modeless or at
+    dispose_modeless. An entry file that uses this needs GetUnloadOption to keep it loaded (AtTermination).
+    """
+    dispose_closed_modeless()
+    if key in _modeless_open:
+        dialog.dispose()
+        nx.message_box(dialog.title or key, NXOpen.NXMessageBox.DialogType.Information,
+                       "{} is already open.".format(dialog.title or key))
+        return False
+
+    def closed(response: str) -> None:
+        if _modeless_open.get(key) is dialog:
+            del _modeless_open[key]
+        _modeless_closed.append(dialog)
+        if on_close is not None:
+            on_close(response)
+
+    _modeless_open[key] = dialog
+    try:
+        dialog.show(closed)
+    except BaseException:
+        del _modeless_open[key]
+        dialog.dispose()
+        raise
+    return True
+
+
+def dispose_closed_modeless() -> None:
+    """Disposes the modeless dialogs that have closed. Not from inside one's own callbacks."""
+    while _modeless_closed:
+        _modeless_closed.pop().dispose()
+
+
+def dispose_modeless(key: str) -> None:
+    """For an entry file's UnloadLibrary: disposes the closed dialogs and the one still open under key."""
+    dispose_closed_modeless()
+    dialog = _modeless_open.pop(key, None)
+    if dialog is not None:
+        dialog.dispose()
 
 
 def components_of(objects: Sequence[NXOpen.TaggedObject]) -> List[NXOpen.Assemblies.Component]:

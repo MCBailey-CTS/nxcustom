@@ -4,8 +4,9 @@ main(). It replaced the WinForms AutoDesignLabeler form and src\\Static\\AutoDes
 which were never on a ribbon.
 
 Labels strip solids for Auto Design (AutoDesign.py): the picked bodies get the PROGRAM object attribute Auto Design
-groups them by - Blank BLANK, Trim TRIM, Pierce PRC, Draw DRAW, Restrike RESTRIKE, Dead Hit DEADHIT. Flange Up and
-Flange Down are on the radio but not implemented yet: OK / Apply with one of them prints that and labels nothing.
+groups them by - Blank BLANK, Trim TRIM, Pierce PRC, Draw DRAW, Restrike RESTRIKE, Dead Hit DEADHIT, Flange Up
+FLANGEUP (2026-11-02; Auto Design builds it with FlangeUp.build). Flange Down is on the radio but not implemented yet:
+OK / Apply with it prints that and labels nothing.
 
 The dialog (AutoDesignLabeler.dlx, tools\\make-dlx.py): the solid bodies (anywhere in the assembly), a line listing
 their PROGRAM values now, and the Program radio (the form's six buttons). OK labels and closes; Apply labels and
@@ -54,10 +55,11 @@ Programs: Dict[str, str] = {
     "Draw": "DRAW",
     "Restrike": "RESTRIKE",
     "Dead Hit": "DEADHIT",
+    "Flange Up": "FLANGEUP",
 }
 
-# Program radio items with no PROGRAM value yet (2026-10-29): OK / Apply print that and label nothing.
-NotImplementedPrograms = ["Flange Up", "Flange Down"]
+# Program radio items with no PROGRAM value yet (Flange Up got one 2026-11-02): OK / Apply print that and label nothing.
+NotImplementedPrograms = ["Flange Down"]
 
 # UF_UI_SEL_FEATURE_SOLID_BODY - not in every UFConstants build, so the number Perfect.py uses too.
 _SolidBodyDetail = 36

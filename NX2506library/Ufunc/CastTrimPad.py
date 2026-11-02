@@ -144,7 +144,7 @@ def static_gm_cast_trim_pad(is_gm: bool) -> None:
             nx.show_error(_StationError)
             return
 
-        dialog = _TrimPadDialog(title_with_version("Cast Trim Pad"), [nx.prototype(c).Leaf for c in stations])
+        dialog = BuildInDialog(title_with_version("Cast Trim Pad"), [nx.prototype(c).Leaf for c in stations])
         if not dialog.run():
             return
         is_gm = is_gm_customer(dialog.customer_choice)
@@ -372,16 +372,17 @@ def _station_components() -> List[NXOpen.Assemblies.Component]:
     return [found[leaf] for leaf in sorted(found)]
 
 
-class _TrimPadDialog(CustomerBodiesDialog):
+class BuildInDialog(CustomerBodiesDialog):
     """
-    CastTrimPad.dlx: the Customer radio, the bodies, and a "station" radio ("Build in") filled from stations - the
-    assembly's station names - and shown only when there are any (the work part is not a station). The .dlx holds a
-    placeholder member.
+    CastTrimPad.dlx / Component.dlx: the Customer radio, the bodies, and a "station" radio ("Build in") filled from
+    stations - the assembly's station names - and shown only when there are any (the work part is not a station). The
+    .dlx holds a placeholder member.
     """
 
-    def __init__(self, title: str, stations: Sequence[str]) -> None:
+    def __init__(self, title: str, stations: Sequence[str], dlx_name: str = "CastTrimPad.dlx",
+                 solid_only: bool = False) -> None:
         self.stations = list(stations)
-        super().__init__("CastTrimPad.dlx", title, solid_only=False)
+        super().__init__(dlx_name, title, solid_only=solid_only)
         # Captured in ok(): the blocks are gone once Launch returns.
         self.station = self.stations[0] if self.stations else ""
 

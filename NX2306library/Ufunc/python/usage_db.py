@@ -26,7 +26,7 @@ import os
 import sys
 import time
 import traceback
-from typing import Any, Callable, Iterator, Optional, TypeVar
+from typing import Any, Callable, Iterator, Optional, Tuple, TypeVar
 
 # Session.Execute does not put the script's folder on sys.path, so pyodbc (beside this file) would not import.
 _here = os.path.dirname(os.path.abspath(__file__))
@@ -78,31 +78,80 @@ def run(ufunc_name: str) -> Iterator[int]:
     how the run ended: DONE (with the count of exceptions logged along the way), CANCELLED at the confirm or dialog
     that was declined (mark_cancelled), or FAILED when an exception escaped the block.
     """
-    global _cancelled_at, _exceptions
-
-    outer = (_cancelled_at, _exceptions)
-    _cancelled_at, _exceptions = None, 0
-    started = time.monotonic()
-    name = ufunc_name.strip().lower()
-    run_id = begin(ufunc_name)
-    _start_banner(name, run_id)
+    current = start_run(ufunc_name)
     escaped: Optional[BaseException] = None
     try:
-        yield run_id
+        yield current.run_id
     except BaseException as ex:
         escaped = ex
         raise
     finally:
-        end(run_id)
-        if escaped is not None:
-            outcome = "FAILED ({})".format(type(escaped).__name__)
-        elif _cancelled_at is not None:
-            outcome = "CANCELLED at {}".format(_cancelled_at)
-        else:
-            outcome = "DONE" + (", {} exception(s) logged".format(_exceptions) if _exceptions else "")
-        _log("<<< {} END  run {}  {}  elapsed {}".format(name, run_id, outcome, _elapsed(started)))
-        _log(_BannerRule)
-        _cancelled_at, _exceptions = outer
+        finish_run(current, escaped)
+
+
+class Run(object):
+    """An open run from start_run: what finish_run needs to close it and put back the run it interrupted."""
+
+    def __init__(self, name: str, run_id: int, outer: Tuple[Optional[str], int, int]) -> None:
+        self.name = name
+        self.run_id = run_id
+        self.started = time.monotonic()
+        self.outer = outer
+        self.finished = False
+
+
+def start_run(ufunc_name: str) -> Run:
+    """
+    run() without the with block, for a run that outlives the call that starts it - a modeless dialog's, which ends
+    when the dialog closes. Pair it with finish_run.
+    """
+    global _cancelled_at, _exceptions
+
+    outer = (_cancelled_at, _exceptions, _current)
+    _cancelled_at, _exceptions = None, 0
+    name = ufunc_name.strip().lower()
+    run_id = begin(ufunc_name)
+    _start_banner(name, run_id)
+    return Run(name, run_id, outer)
+
+
+def finish_run(current: Run, escaped: Optional[BaseException] = None) -> None:
+    """
+    Closes a start_run run (once): date_closed, the END banner, and back to the run it interrupted - including the
+    one exceptions are filed under, which matters when other UFuncs ran while a modeless dialog was up.
+    """
+    global _cancelled_at, _exceptions, _current
+
+    if current.finished:
+        return
+    current.finished = True
+    end(current.run_id)
+    if escaped is not None:
+        outcome = "FAILED ({})".format(type(escaped).__name__)
+    elif _cancelled_at is not None:
+        outcome = "CANCELLED at {}".format(_cancelled_at)
+    else:
+        outcome = "DONE" + (", {} exception(s) logged".format(_exceptions) if _exceptions else "")
+    _log("<<< {} END  run {}  {}  elapsed {}".format(current.name, current.run_id, outcome, _elapsed(current.started)))
+    _log(_BannerRule)
+    _cancelled_at, _exceptions, outer_current = current.outer
+    if outer_current > 0:
+        _current = outer_current
+
+
+def resume(current: Run) -> None:
+    """
+    Files exceptions and cancels under current again - for a modeless dialog's callbacks, since another UFunc may
+    have run (and closed) in between.
+    """
+    global _current
+    if not current.finished and current.run_id > 0:
+        _current = current.run_id
+
+
+def exceptions_logged() -> int:
+    """The exceptions log_exception has counted in the innermost run() block so far."""
+    return _exceptions
 
 
 def mark_cancelled(where: str) -> None:

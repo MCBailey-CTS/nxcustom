@@ -380,7 +380,10 @@ def _create_subtool(new_part: NXOpen.BasePart, name: str = "SUBTOOL") -> NXOpen.
 
 def _subtract_components(get_target: Callable[[], NXOpen.Body],
                          components: Iterable[NXOpen.Assemblies.Component], refset: str) -> None:
-    """Merlin.SubtractComponents - link each component's refset into the work part and subtract it."""
+    """
+    Merlin.SubtractComponents - link each component's refset into the work part and subtract it. A tool that
+    misses the target (670030) prints the parts and nothing else.
+    """
     for comp in components:
         if not nx.has_reference_set(nx.prototype(comp), refset):
             nx.warn("Component {} does not have reference set {}, skipping boolean".format(comp.DisplayName, refset))
@@ -392,6 +395,11 @@ def _subtract_components(get_target: Callable[[], NXOpen.Body],
             # Re-fetched every time - a boolean can replace the target body.
             nx.subtract(get_target(), linked.GetBodies())
         except NXOpen.NXException as ex:
+            # The tool misses the target: a note naming the parts, not an exception (no tblExceptions row).
+            if ex.ErrorCode == nx.ErrorNoInterference:
+                nx.print_("Could not subtract {} ({}) from {}: it does not touch the target body".format(
+                    comp.DisplayName, refset, nx.work_part().Leaf))
+                continue
             if ex.ErrorCode == ErrorBooleanFailed:
                 nx.print_("Failed to boolean {} with reference set {}".format(comp.DisplayName, refset))
             nx.print_exception(ex)

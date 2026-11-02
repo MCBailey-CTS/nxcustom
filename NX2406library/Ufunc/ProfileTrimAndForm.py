@@ -65,7 +65,7 @@ import copy
 import math
 import os
 import sys
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple, cast
+from typing import Any, Iterable, List, Optional, Sequence, Set, Tuple, cast
 
 # Session.Execute does not put the script's folder on sys.path, so the shared module would not import.
 _here = os.path.dirname(os.path.abspath(__file__))
@@ -347,7 +347,7 @@ def _create_punches(unite_targets: Sequence[_UniteTarget], color: int, layer: in
         for slug in unite.slugs:
             try:
                 builder = work.Features.CreateExtrudeBuilder(None)
-                builder.Section = work.Sections.CreateSection(0, 0, 0)
+                builder.Section = work.Sections.CreateSection(0.0, 0.0, 0.0)
                 builder.Limits.StartExtend.Value.RightHandSide = "-100"
                 builder.Section.SetAllowedEntityTypes(NXOpen.Section.AllowTypes.OnlyCurves)
                 edge_boundary_rule = work.ScRuleFactory.CreateRuleEdgeBoundary([slug.top_face])
@@ -543,7 +543,7 @@ def _faces_square_to(body: NXOpen.Body, vector: NXOpen.Vector3d) -> List[NXOpen.
 
 def _face_point(face: NXOpen.Face) -> NXOpen.Point3d:
     """A point on a planar face (UF_MODL_ask_face_data's point)."""
-    _type, point, _direction, _box, _radius, _rad_data, _norm_dir = nx.ufsession_.Modeling.AskFaceData(face.Tag)
+    point = nx.ufsession_.Modeling.AskFaceData(face.Tag)[1]
     return NXOpen.Point3d(point[0], point[1], point[2])
 
 
