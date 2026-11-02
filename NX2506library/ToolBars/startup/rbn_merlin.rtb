@@ -15,12 +15,6 @@ BEGIN_GROUP FULL_HITS
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\AutoDesign.py
 
-    BUTTON AUTO_DESIGN_LABELER
-        LABEL Auto Design Labeler
-        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
-        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\AutoDesignLabeler.py
-
     BUTTON GM_BLANK_STATION
         LABEL Blank Station
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
@@ -39,11 +33,11 @@ BEGIN_GROUP FULL_HITS
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\DrawDie.py
 
-    BUTTON FLANGE_HIT
-        LABEL Flange Hit
+    BUTTON FLANGE_UP
+        LABEL Flange Up
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\flange-hit.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\FlangeUp.py
 
     BUTTON DEAD_HIT
         LABEL Dead Hit
@@ -136,11 +130,11 @@ BEGIN_GROUP MISC
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\save-as.dll
 
-    BUTTON SOLID_ATTRIBUTER
-        LABEL Solid Attributer
+    BUTTON AUTO_DESIGN_LABELER
+        LABEL Auto Design Labeler
         RIBBON_STYLE SMALL_IMAGE_AND_TEXT
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
-        ACTION ${NXCUSTOM_LIB}\ufunc\solid-attributer.dll
+        ACTION ${NXCUSTOM_LIB}\ufunc\AutoDesignLabeler.py
 
     BUTTON NINE99
         LABEL 999
