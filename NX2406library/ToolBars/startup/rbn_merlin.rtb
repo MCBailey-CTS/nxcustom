@@ -148,6 +148,12 @@ BEGIN_GROUP MISC
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\AssignDetailNumbers.py
 
+    BUTTON JIG_JACK_GRID
+        LABEL Jig Jack Grid
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CheckJigJacks.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\JigJackGrid.py
+
 END_GROUP
 
 BEGIN_GROUP GM
