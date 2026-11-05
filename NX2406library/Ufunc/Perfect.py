@@ -93,6 +93,7 @@ def static_perfect(is_gm: bool) -> None:
     build_perfect(is_gm, bodies)
 
 
+@nx.traced("Perfect")
 def build_perfect(is_gm: bool, bodies: Sequence[NXOpen.Body]) -> None:
     """
     Merlin.BuildPerfect - a bounding-box block component per body, on bodies the caller already has. The caller
@@ -115,6 +116,7 @@ def build_perfect(is_gm: bool, bodies: Sequence[NXOpen.Body]) -> None:
             nx.set_work_part(starting_work)
 
 
+@nx.traced("Perfect")
 def _build_one_perfect(is_gm: bool, body: NXOpen.Body, offset: float) -> None:
     """The body of BuildPerfect's per-body loop."""
     box = nx.body_box(body)
@@ -128,6 +130,8 @@ def _build_one_perfect(is_gm: bool, body: NXOpen.Body, offset: float) -> None:
                           "{}in".format(nx.cs_double_str(length)),
                           "{}in".format(nx.cs_double_str(width)),
                           "{}in".format(nx.cs_double_str(height)))
+    # PerfectLayer below is the component's layer in the station; the block itself stays on 1.
+    nx.set_layer(block.GetBodies()[0], 1)
     current_display = nx.display_part()
     base_new = _create_new_component_core(
         "perfect" if is_gm else "cts-perfect",
@@ -156,7 +160,7 @@ def _build_one_perfect(is_gm: bool, body: NXOpen.Body, offset: float) -> None:
     # Extract a subtool onto layer 15 (after BODY is populated so it is not added to BODY).
     new_part.Layers.WorkLayer = 15
     merlin._create_subtool(new_part)
-    new_part.Layers.WorkLayer = 1
+    new_part.Layers.WorkLayer = merlin.DetailWorkLayer
     new_part.Layers.SetState(15, NXOpen.Layer.State.Hidden)
     nx.set_display_part(current_display)
     new_comp = nx.first_occurrence_in(new_part, nx.display_part())
@@ -192,6 +196,7 @@ def _create_block(origin: NXOpen.Point3d, orientation: NXOpen.Matrix3x3, xlength
         builder.Destroy()
 
 
+@nx.traced("Perfect")
 def _create_new_component_core(name_prefix: str, objects: Sequence[NXOpen.DisplayableObject],
                                origin: NXOpen.Assemblies.CreateNewComponentBuilder.ComponentOriginType,
                                layer_option: NXOpen.Assemblies.CreateNewComponentBuilder.ComponentLayerOptionType,

@@ -251,6 +251,7 @@ class FlangeUpOptions(object):
 # Entry point
 # ---------------------------------------------------------------------------------------------------
 
+@nx.traced("Flange Up")
 def build(is_gm: bool, bodies: Sequence[NXOpen.Body], options: FlangeUpOptions,
           refsets: Optional[Dict[str, Optional[str]]] = None) -> None:
     """
@@ -391,6 +392,7 @@ def _step(label: str, step: Any) -> Any:
 # Holding pads
 # ---------------------------------------------------------------------------------------------------
 
+@nx.traced("Flange Up")
 def _build_lower_pad(job: DrawDieJob, refsets: Dict[str, Optional[str]]) -> Tuple[nx.Box3d, NXOpen.Part]:
     """CAST LOWER HOLDING PAD - see the module docstring. Returns its box (station coordinates) and its part."""
     box = job.part_box
@@ -412,6 +414,7 @@ def _build_lower_pad(job: DrawDieJob, refsets: Dict[str, Optional[str]]) -> Tupl
     return drawdie._box_from(min_point, xlength, ywidth, height), new_part
 
 
+@nx.traced("Flange Up")
 def _build_upper_pad(job: DrawDieJob, refsets: Dict[str, Optional[str]]) -> nx.Box3d:
     """CAST UPPER HOLDING PAD - see the module docstring."""
     box = job.part_box
@@ -426,6 +429,7 @@ def _build_upper_pad(job: DrawDieJob, refsets: Dict[str, Optional[str]]) -> nx.B
     return drawdie._box_from(min_point, xlength, ywidth, height)
 
 
+@nx.traced("Flange Up")
 def _build_pad(job: DrawDieJob, min_point: NXOpen.Point3d, xlength: float, ywidth: float, height: float,
                name: str, title: str, bottoming_blocks: int, hoist_ring_inset: float, retainer_inset: float,
                retainer_path: str, subtract_refset: Optional[str]) -> NXOpen.Part:
@@ -513,6 +517,7 @@ def _build_pad(job: DrawDieJob, min_point: NXOpen.Point3d, xlength: float, ywidt
     return new_part
 
 
+@nx.traced("Flange Up")
 def _create_offset_sub_tool(job: DrawDieJob, pad_part: NXOpen.Part) -> None:
     """
     The lower pad's SUB_TOOL: its lowest -Z planar face's edges extruded from SubToolBelowBottom under it to
@@ -537,7 +542,7 @@ def _create_offset_sub_tool(job: DrawDieJob, pad_part: NXOpen.Part) -> None:
             extrude = _extrude_face_with_offset(pad_part, bottom, -SubToolBelowBottom,
                                                 pad_box.MaxZ - face_box.MinZ + SubToolAboveTop, SubToolOffset)
         finally:
-            pad_part.Layers.WorkLayer = 1
+            pad_part.Layers.WorkLayer = merlin.DetailWorkLayer
 
         extrude.SetName(SubToolName)
         tool = extrude.GetBodies()[0]
@@ -600,6 +605,7 @@ def _extrude_face_with_offset(part: NXOpen.Part, face: NXOpen.Face, start: float
 # Riser
 # ---------------------------------------------------------------------------------------------------
 
+@nx.traced("Flange Up")
 def _build_riser(job: DrawDieJob, pad_box: nx.Box3d, pad_part: NXOpen.Part) -> nx.Box3d:
     """CAST LOWER FLANGE RISER - see the module docstring."""
     box = job.part_box
@@ -701,6 +707,7 @@ def _upper_steel_size(box: nx.Box3d) -> Tuple[NXOpen.Point3d, float, float, floa
     return drawdie._centered_min(box, xlength, ywidth, box.MinZ), xlength, ywidth, height
 
 
+@nx.traced("Flange Up")
 def _build_lower_steels(job: DrawDieJob, options: FlangeUpOptions, refsets: Dict[str, Optional[str]]) -> None:
     """LOWER FLANGE UP STEELS - see the module docstring. One key job copy for all of them."""
     min_point, xlength, ywidth, height = _lower_steel_size(job.part_box)
@@ -731,6 +738,7 @@ def _build_lower_steels(job: DrawDieJob, options: FlangeUpOptions, refsets: Dict
     drawdie._save_as_draw_die_part(keys, job, "flange-up-lower-steel-key")
 
 
+@nx.traced("Flange Up")
 def _build_one_lower_steel(job: DrawDieJob, block_min: NXOpen.Point3d, column: int, row: int, width: float,
                            length: float, height: float, color: int, refsets: Dict[str, Optional[str]],
                            keys: List[NXOpen.Assemblies.Component]) -> None:
@@ -781,6 +789,7 @@ def _build_one_lower_steel(job: DrawDieJob, block_min: NXOpen.Point3d, column: i
               lambda: _boolean_components(job, new_part, profile, NXOpen.Features.Feature.BooleanType.Subtract))
 
 
+@nx.traced("Flange Up")
 def _build_upper_steels(job: DrawDieJob, options: FlangeUpOptions, refsets: Dict[str, Optional[str]]) -> None:
     """UPPER FLANGE UP STEELS - see the module docstring. One key job copy for all of them."""
     min_point, xlength, ywidth, height = _upper_steel_size(job.part_box)
@@ -809,6 +818,7 @@ def _build_upper_steels(job: DrawDieJob, options: FlangeUpOptions, refsets: Dict
     drawdie._save_as_draw_die_part(keys, job, "flange-up-upper-steel-key")
 
 
+@nx.traced("Flange Up")
 def _build_one_upper_steel(job: DrawDieJob, block_min: NXOpen.Point3d, column: int, row: int, columns: int,
                            width: float, length: float, height: float, color: int,
                            refsets: Dict[str, Optional[str]], keys: List[NXOpen.Assemblies.Component]) -> None:
@@ -889,6 +899,7 @@ def _cast_text(part: NXOpen.Part, xlength: float, ywidth: float, z: float) -> No
     _import_cast_text(part, _gmPadCastTextPath, xlength, ywidth, NXOpen.Point3d(0.0, 0.0, z))
 
 
+@nx.traced("Flange Up")
 def _boolean_components(job: DrawDieJob, new_part: NXOpen.Part, refset: str,
                         boolean_type: NXOpen.Features.Feature.BooleanType) -> None:
     """
@@ -931,7 +942,7 @@ def _f3(value: float) -> str:
 def draw_steels(bodies: Sequence[NXOpen.Body], stations: Dict[str, NXOpen.Assemblies.Component],
                 options: FlangeUpOptions) -> None:
     """
-    Outlines with temporary lines the lower and upper flange up steels over bodies, where the build makes them, for
+    Outlines with preview lines the lower and upper flange up steels over bodies, where the build makes them, for
     the sides options builds. The pads and riser are not drawn. Leaves any lines already up; the caller erases.
     """
     if not bodies:
@@ -966,7 +977,7 @@ def draw_steels(bodies: Sequence[NXOpen.Body], stations: Dict[str, NXOpen.Assemb
 class _FlangeUpDialog(Dialog):
     """FlangeUp.dlx: Customer, the bodies, the op, Lower (Rows (y), flange side), Upper (Rows (x), Cols (y)).
     GM keys and guided retainers are placed from DrawDie's preset parts, so no spreadsheet is opened. While it is
-    open, the steels of the checked sides are outlined with temporary lines over the picked bodies."""
+    open, the steels of the checked sides are outlined with preview lines over the picked bodies."""
 
     dlx_name = "FlangeUp.dlx"
 

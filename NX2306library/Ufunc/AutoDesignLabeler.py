@@ -76,6 +76,7 @@ def program_of(body: NXOpen.Body) -> str:
     return ""
 
 
+@nx.traced("Auto Design Labeler")
 def label(bodies: List[NXOpen.Body], program: str) -> int:
     """
     Static.AutoDesignLabelerApply: PROGRAM = program on each picked body's prototype (each once), and on a picked

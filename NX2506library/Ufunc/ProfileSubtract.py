@@ -141,6 +141,7 @@ class ProfileSubtract(object):
             targets_dialog.unblank_targets()
 
 
+@nx.traced("Profile Subtract")
 def build(target: NXOpen.Body, tool_faces: Sequence[NXOpen.Face], offset: float, offset_in_mm: bool = False,
           color: Optional[int] = None) -> int:
     """
@@ -194,6 +195,7 @@ def build(target: NXOpen.Body, tool_faces: Sequence[NXOpen.Face], offset: float,
     return subtracted
 
 
+@nx.traced("Profile Subtract")
 def _color_new_faces(subtract: NXOpen.Features.Feature, body: NXOpen.Body, faces_before: Set[int],
                      color: int) -> None:
     """
@@ -209,6 +211,7 @@ def _color_new_faces(subtract: NXOpen.Features.Feature, body: NXOpen.Body, faces
     nx.syslog("Profile Subtract: {} new face(s) colored {}".format(len(faces), color))
 
 
+@nx.traced("Profile Subtract")
 def _profile_curves(face: NXOpen.Face, assembly: NXOpen.Part,
                     target_component: Optional[NXOpen.Assemblies.Component],
                     target_part: NXOpen.Part) -> Tuple[List[NXOpen.Curve], NXOpen.Vector3d]:
@@ -237,6 +240,7 @@ def _profile_curves(face: NXOpen.Face, assembly: NXOpen.Part,
     return curves, normal
 
 
+@nx.traced("Profile Subtract")
 def _offset_outward(curves: Sequence[NXOpen.Curve], distance: float) -> List[NXOpen.Curve]:
     """
     A non-associative Offset Curve (Distance) of curves - plain curves, no feature, 2026-10-29 - distance in part
@@ -297,6 +301,7 @@ def _offset_curve(curves: Sequence[NXOpen.Curve], distance: float, reverse: bool
         builder.Destroy()
 
 
+@nx.traced("Profile Subtract")
 def _round_chamfers(curves: Sequence[NXOpen.Curve], radius: float) -> List[NXOpen.Curve]:
     """
     curves with every 45-degree corner turned into a radius (part units): a line whose two ends each meet another

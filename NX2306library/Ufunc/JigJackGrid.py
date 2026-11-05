@@ -216,6 +216,7 @@ def plan_group(part: NXOpen.BasePart, jacks: Sequence[NXOpen.Assemblies.Componen
     return moves
 
 
+@nx.traced("Jig Jack Grid")
 def plan_part(part: NXOpen.BasePart, skipped: List[str]) -> List[PlannedMove]:
     """The moves part's jig jacks need."""
     jacks = jig_jacks(part)
@@ -285,6 +286,7 @@ def _describe(part: NXOpen.BasePart, move: PlannedMove) -> str:
         _inches(move.target[1]), move.anchor.DisplayName)
 
 
+@nx.traced("Jig Jack Grid")
 def scan(display: NXOpen.BasePart) -> Tuple[int, List[Tuple[NXOpen.BasePart, List[PlannedMove]]], List[str]]:
     """Reads the assembly without changing it: (parts looked at, (part, moves) for each to change, what was left)."""
     details = _details(display)

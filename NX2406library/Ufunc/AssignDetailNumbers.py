@@ -132,6 +132,7 @@ def parse_range(text: str) -> Optional[Tuple[int, int]]:
     return (low, high) if low <= high else None
 
 
+@nx.traced("Assign Detail Numbers")
 def scan(display: NXOpen.Part) -> _Job:
     """The stations under the -000 and the parts under each that need a detail number (see the module docstring)."""
     match = re.match(r"^(?P<job>\d+)-(?P<op>\d+)-000$", display.Leaf)
@@ -186,6 +187,7 @@ def _needs_number(part: NXOpen.BasePart, job: _Job) -> bool:
     return not any(word in leaf for word in _SkipWords)
 
 
+@nx.traced("Assign Detail Numbers")
 def plan(job: _Job, ranges: Dict[str, Tuple[int, int]]
          ) -> Tuple[List[Tuple[NXOpen.BasePart, str, _Station]], List[Tuple[NXOpen.BasePart, str]]]:
     """
@@ -222,6 +224,7 @@ def plan(job: _Job, ranges: Dict[str, Tuple[int, int]]
     return assigned, skipped
 
 
+@nx.traced("Assign Detail Numbers")
 def rename(assigned: List[Tuple[NXOpen.BasePart, str, _Station]]) -> int:
     """Saves each part as its new path and renames the components that carried the old leaf. Returns the count."""
     display = nx.display_part()
@@ -315,6 +318,7 @@ class _AssignDialog(Dialog):
         return True
 
 
+@nx.traced("Assign Detail Numbers")
 def _save_ranges(job: _Job, texts: Dict[str, str]) -> None:
     """Writes each entered range back to its station's DETAIL NUMBER RANGE attribute when it changed."""
     for station in job.stations:

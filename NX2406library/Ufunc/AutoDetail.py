@@ -1355,10 +1355,10 @@ class _AutoDetailDialog(Dialog):
         if self._select_all():
             if self._candidates is None:
                 self._candidates = select_all_candidates(nx.display_part())
-            picker.Label = "Details found (deselect to skip)"
+            picker.LabelString = "Details found (deselect to skip)"
             picker.SetSelectedObjects(self._candidates)
         else:
-            picker.Label = "Select Components"
+            picker.LabelString = "Select Components"
             picker.SetSelectedObjects([])
 
 

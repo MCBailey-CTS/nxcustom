@@ -176,6 +176,7 @@ def static_gm_split_form(is_gm: bool) -> None:
     build_gm_split_form(is_gm, is_upper, bodies, splits, reference_set)
 
 
+@nx.traced("Split Form")
 def build_gm_split_form(is_gm: bool, is_upper: bool, bodies: Sequence[NXOpen.Body], splits: int,
                         reference_set: str, columns: int = 1, plate: bool = False, backside: bool = False,
                         size_off_bodies: bool = False, jig_jacks: bool = False) -> None:
@@ -196,6 +197,7 @@ def build_gm_split_form(is_gm: bool, is_upper: bool, bodies: Sequence[NXOpen.Bod
     nx.info("complete -> {}".format(drawdie._time_span(datetime.datetime.now() - start)))
 
 
+@nx.traced("Split Form")
 def _create_split_form(is_upper: bool, top_level: NXOpen.Part, start_work: NXOpen.Part,
                        selected_bodies: List[NXOpen.Body], offset: float, splits: int, reference_sets: str,
                        is_gm: bool, columns: int = 1, plate: bool = False, backside: bool = False,
@@ -299,7 +301,7 @@ def _create_split_form(is_upper: bool, top_level: NXOpen.Part, start_work: NXOpe
                     nx.prototype(keys[0]).SaveAs(merlin._next_part_path(
                         os.path.dirname(nx.display_part().FullPath), "{}split-form-key".format(prefix)))
                 nx.create_auto_size_udo(nx.work_part())
-                nx.work_part().Layers.WorkLayer = 1
+                nx.work_part().Layers.WorkLayer = merlin.DetailWorkLayer
                 nx.set_display_part(top_level)
                 nx.set_reference_set(new_component, "BODY")
                 nx.find_or_create_reference_set(new_component.OwningPart, "BODY").AddObjectsToReferenceSet(
@@ -428,6 +430,7 @@ def _begin_from_dialog(label: str, bodies: List[NXOpen.Body]) -> bool:
     return True
 
 
+@nx.traced("Split Form")
 def _compute_refset_block_dimensions(label: str, bodies: Sequence[NXOpen.Body],
                                      components: Sequence[Optional[NXOpen.Assemblies.Component]], is_upper: bool,
                                      offset: float, size_off_bodies: bool = False
@@ -520,6 +523,7 @@ def _grid_cells(block_origin: NXOpen.Point3d, xlength: float, ywidth: float, row
     return column_width, row_width, cells
 
 
+@nx.traced("Split Form")
 def _create_grid_blocks(block_origin: NXOpen.Point3d, orientation: NXOpen.Matrix3x3, xlength: float, ywidth: float,
                         rows: int, cols: int, block_z: float
                         ) -> Optional[Tuple[float, float, List[Tuple[int, int, NXOpen.Features.Block]]]]:
@@ -576,6 +580,7 @@ def _color_grid_joints(body: NXOpen.Body, column: int, row: int, cols: int, rows
         nx.set_color(_first_planar_face(body, _VectorXN), 42)
 
 
+@nx.traced("Split Form")
 def _promote_to_component(block: NXOpen.Features.Block, description: str, text: str, rebase_to_block: bool = False,
                           opposite_corner: bool = False) -> Tuple[NXOpen.Part, NXOpen.Assemblies.Component]:
     """
@@ -596,11 +601,12 @@ def _promote_to_component(block: NXOpen.Features.Block, description: str, text: 
     nx.set_attribute(new_part, "MATERIAL", "##")
     new_part.Layers.WorkLayer = 15
     merlin._create_subtool(new_part)
-    new_part.Layers.WorkLayer = 1
+    new_part.Layers.WorkLayer = merlin.DetailWorkLayer
     new_part.Layers.SetState(15, NXOpen.Layer.State.Hidden)
     return new_part, component
 
 
+@nx.traced("Split Form")
 def _subtract_and_refset_fasteners(fasteners: Sequence[NXOpen.Assemblies.Component], bottom_face: NXOpen.Face,
                                    body_refset: Optional[NXOpen.ReferenceSet]) -> None:
     """
@@ -627,6 +633,7 @@ def _subtract_and_refset_fasteners(fasteners: Sequence[NXOpen.Assemblies.Compone
             nx.print_exception(ex)
 
 
+@nx.traced("Split Form")
 def _subtract_components(get_target: Callable[[], NXOpen.Body],
                          components: Iterable[Optional[NXOpen.Assemblies.Component]], refset: str) -> None:
     """
@@ -791,6 +798,7 @@ def _plate_jig_jack_origins(left_x: float, right_x: float, shcs_ys: Sequence[flo
     return placed
 
 
+@nx.traced("Split Form")
 def _create_backside_backing_plate(is_upper: bool, xlength: float, ywidth: float, block_origin: NXOpen.Point3d,
                                    owning_part: NXOpen.Part, top_level: NXOpen.Part, name_prefix: str,
                                    is_gm: bool, block_z: float = SplitFormHeight, jig_jacks: bool = False,
@@ -834,7 +842,7 @@ def _create_backside_backing_plate(is_upper: bool, xlength: float, ywidth: float
     display = nx.display_part()
     display.Layers.WorkLayer = 15
     merlin._create_subtool(display)
-    display.Layers.WorkLayer = 1
+    display.Layers.WorkLayer = merlin.DetailWorkLayer
 
     bp_body_refset = _find_or_create_reference_set_quiet(nx.display_part(), "BODY")
     bp_body_refset.AddObjectsToReferenceSet([trimpad._single_solid_body_on_layer1(nx.display_part())])
@@ -865,7 +873,7 @@ def _create_backside_backing_plate(is_upper: bool, xlength: float, ywidth: float
     bp_body_refset.AddObjectsToReferenceSet(bp_keys)
     nx.prototype(bp_keys[0]).SaveAs(merlin._next_part_path(
         os.path.dirname(nx.display_part().FullPath), "{}-key".format(name_prefix)))
-    nx.display_part().Layers.WorkLayer = 1
+    nx.display_part().Layers.WorkLayer = merlin.DetailWorkLayer
 
     bp_shcs_path = _shcs16mm050Path
     bp_shcs_z = block_origin.Z + block_z + 1.5 if is_upper else block_origin.Z - 1.5
@@ -901,7 +909,7 @@ def _create_backside_backing_plate(is_upper: bool, xlength: float, ywidth: float
     nx.find_or_create_reference_set(owning_part, "BODY").AddObjectsToReferenceSet([backing_plate])
     nx.set_reference_set(backing_plate, "BODY")
     plate_part = cast(NXOpen.Part, nx.prototype(backing_plate))
-    plate_part.Layers.WorkLayer = 1
+    plate_part.Layers.WorkLayer = merlin.DetailWorkLayer
     plate_part.Layers.SetState(15, NXOpen.Layer.State.Hidden)
 
     nx.set_display_part(top_level)

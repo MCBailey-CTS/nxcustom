@@ -43,6 +43,8 @@ SplitGap = 0.004
 BlockAtWcsColor = 168
 SplitComponentColors = [8, 11, 50, 78, 93, 98, 102, 126, 134, 138, 161, 198, 209]
 PointComponentName = "point-component"
+# Where a detail's work layer is left: its DYNAMIC BLOCK stays on 1, off the work layer.
+DetailWorkLayer = 3
 
 # NXException.ErrorCode for a boolean that failed outright (SubtractComponents prints and carries on).
 ErrorBooleanFailed = 3520001
@@ -81,6 +83,7 @@ class PointComponent(object):
             nx.print_exception(ex)
 
 
+@nx.traced("Point Component")
 def build_point_component(first_corner: NXOpen.Point3d, second_corner: NXOpen.Point3d, height: float,
                           component_count: int = 1,
                           subtract_component: Optional[NXOpen.Assemblies.Component] = None,
@@ -182,6 +185,7 @@ def build_point_component(first_corner: NXOpen.Point3d, second_corner: NXOpen.Po
         starting_display.WCS.SetOriginAndMatrix(saved_wcs_origin, saved_wcs_matrix)
 
 
+@nx.traced("Point Component")
 def _build_one_block(block: NXOpen.Features.Block, index: int, block_count: int,
                      split_colors: Optional[Sequence[int]], wcs_matrix: NXOpen.Matrix3x3,
                      stack_axis: NXOpen.Vector3d, block_xlength: float, block_ywidth: float, height: float,
@@ -232,7 +236,7 @@ def _build_one_block(block: NXOpen.Features.Block, index: int, block_count: int,
     # Extract the subtool onto layer 15 (after BODY is populated so it is not added to BODY).
     new_part.Layers.WorkLayer = 15
     _create_subtool(new_part)
-    new_part.Layers.WorkLayer = 1
+    new_part.Layers.WorkLayer = DetailWorkLayer
     new_part.Layers.SetState(15, NXOpen.Layer.State.Hidden)
     nx.create_auto_size_udo(new_part)
 
@@ -247,7 +251,6 @@ def _build_one_block(block: NXOpen.Features.Block, index: int, block_count: int,
 
     if subtract_component is not None and subtract_refset:
         nx.set_work_part(new_part)
-        nx.work_part().Layers.WorkLayer = 1
         _subtract_components(lambda: nx.dynamic_block(nx.work_part()).GetBodies()[0],
                              [subtract_component], subtract_refset)
 
@@ -295,6 +298,7 @@ def _next_part_path(directory: str, name: str) -> str:
         n += 1
 
 
+@nx.traced("Point Component")
 def _create_cts_component(block: NXOpen.Features.Block, name: str) -> NXOpen.Assemblies.Component:
     """
     Merlin.CreateCtsComponent with its defaults (WCS origin, work layer 1, originals deleted, AutoSize UDO)
@@ -328,6 +332,7 @@ def _create_cts_component(block: NXOpen.Features.Block, name: str) -> NXOpen.Ass
         builder.Destroy()
 
 
+@nx.traced("Point Component")
 def _rebase_block_to_part_origin(component: NXOpen.Assemblies.Component, parent: NXOpen.Part) -> None:
     """
     Merlin.RebaseBlockToPartOrigin(component, parent) with applyOrientation = true, oppositeCorner = false -
@@ -411,6 +416,7 @@ def _create_subtool(new_part: NXOpen.BasePart, name: str = "SUBTOOL") -> NXOpen.
     return extract
 
 
+@nx.traced("Point Component")
 def _subtract_components(get_target: Callable[[], NXOpen.Body],
                          components: Iterable[NXOpen.Assemblies.Component], refset: str) -> None:
     """
@@ -446,6 +452,7 @@ def _subtract_components(get_target: Callable[[], NXOpen.Body],
 # Reference sets in ancestor assemblies
 # ---------------------------------------------------------------------------------------------------
 
+@nx.traced("Point Component")
 def _set_reference_set_in_ancestor_assemblies(occurrence: NXOpen.Assemblies.Component, refset: str = "BODY",
                                               add_to_reference_set: bool = False) -> None:
     """

@@ -272,6 +272,7 @@ class _TempGeometry(object):
         self.body_tags: Set[int] = set()
 
 
+@nx.traced("Blank Station")
 def build_blank_stations(is3d: bool, bodies1: Sequence[NXOpen.Body], material: str) -> None:
     """
     Merlin.BuildBlankStations - one blank station per slug body, with material (D2 / S7) stamped on every punch and
@@ -347,6 +348,7 @@ def build_blank_stations(is3d: bool, bodies1: Sequence[NXOpen.Body], material: s
     nx.set_work_part(nx.display_part())
 
 
+@nx.traced("Blank Station")
 def _save_as_unikix_pins(pins: Sequence[NXOpen.Assemblies.Component], directory: str) -> None:
     """
     Save As the library Smart Unikix Pins the run placed to the next free unikix-pins-{n}.prt, once all its stations are
@@ -365,6 +367,7 @@ def _save_as_unikix_pins(pins: Sequence[NXOpen.Assemblies.Component], directory:
         nx.print_exception(ex)
 
 
+@nx.traced("Blank Station")
 def try_find_blank_stations(is3d: bool) -> Optional[_Stations]:
     """
     Merlin.TryFindBlankStations - the uad/upd/lad station assemblies under the display part (-01 for the Blank
@@ -409,6 +412,7 @@ def try_find_blank_stations(is3d: bool) -> Optional[_Stations]:
                      cast(NXOpen.Part, nx.prototype(component_lad)))
 
 
+@nx.traced("Blank Station")
 def _measure_3d_refset_boxes(
         body_data: Sequence[Tuple[nx.Box3d, NXOpen.Assemblies.Component]]
 ) -> Optional[List[Tuple[nx.Box3d, nx.Box3d]]]:
@@ -439,6 +443,7 @@ def _measure_3d_refset_boxes(
     return result
 
 
+@nx.traced("Blank Station")
 def _build_one_slug(i: int, count: int, is3d: bool, box: nx.Box3d, owning_comp: NXOpen.Assemblies.Component,
                     stations: _Stations, trim_steels: List[NXOpen.Assemblies.Component],
                     unikix_pins: List[NXOpen.Assemblies.Component],
@@ -777,6 +782,7 @@ def _set_body_up_assembly_path(component: NXOpen.Assemblies.Component) -> None:
 # Stage builders
 # ---------------------------------------------------------------------------------------------------
 
+@nx.traced("Blank Station")
 def _create_backing_plate(current: NXOpen.Part, min_bp: NXOpen.Point3d, max_bp: NXOpen.Point3d,
                           station_uad: NXOpen.Part) -> NXOpen.Assemblies.Component:
     """Merlin.CreateBackingPlate - the upper-punch backing plate into station_uad, two diagonal-corner SHCS."""
@@ -802,7 +808,7 @@ def _create_backing_plate(current: NXOpen.Part, min_bp: NXOpen.Point3d, max_bp: 
     nx.display_part().Layers.WorkLayer = 15
     merlin._create_subtool(nx.prototype(component_backing))
     _chamfer_vertical_edges(nx.dynamic_block(nx.prototype(component_backing)))
-    nx.display_part().Layers.WorkLayer = 1
+    nx.display_part().Layers.WorkLayer = merlin.DetailWorkLayer
     nx.display_part().Layers.SetState(15, NXOpen.Layer.State.Hidden)
     nx.find_or_create_reference_set(owning_backing, "BODY").AddObjectsToReferenceSet([component_backing])
     _color_non_yellow_faces(130)
@@ -827,6 +833,7 @@ def _create_backing_plate(current: NXOpen.Part, min_bp: NXOpen.Point3d, max_bp: 
     return component_backing
 
 
+@nx.traced("Blank Station")
 def _create_retainer(current: NXOpen.Part, owning_comp: NXOpen.Assemblies.Component, min_bp: NXOpen.Point3d,
                      max_bp: NXOpen.Point3d, station_uad: NXOpen.Part, component_retainer: _Out) -> None:
     """Merlin.CreateRetainer - the upper trim retainer into station_uad, then UPR-PROFILE subtracted."""
@@ -865,6 +872,7 @@ def _create_retainer(current: NXOpen.Part, owning_comp: NXOpen.Assemblies.Compon
             owning_comp.DisplayName))
 
 
+@nx.traced("Blank Station")
 def _create_punch(current: NXOpen.Part, owning_comp: NXOpen.Assemblies.Component, min_bp: NXOpen.Point3d,
                   max_bp: NXOpen.Point3d, station_uad: NXOpen.Part, punch_depth: float,
                   component_punch: _Out, unikix_pins: List[NXOpen.Assemblies.Component]) -> None:
@@ -921,6 +929,7 @@ def _create_punch(current: NXOpen.Part, owning_comp: NXOpen.Assemblies.Component
             owning_comp.DisplayName))
 
 
+@nx.traced("Blank Station")
 def _create_window(current: NXOpen.Part, window_min: NXOpen.Point3d, window_max: NXOpen.Point3d,
                    station_upd: NXOpen.Part, add_extra_shcs: bool = False) -> NXOpen.Assemblies.Component:
     """
@@ -970,6 +979,7 @@ def _create_window(current: NXOpen.Part, window_min: NXOpen.Point3d, window_max:
     return component_window
 
 
+@nx.traced("Blank Station")
 def _intersect_temp_block_with_upper(current: NXOpen.Part, station_lad: NXOpen.Part,
                                      owning_comp: NXOpen.Assemblies.Component,
                                      block_temp: NXOpen.Features.Feature) -> Optional[nx.Box3d]:
@@ -1004,6 +1014,7 @@ def _intersect_temp_block_with_upper(current: NXOpen.Part, station_lad: NXOpen.P
             nx.set_reference_set(owning_comp, previous_refset)
 
 
+@nx.traced("Blank Station")
 def _link_upper_and_lower_into_station(current: NXOpen.Part, station_lad: NXOpen.Part,
                                        owning_comp: NXOpen.Assemblies.Component) -> Optional[NXOpen.Body]:
     """
@@ -1081,6 +1092,7 @@ def _link_bodies_as_breps(bodies: Sequence[NXOpen.Body]) -> List[NXOpen.Body]:
     return [b for b in part.Bodies if b.Tag not in before and b.IsSolidBody]
 
 
+@nx.traced("Blank Station")
 def _build_temp_lower_blocks(current: NXOpen.Part, box: nx.Box3d, owning_comp: NXOpen.Assemblies.Component,
                              station_lad: NXOpen.Part, min_z: float, max_z: float, temp: _TempGeometry
                              ) -> Tuple[Optional[nx.Box3d], Optional[nx.Box3d], Optional[nx.Box3d]]:
@@ -1145,6 +1157,7 @@ def _build_temp_lower_blocks(current: NXOpen.Part, box: nx.Box3d, owning_comp: N
     return first_box, station_box, assembly_box
 
 
+@nx.traced("Blank Station")
 def _delete_temp_geometry(temp: _TempGeometry) -> None:
     """
     Deletes what _build_temp_lower_blocks left in lad02: its features first (a block takes its intersect with it),
@@ -1180,6 +1193,7 @@ def _station_box_in_assembly(current: NXOpen.Part, station: NXOpen.Part, station
                     max(c[0] for c in corners), max(c[1] for c in corners), max(c[2] for c in corners))
 
 
+@nx.traced("Blank Station")
 def _create_lower_trim_steel(current: NXOpen.Part, box: nx.Box3d, owning_comp: NXOpen.Assemblies.Component,
                              material_thickness: float, window_min: NXOpen.Point3d, station_lad: NXOpen.Part,
                              component_lower_trim_steel: _Out, override_min_z: Optional[float] = None,
@@ -1245,6 +1259,7 @@ def _create_lower_trim_steel(current: NXOpen.Part, box: nx.Box3d, owning_comp: N
 # Detail scaffolding
 # ---------------------------------------------------------------------------------------------------
 
+@nx.traced("Blank Station")
 def _promote_detail_block(block: NXOpen.Features.Block, name: str, hide_subtool_layer: bool = True,
                           rebase_to_block: bool = False, opposite_corner: bool = False,
                           flip_z: bool = False) -> NXOpen.Assemblies.Component:
@@ -1264,7 +1279,7 @@ def _promote_detail_block(block: NXOpen.Features.Block, name: str, hide_subtool_
     nx.setup_station_expressions(nx.work_part())
     nx.display_part().Layers.WorkLayer = 15
     merlin._create_subtool(nx.prototype(component))
-    nx.display_part().Layers.WorkLayer = 1
+    nx.display_part().Layers.WorkLayer = merlin.DetailWorkLayer
     if hide_subtool_layer:
         nx.display_part().Layers.SetState(15, NXOpen.Layer.State.Hidden)
     nx.find_or_create_reference_set(owning, "BODY").AddObjectsToReferenceSet([component])
@@ -1425,6 +1440,7 @@ def _subtract_fasteners_from_block(fasteners: Iterable[NXOpen.Assemblies.Compone
         nx.print_exception(ex)
 
 
+@nx.traced("Blank Station")
 def _add_dowels_and_jack_screws(min_point: NXOpen.Point3d, max_point: NXOpen.Point3d, z: float,
                                 orientation: NXOpen.Matrix3x3, dowel_path: str, dowel_refset: str, upper_frame: bool,
                                 inset_x: float = TrimDetailFastenerInsetX, jack_z_offset: float = 0.0,
@@ -1582,6 +1598,7 @@ def _find_taper_edge(part: NXOpen.Part) -> Optional[NXOpen.Edge]:
     return None
 
 
+@nx.traced("Blank Station")
 def _create_taper(work_part: NXOpen.Part, body1: NXOpen.Body, tangent_edge: NXOpen.Edge) -> NXOpen.Features.Feature:
     """
     Part.__CreateTaper (Globals.cs) - a recorded-journal extrude: the tangent chain from tangent_edge, -Z, 10 mm to

@@ -243,6 +243,7 @@ def build_nitro_plate_lower(is_gm: bool, cylinders: Sequence[NXOpen.Assemblies.C
     _build_nitro_plate(is_gm, NitroPlateLowerSpec, cylinders)
 
 
+@nx.traced("Nitro Plate")
 def _static_nitro_plate(is_gm: bool, spec: NitroPlateSpec) -> None:
     """Merlin.BuildNitroPlate(is_gm, spec) - the units gate, WCS to absolute and the cylinder pick, then the build."""
     ok, message = drawdie._check_info_units()
@@ -261,6 +262,7 @@ def _static_nitro_plate(is_gm: bool, spec: NitroPlateSpec) -> None:
     _build_nitro_plate(is_gm, spec, picked)
 
 
+@nx.traced("Nitro Plate")
 def _build_nitro_plate(is_gm: bool, spec: NitroPlateSpec, picked: Sequence[NXOpen.Assemblies.Component]) -> None:
     """Merlin.BuildNitroPlate(is_gm, spec, picked) - the shared nitrogen-plate build over cylinders already picked."""
     drawdie._set_wcs_to_absolute(nx.display_part())
@@ -313,6 +315,7 @@ def _build_nitro_plate(is_gm: bool, spec: NitroPlateSpec, picked: Sequence[NXOpe
         nx.set_work_part(starting_work)
 
 
+@nx.traced("Nitro Plate")
 def _build(is_gm: bool, spec: NitroPlateSpec, bodies: List[NXOpen.Body], bottom_z: float,
            starting_display: NXOpen.Part) -> None:
     """The try block of Merlin.BuildNitroPlate(is_gm, spec, picked)."""
@@ -412,7 +415,7 @@ def _build(is_gm: bool, spec: NitroPlateSpec, bodies: List[NXOpen.Body], bottom_
         _extrude_nitro_subtool_bottom_edges(subtool_body, subtool_up)
     else:
         merlin._create_subtool(new_part)
-    new_part.Layers.WorkLayer = 1
+    new_part.Layers.WorkLayer = merlin.DetailWorkLayer
     new_part.Layers.SetState(15, NXOpen.Layer.State.Hidden)
 
     # Corner blends go on after the subtool, so the subtool keeps the square corners, and before every subtract,
@@ -432,7 +435,7 @@ def _build(is_gm: bool, spec: NitroPlateSpec, bodies: List[NXOpen.Body], bottom_
                              NXOpen.Point3d(point.X, point.Y, shcs_z), shcs_orientation, 99)
             for point in _nitro_plate_shcs_positions(xlength, ywidth, spec.ShcsInset)]
     _subtract_and_refset_fasteners(shcs, plate_bottom, body_refset)
-    new_part.Layers.WorkLayer = 1
+    new_part.Layers.WorkLayer = merlin.DetailWorkLayer
 
     if xlength < 2 * NitroPlateTopHoistRingInset or ywidth < 2 * NitroPlateTopHoistRingInset:
         nx.print_("The plate ({} x {}) is narrower than twice the {}\" hoist-ring inset - the +Z rings cross "
@@ -455,7 +458,7 @@ def _build(is_gm: bool, spec: NitroPlateSpec, bodies: List[NXOpen.Body], bottom_
             nx.set_reference_set(ring, NitroPlateHandlingRefset)
 
         _subtract_and_refset_fasteners(hoist_rings, plate_bottom, ring_refset)
-        new_part.Layers.WorkLayer = 1
+        new_part.Layers.WorkLayer = merlin.DetailWorkLayer
     else:
         nx.print_("{} has no {} reference set - hoist rings not subtracted.".format(
             os.path.basename(_gmHoistRingPath), NitroPlateHandlingRefset))
@@ -495,6 +498,7 @@ def _build(is_gm: bool, spec: NitroPlateSpec, bodies: List[NXOpen.Body], bottom_
 # SUBTOOL
 # ---------------------------------------------------------------------------------------------------
 
+@nx.traced("Nitro Plate")
 def _grow_nitro_subtool(subtool: NXOpen.Body, top_offset: float, side_offset: float, up: NXOpen.Vector3d) -> None:
     """
     Merlin.GrowNitroSubtool - the SUBTOOL's face along up offset outward top_offset and its four side faces outward
@@ -535,6 +539,7 @@ def _grow_nitro_subtool(subtool: NXOpen.Body, top_offset: float, side_offset: fl
     nx.set_color(bottom, 42)
 
 
+@nx.traced("Nitro Plate")
 def _extrude_nitro_subtool_bottom_edges(subtool: NXOpen.Body, up: NXOpen.Vector3d) -> None:
     """
     Merlin.ExtrudeNitroSubtoolBottomEdges - each edge of the SUBTOOL's face along -up extruded
@@ -688,6 +693,7 @@ def _subtract_and_refset_fasteners(fasteners: Sequence[NXOpen.Assemblies.Compone
             nx.print_exception(ex)
 
 
+@nx.traced("Nitro Plate")
 def _move_nitro_control_panel_to_corner(control_panel: NXOpen.Assemblies.Component, xlength: float, ywidth: float,
                                         upper_frame: bool) -> None:
     """

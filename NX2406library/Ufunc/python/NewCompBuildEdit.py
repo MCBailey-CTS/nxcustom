@@ -629,7 +629,7 @@ def _show_temporary_size_text(edge_rep_lines: Sequence[Any]) -> None:
             start, end = line.StartPoint, line.EndPoint
             middle = [(start.X + end.X) / 2.0, (start.Y + end.Y) / 2.0, (start.Z + end.Z) / 2.0]
             mapped = _map_point(_UF_CSYS_WORK_COORDS, middle, _UF_CSYS_ROOT_COORDS)
-            _ufs.Disp.DisplayTemporaryText(disp.Views.WorkView.Tag, _uf.Disp.ViewType.USE_WORK_VIEW, [text], mapped,
+            _ufs.Disp.DisplayTemporaryText(disp.Views.WorkView.Tag, _uf.Disp.ViewType.USE_WORK_VIEW, text, mapped,
                                            _uf.Disp.TextRef.MIDDLECENTER, color, 0.125 if inches else 3.175, 1)
 
 

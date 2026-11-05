@@ -96,6 +96,7 @@ class Boss(object):
         static_boss(is_gm)
 
 
+@nx.traced("Boss")
 def static_boss(is_gm: bool) -> None:
     """Merlin.StaticBoss - units gate, the two picks, then build_gm_boss."""
     ok, message = drawdie._check_info_units()
@@ -134,6 +135,7 @@ def static_boss(is_gm: bool) -> None:
         nx.set_work_part(starting_work)
 
 
+@nx.traced("Boss")
 def build_gm_boss(target_face: NXOpen.Face, tool_faces: Sequence[NXOpen.Face]) -> None:
     """
     The build half of Merlin.StaticBoss on picked face occurrences: target_face is the planar target, tool_faces the
@@ -172,6 +174,7 @@ def build_gm_boss(target_face: NXOpen.Face, tool_faces: Sequence[NXOpen.Face]) -
         nx.set_work_part(starting_work)
 
 
+@nx.traced("Boss")
 def _build_one_boss(target_face: NXOpen.Face, face: NXOpen.Face, target_color: int,
                     assembly: Optional[NXOpen.BasePart] = None) -> None:
     """

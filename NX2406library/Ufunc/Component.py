@@ -123,6 +123,7 @@ def static_gm_component(is_gm: bool) -> None:
     build_gm_component(is_gm, is_upper, bodies, reference_set)
 
 
+@nx.traced("Component")
 def build_gm_component(is_gm: bool, is_upper: bool, bodies: Sequence[NXOpen.Body], reference_set: str) -> None:
     """
     Merlin.BuildGmComponent - one GM component over bodies, subtracting reference_set. Builds into the work part's
@@ -141,6 +142,7 @@ def build_gm_component(is_gm: bool, is_upper: bool, bodies: Sequence[NXOpen.Body
             nx.print_(drawdie._time_span(datetime.datetime.now() - start))
 
 
+@nx.traced("Component")
 def _create_component(is_upper: bool, top_level: NXOpen.Part, start_work: NXOpen.Part,
                       selected_bodies: List[NXOpen.Body], reference_sets: Sequence[str], is_gm: bool) -> None:
     """Merlin.CreateComponent"""
@@ -180,7 +182,7 @@ def _create_component(is_upper: bool, top_level: NXOpen.Part, start_work: NXOpen
         nx.set_attribute(new_part_display, "DETAIL NAME", "FILL IN")
         new_part_display.Layers.WorkLayer = 15
         merlin._create_subtool(new_part_display)
-        new_part_display.Layers.WorkLayer = 1
+        new_part_display.Layers.WorkLayer = merlin.DetailWorkLayer
         new_part_display.Layers.SetState(15, NXOpen.Layer.State.Hidden)
 
         bottom_face = split._find_bottom_face()
@@ -228,11 +230,12 @@ def _create_component(is_upper: bool, top_level: NXOpen.Part, start_work: NXOpen
         nx.display_part().WCS.SetOriginAndMatrix(NXOpen.Point3d(0.0, 0.0, 0.0), current_wcs)
         body_reference_set.AddObjectsToReferenceSet(keys)
         nx.create_auto_size_udo(nx.work_part())
+        # The fastener subtract left it on 96, and this is the last time the part is displayed.
+        new_part_display.Layers.WorkLayer = merlin.DetailWorkLayer
         nx.set_display_part(top_level)
         nx.set_reference_set(new_component, "BODY")
         nx.find_or_create_reference_set(new_component.OwningPart, "BODY").AddObjectsToReferenceSet([new_component])
         nx.set_work_part(new_part)
-        nx.work_part().Layers.WorkLayer = 1
         selected_components = split._owning_components(selected_bodies)
         for item in reference_sets:
             try:

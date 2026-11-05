@@ -104,6 +104,7 @@ class Nine99Block(object):
         Nine99Block.run(nx.select_many_components("Select components for Block999"))
 
     @staticmethod
+    @nx.traced("999 Block")
     def run(picked: Optional[Sequence[NXOpen.TaggedObject]]) -> None:
         """Nine99Block.Block999 after the pick. picked: the picked Components (TaggedObject[] from C#)."""
         try:
@@ -272,6 +273,7 @@ def _warn_unsaved_unikix_pins() -> None:
         "{}".format(len(pins), "\n".join(shown)))
 
 
+@nx.traced("999 Block")
 def _subtract_punch_links(punch: NXOpen.Assemblies.Component, block_target: NXOpen.Body) -> None:
     """
     The LINKED_BODY loop inside Block999, one punch at a time. Only each link's own link/subtract is guarded;
@@ -357,6 +359,7 @@ def _link_body_into_work_part(body: NXOpen.Body) -> NXOpen.Features.Feature:
         builder.Destroy()
 
 
+@nx.traced("999 Block")
 def _finish_block999(new_component: NXOpen.Assemblies.Component, block_body: NXOpen.Body,
                      min_point: NXOpen.Point3d, max_point: NXOpen.Point3d) -> Set[int]:
     """
@@ -570,6 +573,7 @@ def _block999_material(first: NXOpen.Assemblies.Component) -> str:
     return "FILL IN"
 
 
+@nx.traced("999 Block")
 def _set_up_as_merlin_block(new_component: NXOpen.Assemblies.Component, starting_display: NXOpen.Part,
                             description: str, material: str) -> None:
     """
@@ -603,7 +607,7 @@ def _set_up_as_merlin_block(new_component: NXOpen.Assemblies.Component, starting
     # After BODY is filled, so the subtool stays out of it.
     new_part.Layers.WorkLayer = 15
     merlin._create_subtool(new_part)
-    new_part.Layers.WorkLayer = 1
+    new_part.Layers.WorkLayer = merlin.DetailWorkLayer
     new_part.Layers.SetState(15, NXOpen.Layer.State.Hidden)
     nx.create_auto_size_udo(new_part)
 
@@ -613,6 +617,7 @@ def _set_up_as_merlin_block(new_component: NXOpen.Assemblies.Component, starting
     merlin._set_reference_set_in_ancestor_assemblies(occurrence, add_to_reference_set=True)
 
 
+@nx.traced("999 Block")
 def _promote_to_named_component(block: NXOpen.Features.Block, path: str) -> NXOpen.Assemblies.Component:
     """Nine99Block.PromoteToNamedComponent - promotes block's body into a new part saved at path, deleting the original."""
     nx.print_(path)

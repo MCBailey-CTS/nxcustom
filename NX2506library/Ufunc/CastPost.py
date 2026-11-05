@@ -171,6 +171,7 @@ def static_gm_cast_post(is_gm: bool) -> None:
     build_gm_cast_posts(is_gm, is_upper, bodies, reference_set)
 
 
+@nx.traced("Cast Post")
 def build_gm_cast_posts(is_gm: bool, is_upper: bool, bodies: List[NXOpen.Body], reference_set: str,
                         refsets_confirmed: bool = False) -> None:
     """
@@ -228,6 +229,7 @@ def build_gm_cast_posts(is_gm: bool, is_upper: bool, bodies: List[NXOpen.Body], 
     nx.set_work_part(starting_work)
 
 
+@nx.traced("Cast Post")
 def _build_one_post(is_gm: bool, is_upper: bool, box: nx.Box3d, z_box: nx.Box3d,
                     selected_components: List[Optional[NXOpen.Assemblies.Component]], reference_set: str,
                     top_level: NXOpen.Part) -> None:
@@ -368,13 +370,12 @@ def _build_one_post(is_gm: bool, is_upper: bool, box: nx.Box3d, z_box: nx.Box3d,
     nx.set_reference_set(post_component, "BODY")
     nx.set_attribute(post_proto, "DETAIL NAME", "CAST FORM POST")
     nx.set_attribute(post_proto, "DESCRIPTION", "CAST FORM POST")
-    new_part.Layers.WorkLayer = 1
+    new_part.Layers.WorkLayer = merlin.DetailWorkLayer
     nx.set_display_part(top_level)
     nx.set_work_part(new_part)
     new_comp = nx.first_occurrence_in(new_part, nx.display_part())
 
     nx.set_work_part(new_part)
-    new_part.Layers.SetState(1, NXOpen.Layer.State.WorkLayer)
     new_part.Layers.SetState(15, NXOpen.Layer.State.Hidden)
     _subtract_components(lambda: nx.dynamic_block(nx.work_part()).GetBodies()[0],
                          cast(List[NXOpen.Assemblies.Component], selected_components), reference_set)
@@ -382,13 +383,13 @@ def _build_one_post(is_gm: bool, is_upper: bool, box: nx.Box3d, z_box: nx.Box3d,
     # Propagate BODY as the used reference set to every ancestor assembly (start_work .. -000).
     merlin._set_reference_set_in_ancestor_assemblies(new_comp)
     new_comp.Unblank()
-    new_part.Layers.WorkLayer = 1
 
 
 # ---------------------------------------------------------------------------------------------------
 # Merlin helpers
 # ---------------------------------------------------------------------------------------------------
 
+@nx.traced("Cast Post")
 def _promote_to_component(block: NXOpen.Features.Block, description: str, text: str, rebase_to_block: bool = False,
                           opposite_corner: bool = False) -> Tuple[NXOpen.Part, NXOpen.Assemblies.Component]:
     """
@@ -412,7 +413,7 @@ def _promote_to_component(block: NXOpen.Features.Block, description: str, text: 
     nx.set_attribute(new_part, "MATERIAL", "##")
     new_part.Layers.WorkLayer = 15
     merlin._create_subtool(new_part)
-    new_part.Layers.WorkLayer = 1
+    new_part.Layers.WorkLayer = merlin.DetailWorkLayer
     new_part.Layers.SetState(15, NXOpen.Layer.State.Hidden)
     return new_part, component
 
@@ -454,6 +455,7 @@ def _subtract_and_refset_fasteners(fasteners: Sequence[NXOpen.Assemblies.Compone
             nx.print_exception(ex)
 
 
+@nx.traced("Cast Post")
 def _subtract_components(get_target: Callable[[], NXOpen.Body],
                          components: Iterable[NXOpen.Assemblies.Component], refset: str) -> None:
     """
@@ -542,6 +544,7 @@ def _place_gm_cast_post_upper_keys(is_upper: bool, xlength: float, ywidth: float
     return current_wcs, key
 
 
+@nx.traced("Cast Post")
 def _extrude_foot_from_edge(ywidth: float, solid_body: NXOpen.Body, x_offset: float, src_max_x: bool,
                             src_max_z: bool, extrude_dir: NXOpen.Vector3d, edge_name: str,
                             foot_height: float = FootHeight) -> None:

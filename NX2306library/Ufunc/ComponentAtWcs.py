@@ -74,6 +74,7 @@ class ComponentAtWcs(object):
         component_at_wcs()
 
 
+@nx.traced("Component At WCS")
 def component_at_wcs() -> None:
     """Merlin.ComponentAtWcs - a 4 x 4 x 1.5 block centred on the WCS, promoted to component-wcs-{n}."""
     cast(Any, nx.session_).LogFile.WriteLine("Component At Wcs -> {}".format(nx.assembly_file_version()))
@@ -131,7 +132,7 @@ def component_at_wcs() -> None:
         # Extract the subtool onto layer 15 (after BODY is populated so it is not added to BODY).
         new_part.Layers.WorkLayer = 15
         merlin._create_subtool(new_part)
-        new_part.Layers.WorkLayer = 1
+        new_part.Layers.WorkLayer = merlin.DetailWorkLayer
         new_part.Layers.SetState(15, NXOpen.Layer.State.Hidden)
         nx.create_auto_size_udo(new_part)
 

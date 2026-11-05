@@ -132,6 +132,7 @@ def static_gm_cast_form_pad(is_gm: bool) -> None:
     build_gm_cast_form_pad(is_gm, is_upper, bodies, refset_name)
 
 
+@nx.traced("Cast Form Pad")
 def build_gm_cast_form_pad(is_gm: bool, is_upper: bool, bodies: List[NXOpen.Body], refset_name: str) -> None:
     """Merlin.BuildGmCastFormPad - the cast form pad over bodies, built into the work part's station."""
     top_level = nx.display_part()
@@ -147,6 +148,7 @@ def build_gm_cast_form_pad(is_gm: bool, is_upper: bool, bodies: List[NXOpen.Body
         nx.print_(drawdie._time_span(datetime.datetime.now() - start))
 
 
+@nx.traced("Cast Form Pad")
 def _build(is_gm: bool, is_upper: bool, bodies: List[NXOpen.Body], refset_name: str,
            top_level: NXOpen.Part) -> None:
     if len(bodies) == 0:
@@ -249,7 +251,7 @@ def _build(is_gm: bool, is_upper: bool, bodies: List[NXOpen.Body], refset_name: 
     if bottom_face is None:
         raise RuntimeError("{} has no -Z planar face".format(new_part.Leaf))
     nx.set_color(bottom_face, 42)
-    nx.work_part().Layers.WorkLayer = 1
+    nx.work_part().Layers.WorkLayer = merlin.DetailWorkLayer
     trimpad._import_cast_text(nx.work_part(), _gmPostCastTextPath, xlength, ywidth, block_origin)
 
     wcs = nx.display_part().WCS
@@ -282,7 +284,6 @@ def _build(is_gm: bool, is_upper: bool, bodies: List[NXOpen.Body], refset_name: 
             selected_components.append(comp)
 
     nx.set_work_part(new_part)
-    new_part.Layers.SetState(1, NXOpen.Layer.State.WorkLayer)
     new_part.Layers.SetState(15, NXOpen.Layer.State.Hidden)
 
     for comp in selected_components:

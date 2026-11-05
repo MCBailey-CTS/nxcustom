@@ -81,6 +81,7 @@ class Restrike(object):
         build(is_gm, dialog.bodies, dialog.station)
 
 
+@nx.traced("Restrike")
 def build(is_gm: bool, bodies: Sequence[NXOpen.Body], station: str = drawdie.DefaultStation) -> None:
     """The lower post in LADnn, then the upper in UADnn (nn = station) on the bodies looked up again."""
     top_level = nx.display_part()
@@ -96,6 +97,7 @@ def build(is_gm: bool, bodies: Sequence[NXOpen.Body], station: str = drawdie.Def
         nx.set_work_part(starting_work)
 
 
+@nx.traced("Restrike")
 def _build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: str, is_upper: bool) -> None:
     """
     GM Cast Post on bodies, built into station_name (ladNN / uadNN): makes that station the work component of the

@@ -171,6 +171,7 @@ def static_gm_cast_trim_pad(is_gm: bool) -> None:
         nx.print_exception(ex)
 
 
+@nx.traced("Cast Trim Pad")
 def _build_trim_pad(is_gm: bool, is_upper: bool, bodies: List[NXOpen.Body]) -> None:
     combined = nx.combine_boxes(nx.body_box(body) for body in bodies)
     xlength = nx.round_to_125(combined.MaxX - combined.MinX + TrimPadGrowX)
@@ -206,6 +207,7 @@ def _build_trim_pad(is_gm: bool, is_upper: bool, bodies: List[NXOpen.Body]) -> N
     nx.setup_station_expressions(nx.work_part())
     pad.SetName("PAD")
     new_part = nx.display_part()
+    new_part.Layers.WorkLayer = merlin.DetailWorkLayer
     _chamfer_vertical_edges(nx.dynamic_block(new_part), TrimPadChamfer)
     solid_body = _single_solid_body_on_layer1(new_part)
     bounding = nx.body_box(solid_body)
@@ -245,6 +247,7 @@ def _build_trim_pad(is_gm: bool, is_upper: bool, bodies: List[NXOpen.Body]) -> N
 # Placements
 # ---------------------------------------------------------------------------------------------------
 
+@nx.traced("Cast Trim Pad")
 def _add_cast_pad_locators(xlength: float, ywidth: float, bounding: nx.Box3d, matrix: NXOpen.Matrix3x3,
                            mat: NXOpen.Matrix3x3, is_upper: bool, is_gm: bool) -> None:
     """Merlin.AddCastPadLocators - locator 1 on the -Y edge, 2 on +Y, 3 on +X, 4 on -X; into the display part."""
@@ -261,6 +264,7 @@ def _add_cast_pad_locators(xlength: float, ywidth: float, bounding: nx.Box3d, ma
                          origin=_from_min(bounding, dx, dy, z), orientation=orientation, layer=99)
 
 
+@nx.traced("Cast Trim Pad")
 def _add_iso_nitros(bounding: nx.Box3d) -> None:
     """Merlin.AddIsoNitros - one on each corner of the pad's box (no inset), pointing +Z. GM-only like the hoist rings."""
     x, y, height = _distances(bounding)
@@ -271,6 +275,7 @@ def _add_iso_nitros(bounding: nx.Box3d) -> None:
                          origin=_from_min(bounding, dx, dy, z), orientation=nx.identity_matrix(), layer=99)
 
 
+@nx.traced("Cast Trim Pad")
 def _add_cast_in_inserts(bounding: nx.Box3d, is_gm: bool) -> None:
     """Merlin.AddCastInInserts - 255 mm / 55 mm in from each corner, pointing -Z, on layer 96."""
     path = _gmCastInInsertPath if is_gm else _ctsLiftLugMetric
@@ -285,6 +290,7 @@ def _add_cast_in_inserts(bounding: nx.Box3d, is_gm: bool) -> None:
                          orientation=drawdie._z_matrix(_VectorZN), layer=96)
 
 
+@nx.traced("Cast Trim Pad")
 def _add_guided_retainers(bounding: nx.Box3d, is_gm: bool) -> None:
     """
     Merlin.AddGuidedRetainers - four 90 mm in from the corners plus one in the centre, then the first one's
@@ -304,6 +310,7 @@ def _add_guided_retainers(bounding: nx.Box3d, is_gm: bool) -> None:
         os.path.dirname(nx.display_part().FullPath), "{}cast-trim-pad-guided-retainer".format("" if is_gm else "cts-")))
 
 
+@nx.traced("Cast Trim Pad")
 def _import_cast_text(part: NXOpen.Part, path: str, xlength: float, ywidth: float,
                       block_origin: NXOpen.Point3d) -> None:
     """

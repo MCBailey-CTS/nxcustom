@@ -23,7 +23,7 @@ the GM parts, TSG uses the CTS parts), the solid bodies (anywhere in the assembl
 checked by default, to build only one side), each followed by that side's Rows (x) / Cols (y) (1-5, greyed out while
 the side is unchecked).
 OK stays greyed out until TSG or GM is checked, a body is picked and a side is checked. While it is open, the blocks of
-the checked sides are outlined with temporary lines over the picked bodies, each side at its own grid, redrawn on every
+the checked sides are outlined with preview lines over the picked bodies, each side at its own grid, redrawn on every
 change (2026-11-05).
 
 All the bodies go into one build per side. The lower form's sizing and subtract switch the bodies' components'
@@ -91,6 +91,7 @@ class DeadStrike(object):
               dialog.upper_rows, dialog.upper_cols, dialog.lower, dialog.upper)
 
 
+@nx.traced("Dead Strike")
 def build(is_gm: bool, bodies: Sequence[NXOpen.Body], lower_rows: int, lower_cols: int, upper_rows: int,
           upper_cols: int, lower: bool = True, upper: bool = True) -> None:
     """
@@ -112,6 +113,7 @@ def build(is_gm: bool, bodies: Sequence[NXOpen.Body], lower_rows: int, lower_col
         nx.set_work_part(starting_work)
 
 
+@nx.traced("Dead Strike")
 def build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: str, is_upper: bool, rows: int,
                      cols: int, log: Optional[Callable[[str], None]] = None, quiet: bool = False) -> None:
     """
@@ -182,7 +184,7 @@ def build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: s
 def draw_preview(bodies: Sequence[NXOpen.Body], lower_grid: Tuple[int, int], upper_grid: Tuple[int, int],
                  lower: bool = True, upper: bool = True) -> None:
     """
-    Outlines with temporary lines the blocks build_in_station would make over bodies,
+    Outlines with preview lines the blocks build_in_station would make over bodies,
     where it makes them. lower_grid / upper_grid are Rows (x), Cols (y). The lower's split form goes in LowerStation
     at the bodies' display-part coordinates, as a split form's blocks do (SplitForm.preview_boxes; its rows run along
     Y, so Dead Strike's Rows go in as its cols); the upper's cavity steels are mapped into UpperStation, as the draw

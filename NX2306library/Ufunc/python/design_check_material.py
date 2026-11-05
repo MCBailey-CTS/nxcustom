@@ -15,9 +15,9 @@ Ported from:
                                                                    -> display_temporary_block_edges
 
 Differences from the C#:
-  - The temporary lines and size text are drawn with UF Disp in the work view as the C# does; the Python enum names
-    (NXOpen.UF.DispViewType / DispTextRef) are a guess from Measure.py's DisplayTemporaryLine call, so a failure to
-    draw is printed once per box rather than raised.
+  - The temporary lines and size text are drawn with UF Disp in the work view as the C# does, under the Python
+    binding's names (NXOpen.UF.Obj.DispProps, NXOpen.UF.Disp.ViewType.USE_WORK_VIEW, Disp.TextRef.MIDDLECENTER; the
+    .NET UFObj and UseWorkView / Middlecenter do not exist here).
   - BlockAttRoundDistances' `for (ii = .125; ii <= 1; ii += .125)` adds binary fractions, which are exact, so the
     Python loop over the eight eighths matches it.
 
@@ -167,24 +167,21 @@ def _add(point: NXOpen.Point3d, vector: NXOpen.Vector3d, length: float) -> NXOpe
 
 
 def _disp_props(color: int) -> Any:
-    props: Any = NXOpen.UF.UFObj.DispProps()
+    uf: Any = NXOpen.UF
+    props = uf.Obj.DispProps()
     props.Color = color
     return props
 
 
 def _view_type() -> Any:
-    """UFDisp.ViewType.UseWorkView, under either spelling the Python binding may use."""
+    """UFDisp.ViewType.UseWorkView, as the Python binding spells it."""
     uf: Any = NXOpen.UF
-    if hasattr(uf, "DispViewType"):
-        return uf.DispViewType.UseWorkView
     return uf.Disp.ViewType.USE_WORK_VIEW
 
 
 def _text_ref() -> Any:
-    """UFDisp.TextRef.Middlecenter, under either spelling."""
+    """UFDisp.TextRef.Middlecenter, as the Python binding spells it."""
     uf: Any = NXOpen.UF
-    if hasattr(uf, "DispTextRef"):
-        return uf.DispTextRef.Middlecenter
     return uf.Disp.TextRef.MIDDLECENTER
 
 

@@ -196,6 +196,7 @@ class AutoDesign(object):
             _log = None
 
 
+@nx.traced("Auto Design")
 def _run(is_gm: bool, title: str, dialog: "_AutoDesignDialog") -> None:
     log = cast(_ProgressLog, _log)
     log.write_line("Auto Design started.")
@@ -259,6 +260,7 @@ def _run(is_gm: bool, title: str, dialog: "_AutoDesignDialog") -> None:
     log.set_title("{} (0 of {})".format(title, total))
     log.write_line("{} operation(s) expected.".format(total))
 
+    @nx.traced("Auto Design")
     def run_program(program: str, build: Callable[[List[NXOpen.Body]], None]) -> None:
         """Every program starts from the -000, as it would when launched on its own."""
         bodies = group(program)
@@ -487,6 +489,7 @@ def all_solid_body_occurrences(top_level: NXOpen.Part) -> List[NXOpen.Body]:
     return bodies
 
 
+@nx.traced("Auto Design")
 def scan_programs(top_level: NXOpen.Part) -> Dict[str, List[str]]:
     """
     Every solid Select all would see that has a PROGRAM attribute, by value: the leaf of the part owning each body
@@ -545,6 +548,7 @@ def _confirm_restrike_reference_sets(bodies: Sequence[NXOpen.Body]) -> bool:
     return True
 
 
+@nx.traced("Auto Design")
 def _restrike_posts(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: str, is_upper: bool) -> None:
     """
     GM Cast Post on the restrike part body, built into station_name (lad02 / uad02): makes that station the work
@@ -591,7 +595,7 @@ class _AutoDesignDialog(Dialog):
     AutoDesign.dlx: Select all / Select solids, the body picker (shown only for Select solids), Normal / Heavy, and
     a checkbox per program labelled with its body count in the assembly (only the checked ones run), with DRAW's and
     DEADHIT's lower and upper rows / cols and FLANGEUP's flange side and steel rows / cols. While it is open, the
-    blocks of DRAW, DEADHIT and FLANGEUP, when checked, are outlined with temporary lines where they will be built.
+    blocks of DRAW, DEADHIT and FLANGEUP, when checked, are outlined with preview lines where they will be built.
     """
 
     dlx_name = "AutoDesign.dlx"

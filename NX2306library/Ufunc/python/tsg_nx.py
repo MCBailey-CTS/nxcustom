@@ -11,6 +11,7 @@ from __future__ import annotations
 import contextlib
 import math
 import os
+import sys
 import traceback
 from typing import Any, Union
 from typing import Iterable, Iterator, List, NamedTuple, Optional, Sequence, cast
@@ -78,17 +79,24 @@ def syslog(message: object) -> None:
 
 
 def print_exception(ex: BaseException, user_message: Optional[str] = None) -> None:
-    """Exception.__PrintException - same layout as the C# version so the listing window reads alike."""
-    print_("///////////////////////////////////////////")
+    """
+    Exception.__PrintException - same layout as the C# version so the listing window reads alike, and the same lines
+    to the syslog. A failed import adds sys.path to the syslog, since that is what it turns on.
+    """
+    lines = ["///////////////////////////////////////////"]
     if user_message:
-        print_("UserMessage: {}".format(user_message))
-    print_("Message: {}".format(ex))
-    print_("Exception: {}".format(type(ex).__name__))
+        lines.append("UserMessage: {}".format(user_message))
+    lines.append("Message: {}".format(ex))
+    lines.append("Exception: {}".format(type(ex).__name__))
     if isinstance(ex, NXOpen.NXException):
-        print_("Error Code: {}".format(ex.ErrorCode))
-    for line in traceback.format_exc().splitlines():
+        lines.append("Error Code: {}".format(ex.ErrorCode))
+    lines.extend(traceback.format_exc().splitlines())
+    lines.append("///////////////////////////////////////////")
+    for line in lines:
         print_(line)
-    print_("///////////////////////////////////////////")
+        syslog(line)
+    if isinstance(ex, ImportError):
+        syslog("sys.path: {}".format(sys.path))
     progress("FAILED: {}".format(ex))
 
     # tblExceptions, as __PrintException writes it. usage_db never raises, but a missing pyodbc must not either.
@@ -924,6 +932,7 @@ def add_component(part: NXOpen.BasePart, path_or_prototype: Union[str, NXOpen.Ba
         layer)
     if load_status is not None:
         load_status.Dispose()
+    syslog("Added {} to {} as {} on layer {}.".format(proto.Leaf, part.Leaf, reference_set, layer))
     return component
 
 
@@ -1135,7 +1144,11 @@ def wcs_origin_and_matrix_values() -> tuple[List[float], List[float]]:
 
 from typing import Any as _Any, Callable as _Callable, Dict as _Dict, Sequence as _Sequence, TypeVar as _TypeVar  # noqa: E402
 
+import functools as _functools  # noqa: E402
+import time as _time  # noqa: E402
+
 _T = _TypeVar("_T")
+_F = _TypeVar("_F", bound=_Callable[..., _Any])
 _K = _TypeVar("_K")
 
 
@@ -1202,9 +1215,50 @@ def reference_sets(part: NXOpen.BasePart, name: str) -> NXOpen.ReferenceSet:
 
 
 def prompt(message: str) -> None:
-    """Extensions.prompt - writes the cue line, and the same line to Auto Design's progress window (progress)."""
+    """Extensions.prompt - writes the cue line, and the same line to the syslog and Auto Design's progress window."""
     ufsession_.Ui.SetPrompt(message)
+    syslog(message)
     progress(message)
+
+
+def _trace_details(args: _Sequence[object], kwargs: _Dict[str, object]) -> str:
+    """The plain arguments of a traced call, then the display and work parts. Never raises."""
+    try:
+        plain = (str, int, float, bool)
+        values = [repr(a) for a in args if isinstance(a, plain)]
+        values += ["{}={!r}".format(k, v) for k, v in kwargs.items() if isinstance(v, plain)]
+        values += ["{} item(s)".format(len(a)) for a in args if isinstance(a, (list, tuple))]
+        display, work = session_.Parts.Display, session_.Parts.Work
+        return "({}) display {} work {}".format(", ".join(values), display.Leaf if display else None,
+                                                work.Leaf if work else None)
+    except Exception:
+        return ""
+
+
+def traced(label: str) -> _Callable[[_F], _F]:
+    """
+    Decorator for a build step: a syslog line when it starts (its plain arguments and the display and work parts) and
+    one when it ends, with the time, or fails, with the exception, which it passes on. Changes nothing else.
+    """
+    def decorate(func: _F) -> _F:
+        name = func.__name__.lstrip("_")
+
+        @_functools.wraps(func)
+        def run(*args: _Any, **kwargs: _Any) -> _Any:
+            syslog("{}: {} START {}".format(label, name, _trace_details(args, kwargs)))
+            started = _time.time()
+            try:
+                result = func(*args, **kwargs)
+            except BaseException as ex:
+                syslog("{}: {} FAILED after {:.1f}s: {}: {}".format(label, name, _time.time() - started,
+                                                                    type(ex).__name__, ex))
+                raise
+            syslog("{}: {} done in {:.1f}s".format(label, name, _time.time() - started))
+            return result
+
+        return cast(_F, run)
+
+    return decorate
 
 
 _file_versions: _Dict[str, str] = {}

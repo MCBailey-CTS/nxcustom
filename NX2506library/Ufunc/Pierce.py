@@ -268,6 +268,7 @@ def run_pierce(is_gm: bool, label: str = "Pierce") -> List[Component]:
     return run_pierce_bodies(is_gm, bodies, station)
 
 
+@nx.traced("Pierce")
 def run_pierce_bodies(is_gm: bool, bodies: List[NXOpen.Body], station: Optional[str] = None) -> List[Component]:
     """
     PierceMerlin.RunPierce(bool, Body[]) - classify the slugs and drop a button/punch/retainer trio per size group.
@@ -357,6 +358,7 @@ def super_pierce(is_gm: bool) -> None:
         nx.set_work_part(top_level)
 
 
+@nx.traced("Pierce")
 def _run_super_pierce(is_gm: bool) -> List[Component]:
     """PierceMerlin.RunSuperPierce - note the undo mark and failure action are set before the pick, as in the C#."""
     created: List[Component] = []
@@ -445,6 +447,7 @@ def _try_begin_pierce(label: str) -> Optional[List[NXOpen.Body]]:
 # Classification
 # ---------------------------------------------------------------------------------------------------
 
+@nx.traced("Pierce")
 def _classify_slugs(bodies: Iterable[NXOpen.Body], rounds: List[Round], oblongs: List[Oblong],
                     rectangles: List[Rectangle]) -> None:
     """
@@ -850,6 +853,7 @@ def _ask_pierce(label: str) -> Optional[Tuple[bool, List[NXOpen.Body], str]]:
     return is_gm_customer(dialog.customer_choice), dialog.bodies, dialog.station
 
 
+@nx.traced("Pierce")
 def _pick_pierce_stations(station: Optional[str] = None) -> Optional[_PierceStations]:
     """
     The station numbers with both a ladNN and a uadNN under the display part. station ("02") is used when present;
@@ -893,6 +897,7 @@ def _pick_pierce_stations(station: Optional[str] = None) -> Optional[_PierceStat
     return stations
 
 
+@nx.traced("Pierce")
 def _move_into_station(component: Component, station: Component) -> Component:
     """
     Restructures component (an occurrence in the display part) under station, keeping its absolute position, and adds
@@ -925,6 +930,7 @@ def _save_pierce_components(button: Component, punch: Component, retainer: Compo
     _save_pierce_component(retainer, "retainer", type_)
 
 
+@nx.traced("Pierce")
 def _save_pierce_component(component: Component, name_prefix: str, type_: str) -> None:
     """
     PierceMerlin.SavePierceComponent - Save As {display dir}\\{prefix}-{n}.prt, then TYPE / CSPC / GM Tool Number
@@ -1015,6 +1021,7 @@ def _apply_sheet_expressions(detail: Component, first_exp_attr_row: int, last_ex
     return applied
 
 
+@nx.traced("Pierce")
 def _configure_round_button(button: Component, p_value: str, thickness: str, button_diameter: float) -> None:
     """PierceMerlin.ConfigureRoundButton - attributes first, then the sheet pass (valueP / a_D asserted per row)."""
     nx.set_work_component(button)
@@ -1035,6 +1042,7 @@ def _configure_round_button(button: Component, p_value: str, thickness: str, but
     _apply_sheet_expressions(button, ButtonExpAttrFirstRow, ButtonExpAttrLastRow, write, assert_expressions)
 
 
+@nx.traced("Pierce")
 def _configure_oblong_button(button: Component, p_value: str, w_value: str, thickness: str,
                              button_diameter: float) -> None:
     """PierceMerlin.ConfigureOblongButton - also w, the style selectors and slug type 2 (oblong) in (3,16)."""
@@ -1064,6 +1072,7 @@ def _configure_oblong_button(button: Component, p_value: str, w_value: str, thic
     _apply_sheet_expressions(button, ButtonExpAttrFirstRow, ButtonExpAttrLastRow, write, assert_expressions)
 
 
+@nx.traced("Pierce")
 def _configure_rectangle_button(button: Component, p_value: str, w_value: str, r_value: str, thickness: str,
                                 button_diameter: int) -> None:
     """PierceMerlin.ConfigureRectangleButton - also r (Main (10,7); valueR is left to the sheet), slug type 4."""
@@ -1095,6 +1104,7 @@ def _configure_rectangle_button(button: Component, p_value: str, w_value: str, r
     _apply_sheet_expressions(button, ButtonExpAttrFirstRow, ButtonExpAttrLastRow, write, assert_expressions)
 
 
+@nx.traced("Pierce")
 def _configure_round_punch(punch: Component, p_value: str, thickness: str, punch_diameter: int) -> None:
     """PierceMerlin.ConfigureRoundPunch - no sheet pass; styleStandard* one-hot."""
     nx.set_work_component(punch)
@@ -1110,6 +1120,7 @@ def _configure_round_punch(punch: Component, p_value: str, thickness: str, punch
     _set_formula("styleStandardRectangle", "0")
 
 
+@nx.traced("Pierce")
 def _configure_oblong_punch(punch: Component, p_value: str, w_value: str, thickness: str, punch_diameter: int) -> None:
     """PierceMerlin.ConfigureOblongPunch"""
     nx.set_work_component(punch)
@@ -1127,6 +1138,7 @@ def _configure_oblong_punch(punch: Component, p_value: str, w_value: str, thickn
     _set_formula("styleStandardRectangle", "0")
 
 
+@nx.traced("Pierce")
 def _configure_rectangle_punch(punch: Component, p_value: str, w_value: str, r_value: str, thickness: str,
                                punch_diameter: int) -> None:
     """PierceMerlin.ConfigureRectanglePunch - the only configure that writes valueR."""
@@ -1147,6 +1159,7 @@ def _configure_rectangle_punch(punch: Component, p_value: str, w_value: str, r_v
     _set_formula("styleStandardRectangle", "1")
 
 
+@nx.traced("Pierce")
 def _configure_pierce_retainer(retainer: Component, punch_diameter: int) -> None:
     """
     PierceMerlin.ConfigurePierceRetainer - the diameter attribute, which the secondary pass reads back. The retainer
@@ -1160,6 +1173,7 @@ def _configure_pierce_retainer(retainer: Component, punch_diameter: int) -> None
 # Builders - size, place, save, configure, collect
 # ---------------------------------------------------------------------------------------------------
 
+@nx.traced("Pierce")
 def _add_rounds(rounds: List[Round], created: List[Component], stations: _PierceStations) -> None:
     """PierceMerlin.AddRounds - one trio set per p group; the expressions are written against the last set placed."""
     p_dict_round = _to_ilook_dict(rounds, lambda rr: rr.p)
@@ -1201,6 +1215,7 @@ def _add_rounds(rounds: List[Round], created: List[Component], stations: _Pierce
             nx.print_exception(ex, "round p == {}".format(p_value))
 
 
+@nx.traced("Pierce")
 def _add_oblongs(oblongs: List[Oblong], created: List[Component], stations: _PierceStations) -> None:
     """PierceMerlin.AddOblongs - grouped by p, then w."""
     p_dict_oblongs = _to_ilook_dict(oblongs, lambda rr: rr.p)
@@ -1245,6 +1260,7 @@ def _add_oblongs(oblongs: List[Oblong], created: List[Component], stations: _Pie
                 nx.print_exception(ex, "oblong p == {}, w == {}".format(p_value, w_value))
 
 
+@nx.traced("Pierce")
 def _add_rectangles(rectangles: List[Rectangle], created: List[Component], stations: _PierceStations) -> None:
     """PierceMerlin.AddRectangles - grouped by p, then w, then r. Squares included."""
     p_dict_rectangles = _to_ilook_dict(rectangles, lambda rr: rr.p)
@@ -1310,6 +1326,7 @@ def _placed(button: Optional[Component], punch: Optional[Component],
 # Secondary pass
 # ---------------------------------------------------------------------------------------------------
 
+@nx.traced("Pierce")
 def _process_secondary_pierce(components: Iterable[Optional[Component]]) -> None:
     """
     PierceMerlin.ProcessSecondaryPierce - grouped by prototype (first-seen order, as GroupBy), the first component of
@@ -1418,6 +1435,7 @@ def _try_cell_value(field: str, text: Optional[str]) -> Optional[float]:
     return None
 
 
+@nx.traced("Pierce")
 def _edit_pierce_spreadsheet(component: Component, write_cells: Callable[[SetCell], None]) -> bool:
     """
     PierceMerlin.EditPierceSpreadsheet - component as work component, open its prototype's modeling sheet, write the
