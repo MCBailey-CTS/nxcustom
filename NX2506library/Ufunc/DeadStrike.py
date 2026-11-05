@@ -20,7 +20,8 @@ blocks with a .375" wall left standing round the subtract.
 The dialog (DeadStrike.dlx, tools\\make-dlx.py): the Customer radio (None / TSG / GM, None on opening; GM builds with
 the GM parts, TSG uses the CTS parts), the solid bodies (anywhere in the assembly), Rows (x) / Cols (y) (1-5,
 both sides' grid), and Lower / Upper boxes (both checked by default) to build only one side.
-OK stays greyed out until TSG or GM is checked, a body is picked and a side is checked.
+OK stays greyed out until TSG or GM is checked, a body is picked and a side is checked. While it is open, the blocks of
+the checked sides are outlined with temporary lines over the picked bodies, redrawn on every change (2026-11-05).
 
 All the bodies go into one build per side. The lower form's sizing and subtract switch the bodies' components'
 reference sets and back, which kills the picked body occurrences, so the upper looks them up again
@@ -76,7 +77,11 @@ class DeadStrike(object):
         (TSG uses the CTS parts); the argument is not used.
         """
         dialog = _DeadStrikeDialog(title_with_version("Dead Strike"))
-        if not dialog.run():
+        try:
+            accepted = dialog.run()
+        finally:
+            drawdie._erase_preview()
+        if not accepted:
             return
         build(is_gm_customer(dialog.customer_choice), dialog.bodies, dialog.rows, dialog.cols, dialog.lower,
               dialog.upper)
@@ -167,32 +172,39 @@ def build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: s
         nx.set_work_part(top_level)
 
 
-def draw_preview(bodies: Sequence[NXOpen.Body], lower_grid: Tuple[int, int], upper_grid: Tuple[int, int]) -> None:
+def draw_preview(bodies: Sequence[NXOpen.Body], lower_grid: Tuple[int, int], upper_grid: Tuple[int, int],
+                 lower: bool = True, upper: bool = True) -> None:
     """
-    Clears the last preview, then outlines with temporary lines the blocks build_in_station would make over bodies,
+    Outlines with temporary lines the blocks build_in_station would make over bodies,
     where it makes them. lower_grid / upper_grid are Rows (x), Cols (y). The lower's split form goes in LowerStation
     at the bodies' display-part coordinates, as a split form's blocks do (SplitForm.preview_boxes; its rows run along
     Y, so Dead Strike's Rows go in as its cols); the upper's cavity steels are mapped into UpperStation, as the draw
-    die maps them, 3/8" past the part a side. Backing and mounting plates are not drawn. Auto Design's dialog runs it.
+    die maps them, 3/8" past the part a side. Backing and mounting plates are not drawn. lower / upper leave a side
+    out. The Dead Strike and Auto Design dialogs run it, after erasing the last preview themselves.
     """
     import SplitForm as split
 
-    drawdie._erase_preview()
     if not bodies:
         return
     box = nx.combine_boxes([nx.body_box(b) for b in bodies])
     top_level = nx.display_part()
 
-    station = _find_station(top_level, LowerStation)
+    station = _find_station(top_level, LowerStation) if lower else None
     if station is not None:
-        for origin, x, y, z in split.preview_boxes(box, False, lower_grid[1], lower_grid[0], plate=False):
+        boxes = split.preview_boxes(box, False, lower_grid[1], lower_grid[0], plate=False)
+        for origin, x, y, z in boxes:
             drawdie._draw_box(station, origin, x, y, z, drawdie.PreviewLowerColor)
+        nx.syslog("Dead Strike preview: lower {} along X by {} along Y - {} box(es) drawn in {}.".format(
+            lower_grid[0], lower_grid[1], len(boxes), station.DisplayName))
 
-    station = _find_station(top_level, UpperStation)
+    station = _find_station(top_level, UpperStation) if upper else None
     if station is not None:
         size = drawdie._cavity_size(drawdie._box_in_station(station, box), drawdie.DeadStrikeCavityOverhang)
-        for origin, x, y, z in drawdie._form_steel_boxes(size, upper_grid[0], upper_grid[1]):
+        boxes = drawdie._form_steel_boxes(size, upper_grid[0], upper_grid[1])
+        for origin, x, y, z in boxes:
             drawdie._draw_box(station, origin, x, y, z, drawdie.PreviewUpperColor)
+        nx.syslog("Dead Strike preview: upper {} along X by {} along Y - {} box(es) drawn in {}.".format(
+            upper_grid[0], upper_grid[1], len(boxes), station.DisplayName))
 
 
 def _find_station(top_level: NXOpen.Part, station_name: str) -> Optional[NXOpen.Assemblies.Component]:
@@ -253,6 +265,21 @@ class _DeadStrikeDialog(Dialog):
         self.reset_customer()
         self.block("lower").Value = True
         self.block("upper").Value = True
+        self._preview()
+
+    def update(self, block: NXOpen.BlockStyler.UIBlock) -> None:
+        # Any change - bodies, Rows / Cols, Lower / Upper - redraws the outlines.
+        self._preview()
+
+    def _preview(self) -> None:
+        """The outlines of what OK would build; a failure goes to the syslog and leaves the dialog working."""
+        try:
+            grid = (int(self.block("rows").Value), int(self.block("cols").Value))
+            drawdie._erase_preview()
+            draw_preview(self._picked_bodies(), grid, grid, bool(self.block("lower").Value),
+                         bool(self.block("upper").Value))
+        except Exception as ex:
+            nx.syslog("Dead Strike: the preview failed: {}".format(ex))
 
     def enable_ok(self) -> bool:
         return (self.customer_picked() and (bool(self.block("lower").Value) or bool(self.block("upper").Value))

@@ -24,13 +24,12 @@ Rounds are grouped by p, oblongs by p then w, rectangles by p, w then r. Per siz
   1. size  - the button and punch diameters are looked up FIRST (a table miss costs only this group, before
              anything is placed or saved);
   2. place - a button (10 mm up), punch (.25" up) and flipped ball-lock retainer (3.7402" - .19689" up) per slug;
-  3. save  - each of the three prototypes Save As'd to button- / punch- / retainer-{token}.prt beside the display
+  3. save  - each of the three prototypes Save As'd to button- / punch- / retainer-{n}.prt beside the display
              part, stamped TYPE (round/oblong/rectangle), CSPC = X, GM Tool Number = X;
   4. configure - attributes first (what the secondary pass reads back), then expressions; the button's Main
              spreadsheet cells are written, recalculated, and Exp-Attr rows 3-31 copied into its expressions; the
-             punch gets valueP/valueW/valueR/D + one-hot styleStandard*; the retainer's sheet gets the diameter in
-             (3,4) and Exp-Attr rows 4-28 are copied, falling back to the hard-coded get_retainer_expressions table
-             when the sheet applied nothing;
+             punch gets valueP/valueW/valueR/D + one-hot styleStandard*; the retainer only gets its diameter
+             attribute - it is placed from the preset of that diameter, so no sheet is opened (2026-11-05);
   5. collect - each detail joins the created list only after its configure returned.
 Each size group has its own try/except naming the p/w/r, and each shape has another around it.
 
@@ -48,8 +47,8 @@ Session.Execute("Pierce.py", "Pierce", "execute", is_gm). is_gm is accepted and 
 
 Ported from the CURRENT PierceMerlin.cs, which has moved on from .claude\\merlin.md: there is no
 WriteButtonSpreadsheet1 stub any more, the punch- and retainer- branches of the secondary pass are live, every
-button/retainer configure runs a sheet pass (ApplySheetExpressions with per-detail Exp-Attr row ranges), and the
-retainer falls back to get_retainer_expressions only when its sheet applied nothing. PlacePierceButton still uses
+button configure runs a sheet pass (ApplySheetExpressions with per-detail Exp-Attr row ranges), and the retainer
+is a preset of its diameter with no sheet pass (2026-11-05, unlike the C#). PlacePierceButton still uses
 the scratch seed _gmButtonPath1 (G:\\CTS\\junk\\merlin\\Smart GM Button1.prt), kept.
 
 Not ported: set_round_punch / set_rectangle_punch (empty bodies, never called) and the commented-out set_* methods;
@@ -80,7 +79,7 @@ Differences from the C# / uncertainties (none of this has been run in NX):
     Python callers.
 
 The Merlin helpers DrawDie.py and PointComponent.py already port (CheckInfoUnits, the body pick, TimeSpan
-printing, RandomFileToken) are imported from them rather than copied.
+printing, NextPartPath) are imported from them rather than copied.
 """
 
 from __future__ import annotations
@@ -124,13 +123,15 @@ SlugDimensionDecimals = 6
 # Exp-Attr row range ApplySheetExpressions walks - each detail type's sheet has its own layout.
 ButtonExpAttrFirstRow = 3
 ButtonExpAttrLastRow = 31
-RetainerExpAttrFirstRow = 4
-RetainerExpAttrLastRow = 28
 
 _gmButtonPath1 = "G:\\CTS\\junk\\merlin\\Smart GM Button1.prt"
 _gmButtonPath = "G:\\0Library\\0Customer\\GM\\Smart GM Button.prt"  # unused, as in the C#
 _gmPunchPath = "G:\\CTS\\junk\\merlin\\Smart GM Punch.prt"
-_gmBallLockRetainerPath = "G:\\CTS\\junk\\merlin\\Smart GM HD Ball Lock Retainer.prt"
+
+# Smart GM HD Ball Lock Retainer presets (2026-11-05): one Save As per punch diameter in the library folder, with its
+# spreadsheet and expressions already set, so no sheet is opened for a retainer.
+_gmBallLockRetainerDiameters = (10, 13, 16, 20, 25, 32, 40)
+_gmBallLockRetainerPath = "G:\\0Library\\0Customer\\GM\\Smart GM HD Ball Lock Retainer {}.prt"
 
 _VectorZ = NXOpen.Vector3d(0.0, 0.0, 1.0)
 
@@ -761,76 +762,6 @@ def get_rectangle_button_diameter(w: float, p: float) -> int:
     return diameter
 
 
-class RetainerExpressions(NamedTuple):
-    """get_retainer_expressions' out parameters, in their C# order (the tests' slot n is index n - 1 here)."""
-    l: float
-    w: float
-    g: float
-    k: float
-    r: float
-    s: float
-    u: float
-    x: float
-    y: float
-    thk: float
-    cbore_depth: float
-    cbore_dia: float
-    clr_hole: float
-    dwl_dia: float
-    dwl_6mm_020_a: int
-    shcs_8mm_045: int
-    shcs_10mm_045: int
-    shcs_12mm_050: int
-    dwl_1: int
-    dwl_shape: int
-    retainer_angle: float
-    dwl_6mm_020_b: int
-    flat: int
-
-
-def get_retainer_expressions(d: int) -> RetainerExpressions:
-    """
-    PierceMerlin.get_retainer_expressions - the ball-lock retainer table, now only the fallback when the retainer's
-    sheet applies nothing. Rows for 10/13/16/20/25/32/40; d = 32 shares d = 25's row on purpose (the 32 retainer uses
-    the 25 body). Anything else returns all zeros rather than raising.
-    """
-    if d == 10:
-        return RetainerExpressions(35.0, 43.7, 11.1, 19.0, 9.5, 12.0, 26.93, 9.0, 7.5,
-                                   41.0, 9.5, 14.0, 9.0, 6.0,
-                                   1, 1, 0, 0,
-                                   1, 1, 29.0, 1, 1)
-    if d == 13:
-        return RetainerExpressions(38.1, 50.0, 14.3, 19.0, 12.7, 15.2, 29.97, 12.0, 6.0,
-                                   41.0, 9.5, 14.0, 9.0, 6.0,
-                                   1, 1, 0, 0,
-                                   1, 1, 29.0, 1, 1)
-    if d == 16:
-        return RetainerExpressions(39.7, 53.2, 15.9, 19.0, 14.3, 16.8, 31.75, 13.5, 6.0,
-                                   41.0, 9.5, 14.0, 9.0, 6.0,
-                                   1, 1, 0, 0,
-                                   1, 1, 29.0, 1, 1)
-    if d == 20:
-        return RetainerExpressions(42.8, 59.5, 17.5, 19.0, 17.5, 20.0, 33.53, 16.5, 5.0,
-                                   41.0, 11.5, 17.0, 11.0, 6.0,
-                                   1, 0, 1, 0,
-                                   1, 1, 29.0, 1, 1)
-    # 32 shares the 25 retainer body - one branch, intentionally.
-    if d == 25 or d == 32:
-        return RetainerExpressions(47.7, 69.1, 19.8, 23.8, 22.2, 24.7, 40.64, 22.0, 7.0,
-                                   41.0, 13.5, 20.0, 13.5, 6.0,
-                                   1, 0, 1, 0,
-                                   1, 1, 29.0, 1, 1)
-    if d == 40:
-        return RetainerExpressions(51.4, 76.6, 24.0, 27.0, 26.0, 28.5, 43.99, 26.0, 10.0,
-                                   41.0, 13.5, 20.0, 13.5, 6.0,
-                                   1, 0, 1, 1,
-                                   1, 1, 29.0, 1, 1)
-    return RetainerExpressions(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                               0.0, 0.0, 0.0, 0.0, 0.0,
-                               0, 0, 0, 0,
-                               0, 0, 0.0, 0, 0)
-
-
 # ---------------------------------------------------------------------------------------------------
 # Placement and SaveAs
 # ---------------------------------------------------------------------------------------------------
@@ -847,23 +778,31 @@ def _place_pierce_punch(origin: NXOpen.Point3d, orientation: NXOpen.Matrix3x3) -
                             origin=nx.add_z(origin, .25), orientation=orientation)
 
 
-def _place_pierce_retainer(origin: NXOpen.Point3d, orientation: NXOpen.Matrix3x3) -> Component:
+def _ball_lock_retainer_path(punch_diameter: int) -> str:
+    """The retainer preset for punch_diameter. Raises for a diameter with no preset, before anything is placed."""
+    if punch_diameter not in _gmBallLockRetainerDiameters:
+        raise ArgumentOutOfRangeException("No ball lock retainer preset for punch diameter {}.".format(punch_diameter))
+
+    return _gmBallLockRetainerPath.format(punch_diameter)
+
+
+def _place_pierce_retainer(origin: NXOpen.Point3d, orientation: NXOpen.Matrix3x3, retainer_path: str) -> Component:
     """PierceMerlin.PlacePierceRetainer - 3.7402 then -.19689291339 up (two adds, as the C# chains them), flipped."""
-    return nx.add_component(nx.display_part(), _gmBallLockRetainerPath, reference_set="BODY",
+    return nx.add_component(nx.display_part(), retainer_path, reference_set="BODY",
                             origin=nx.add_z(nx.add_z(origin, 3.7402), -0.19689291339),
                             orientation=nx.matrix_from_axes(nx.negate(nx.axis_x(orientation)),
                                                             nx.negate(nx.axis_y(orientation))))
 
 
-def _place_pierce_components(origin: NXOpen.Point3d, orientation: NXOpen.Matrix3x3,
-                             stations: _PierceStations) -> Tuple[Component, Component, Component]:
+def _place_pierce_components(origin: NXOpen.Point3d, orientation: NXOpen.Matrix3x3, stations: _PierceStations,
+                             retainer_path: str) -> Tuple[Component, Component, Component]:
     """
     PierceMerlin.PlacePierceComponents - button, punch, retainer, each measured from the origin itself. Each is
     placed in the display part, then moved under its station: the button into lad, the punch and retainer into uad.
     """
     button = _move_into_station(_place_pierce_button(origin, orientation), stations.lad)
     punch = _move_into_station(_place_pierce_punch(origin, orientation), stations.uad)
-    retainer = _move_into_station(_place_pierce_retainer(origin, orientation), stations.uad)
+    retainer = _move_into_station(_place_pierce_retainer(origin, orientation, retainer_path), stations.uad)
     return button, punch, retainer
 
 
@@ -988,11 +927,10 @@ def _save_pierce_components(button: Component, punch: Component, retainer: Compo
 
 def _save_pierce_component(component: Component, name_prefix: str, type_: str) -> None:
     """
-    PierceMerlin.SavePierceComponent - Save As {display dir}\\{prefix}-{token}.prt, then TYPE / CSPC / GM Tool Number
+    PierceMerlin.SavePierceComponent - Save As {display dir}\\{prefix}-{n}.prt, then TYPE / CSPC / GM Tool Number
     on the prototype. Does NOT add to the created list - the caller does that after the configure returns.
     """
-    nx.prototype(component).SaveAs("{}\\{}-{}.prt".format(os.path.dirname(nx.display_part().FullPath), name_prefix,
-                                                          merlin._random_file_token()))
+    nx.prototype(component).SaveAs(merlin._next_part_path(os.path.dirname(nx.display_part().FullPath), name_prefix))
     nx.set_attribute(nx.prototype(component), "TYPE", type_)
     nx.set_attribute(nx.prototype(component), "CSPC", "X")
     nx.set_attribute(nx.prototype(component), "GM Tool Number", "X")
@@ -1008,37 +946,6 @@ SetCell = Callable[[int, int, float], None]
 def _set_formula(name: str, formula: str) -> None:
     """work_.Expressions.FindObject(name).SetFormula(formula) - raises when the work part has no such expression."""
     nx.work_part().Expressions.FindObject(name).SetFormula(formula)
-
-
-def _apply_retainer_expressions(d: int) -> None:
-    """PierceMerlin.ApplyRetainerExpressions - d plus the table's dimension set. The retainer must be the work part."""
-    e = get_retainer_expressions(d)
-    f = nx.cs_double_str
-
-    _set_formula("d", "{}mm".format(d))
-    _set_formula("l", "{}mm".format(f(e.l)))
-    _set_formula("w", "{}mm".format(f(e.w)))
-    _set_formula("g", "{}mm".format(f(e.g)))
-    _set_formula("k", "{}mm".format(f(e.k)))
-    _set_formula("r", "{}mm".format(f(e.r)))
-    _set_formula("s", "{}mm".format(f(e.s)))
-    _set_formula("u", "{}mm".format(f(e.u)))
-    _set_formula("x", "{}mm".format(f(e.x)))
-    _set_formula("y", "{}mm".format(f(e.y)))
-    _set_formula("thk", "{}mm".format(f(e.thk)))
-    _set_formula("cbore_depth", "{}mm".format(f(e.cbore_depth)))
-    _set_formula("cbore_dia", "{}mm".format(f(e.cbore_dia)))
-    _set_formula("clr_hole", "{}mm".format(f(e.clr_hole)))
-    _set_formula("dwl_dia", "{}mm".format(f(e.dwl_dia)))
-    _set_formula("dwl_1", "{}".format(e.dwl_1))
-    _set_formula("dwl_shape", "{}".format(e.dwl_shape))
-    _set_formula("retainer_angle", "{}".format(f(e.retainer_angle)))
-    _set_formula("SHCS8_45", "{}".format(e.shcs_8mm_045))
-    _set_formula("SHCS10_45", "{}".format(e.shcs_10mm_045))
-    _set_formula("SHCS12_50", "{}".format(e.shcs_12mm_050))
-    _set_formula("DWL6_20_A", "{}".format(e.dwl_6mm_020_a))
-    _set_formula("DWL6_20_B", "{}".format(e.dwl_6mm_020_b))
-    _set_formula("FLAT", "{}".format(e.flat))
 
 
 def _apply_sheet_expressions(detail: Component, first_exp_attr_row: int, last_exp_attr_row: int,
@@ -1242,24 +1149,11 @@ def _configure_rectangle_punch(punch: Component, p_value: str, w_value: str, r_v
 
 def _configure_pierce_retainer(retainer: Component, punch_diameter: int) -> None:
     """
-    PierceMerlin.ConfigurePierceRetainer - diameter attribute, then the retainer sheet (Main (3,4), Exp-Attr rows
-    4-28); falls back to get_retainer_expressions when the sheet applied nothing.
+    PierceMerlin.ConfigurePierceRetainer - the diameter attribute, which the secondary pass reads back. The retainer
+    was placed from the preset of this diameter, so its sheet and expressions are already right.
     """
     nx.set_work_component(retainer)
     nx.set_attribute(nx.work_part(), "diameter", str(punch_diameter))
-
-    def write(set_cell: SetCell) -> None:
-        set_cell(3, 4, punch_diameter)       # diameter
-
-    applied = _apply_sheet_expressions(retainer, RetainerExpAttrFirstRow, RetainerExpAttrLastRow, write)
-
-    if applied > 0:
-        return
-
-    nx.warn("Retainer d={}: the spreadsheet applied no expressions - falling back to get_retainer_expressions."
-              .format(punch_diameter))
-    nx.set_work_component(retainer)
-    _apply_retainer_expressions(punch_diameter)
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -1280,6 +1174,7 @@ def _add_rounds(rounds: List[Round], created: List[Component], stations: _Pierce
             # button-*/punch-*/retainer-*.prt behind for a group that was never buildable.
             button_diameter = get_round_button_diameter(float(p_value))
             punch_diameter = get_round_punch_diameter(float(p_value))
+            retainer_path = _ball_lock_retainer_path(punch_diameter)
 
             button: Optional[Component] = None
             punch: Optional[Component] = None
@@ -1289,7 +1184,7 @@ def _add_rounds(rounds: List[Round], created: List[Component], stations: _Pierce
 
             for round_slug in p_dict_round[p_value]:
                 button, punch, retainer = _place_pierce_components(round_slug.origin, round_slug.orientation,
-                                                                   stations)
+                                                                   stations, retainer_path)
 
             button, punch, retainer = _placed(button, punch, retainer)
             _save_pierce_components(button, punch, retainer, "round")
@@ -1323,6 +1218,7 @@ def _add_oblongs(oblongs: List[Oblong], created: List[Component], stations: _Pie
                 # Size both first - see _add_rounds.
                 button_diameter = get_oblong_button_diameter(float(w_value), float(p_value))
                 punch_diameter = get_oblong_punch_diameter(float(p_value))
+                retainer_path = _ball_lock_retainer_path(punch_diameter)
 
                 button: Optional[Component] = None
                 punch: Optional[Component] = None
@@ -1332,7 +1228,7 @@ def _add_oblongs(oblongs: List[Oblong], created: List[Component], stations: _Pie
 
                 for oblong_slug in w_dict[w_value]:
                     button, punch, retainer = _place_pierce_components(oblong_slug.origin, oblong_slug.orientation,
-                                                                       stations)
+                                                                       stations, retainer_path)
 
                 button, punch, retainer = _placed(button, punch, retainer)
                 _save_pierce_components(button, punch, retainer, "oblong")
@@ -1371,6 +1267,7 @@ def _add_rectangles(rectangles: List[Rectangle], created: List[Component], stati
                     # Size both first - see _add_rounds. The button lookup is the one with the known gap.
                     button_diameter = get_rectangle_button_diameter(float(w_value), float(p_value))
                     punch_diameter = get_rectangle_punch_diameter(float(p_value))
+                    retainer_path = _ball_lock_retainer_path(punch_diameter)
 
                     button: Optional[Component] = None
                     punch: Optional[Component] = None
@@ -1380,7 +1277,8 @@ def _add_rectangles(rectangles: List[Rectangle], created: List[Component], stati
 
                     for rectangle_slug in r_dict[r_value]:
                         button, punch, retainer = _place_pierce_components(rectangle_slug.origin,
-                                                                           rectangle_slug.orientation, stations)
+                                                                           rectangle_slug.orientation, stations,
+                                                                           retainer_path)
 
                     button, punch, retainer = _placed(button, punch, retainer)
                     _save_pierce_components(button, punch, retainer, "rectangle")
@@ -1490,7 +1388,7 @@ def _process_secondary_pierce(components: Iterable[Optional[Component]]) -> None
 
                 elif "retainer-" in part.Leaf:
                     nx.set_work_part(part)
-                    _write_retainer_spreadsheet(component, nx.get_attribute(nx.work_part(), "diameter"))
+                    _stamp_retainer_attributes(component, nx.get_attribute(nx.work_part(), "diameter"))
 
                 else:
                     nx.print_("Unknown part -> {}".format(part.Leaf))
@@ -1615,24 +1513,18 @@ def _write_punch_spreadsheet(punch: Component, slug_type: int, diameter: str, p:
     _edit_pierce_spreadsheet(punch, write)
 
 
-def _write_retainer_spreadsheet(retainer: Component, diameter: str) -> bool:
+def _stamp_retainer_attributes(retainer: Component, diameter: str) -> None:
     """
-    PierceMerlin.WriteRetainerSpreadsheet - validates the diameter first, stamps DESCRIPTION / GM_DESCRIPTION / LABEL
-    on the prototype, then writes the diameter into Main (3,4).
+    PierceMerlin.WriteRetainerSpreadsheet without its sheet (the retainer is a preset of its diameter, 2026-11-05):
+    validates the diameter, then stamps DESCRIPTION / GM_DESCRIPTION / LABEL on the prototype.
     """
-    d = _try_cell_value("diameter", diameter)
-    if d is None:
-        return False
+    if _try_cell_value("diameter", diameter) is None:
+        return
 
     prototype = nx.prototype(retainer)
     nx.set_attribute(prototype, "DESCRIPTION", "BRT-{} BL RETAINER".format(diameter))
     nx.set_attribute(prototype, "GM_DESCRIPTION", "90.60.00-{}HD BALL LOCK RETAINER".format(diameter))
     nx.set_attribute(prototype, "LABEL", "90.60.00-{}HD".format(diameter))
-
-    def write(set_cell: SetCell) -> None:
-        set_cell(3, 4, d)                                       # diameter
-
-    return _edit_pierce_spreadsheet(retainer, write)
 
 
 # ---------------------------------------------------------------------------------------------------

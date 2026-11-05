@@ -51,7 +51,6 @@ Run standalone: File -> Execute -> NX Open on this file runs main().
 from __future__ import annotations
 
 import datetime
-import math
 import os
 import random
 import re
@@ -207,14 +206,18 @@ class FlangeUp(object):
             nx.show_error("Flange Up must be run from the 000.")
             return
 
-        numbers = sorted(drawdie.find_op_stations())
-        if len(numbers) == 0:
+        stations = drawdie.find_op_stations()
+        if len(stations) == 0:
             nx.show_error("Flange Up could not find an op with both a LADnn and a UADnn under {}.".format(
                 nx.display_part().Leaf))
             return
 
-        dialog = _FlangeUpDialog(title_with_version("Flange Up"), numbers)
-        if not dialog.run():
+        dialog = _FlangeUpDialog(title_with_version("Flange Up"), stations)
+        try:
+            accepted = dialog.run()
+        finally:
+            drawdie._erase_preview()
+        if not accepted:
             return
 
         options = FlangeUpOptions(dialog.station, dialog.lower, dialog.upper, dialog.lower_rows, dialog.flange,
@@ -444,8 +447,8 @@ def _build_pad(job: DrawDieJob, min_point: NXOpen.Point3d, xlength: float, ywidt
     mount_z, into, out_of, top_z, up_from_top = _faces(job.is_upper, height)
 
     def jack_screws() -> None:
-        xs = _balanced(xlength / 2, 2, xlength - 2 * PadJackInsetX)
-        ys = _balanced(ywidth / 2, 4, (ywidth - 2 * PadJackInsetY) / 3)
+        xs = drawdie._balanced(xlength / 2, 2, xlength - 2 * PadJackInsetX)
+        ys = drawdie._balanced(ywidth / 2, 4, (ywidth - 2 * PadJackInsetY) / 3)
         drawdie._place_draw_die_children("pad jack screw", drawdie._jck12mmScrewTsgPath,
                                          [(NXOpen.Point3d(x, y, mount_z), into) for x in xs for y in ys],
                                          layer=99, subtract_refset="CBORE_BLIND", body_refset=body_refset)
@@ -628,8 +631,8 @@ def _build_riser(job: DrawDieJob, pad_box: nx.Box3d, pad_part: NXOpen.Part) -> n
     # Jack screws: four up each wall, aimed midway between the SHCS, balanced about the centre on a 1" grid.
     def jack_screws() -> None:
         spacing = shcs_ys[1] - shcs_ys[0] if len(shcs_ys) > 1 else ywidth
-        xs = _balanced(xlength / 2, 2, xlength - 2 * RiserShcsInsetX)
-        ys = _balanced(ywidth / 2, RiserShcsPerSide - 1, spacing)
+        xs = drawdie._balanced(xlength / 2, 2, xlength - 2 * RiserShcsInsetX)
+        ys = drawdie._balanced(ywidth / 2, RiserShcsPerSide - 1, spacing)
         drawdie._place_draw_die_children("riser jack screw", drawdie._jck12mmScrewTsgPath,
                                          [(NXOpen.Point3d(x, y, mount_z), into) for x in xs for y in ys],
                                          layer=99, subtract_refset="CBORE_BLIND", body_refset=body_refset)
@@ -682,13 +685,25 @@ def _build_riser(job: DrawDieJob, pad_box: nx.Box3d, pad_part: NXOpen.Part) -> n
 # Flange up steels
 # ---------------------------------------------------------------------------------------------------
 
-def _build_lower_steels(job: DrawDieJob, options: FlangeUpOptions, refsets: Dict[str, Optional[str]]) -> None:
-    """LOWER FLANGE UP STEELS - see the module docstring. One key job copy for all of them."""
-    box = job.part_box
+def _lower_steel_size(box: nx.Box3d) -> Tuple[NXOpen.Point3d, float, float, float]:
+    """The min corner, X, Y and height of all the lower steels together, over a part box in the station."""
     xlength = nx.round_to_125(box.MaxX - box.MinX) + 2 * LowerSteelOverhangX
     ywidth = nx.round_to_125(box.MaxY - box.MinY) + 2 * LowerSteelOverhangY
     height = nx.round_to_125(box.MaxZ - box.MinZ + LowerSteelMinHeight)
-    min_point = drawdie._centered_min(box, xlength, ywidth, box.MaxZ - height)
+    return drawdie._centered_min(box, xlength, ywidth, box.MaxZ - height), xlength, ywidth, height
+
+
+def _upper_steel_size(box: nx.Box3d) -> Tuple[NXOpen.Point3d, float, float, float]:
+    """The min corner, X, Y and height of all the upper steels together, over a part box in the station."""
+    xlength = nx.round_to_125(box.MaxX - box.MinX) + 2 * UpperSteelOverhang
+    ywidth = nx.round_to_125(box.MaxY - box.MinY) + 2 * UpperSteelOverhang
+    height = nx.round_to_125(box.MaxZ - box.MinZ + UpperSteelMinThickness)
+    return drawdie._centered_min(box, xlength, ywidth, box.MinZ), xlength, ywidth, height
+
+
+def _build_lower_steels(job: DrawDieJob, options: FlangeUpOptions, refsets: Dict[str, Optional[str]]) -> None:
+    """LOWER FLANGE UP STEELS - see the module docstring. One key job copy for all of them."""
+    min_point, xlength, ywidth, height = _lower_steel_size(job.part_box)
 
     rows = options.lower_rows
     column_width = (xlength - merlin.SplitGap) / 2
@@ -768,11 +783,7 @@ def _build_one_lower_steel(job: DrawDieJob, block_min: NXOpen.Point3d, column: i
 
 def _build_upper_steels(job: DrawDieJob, options: FlangeUpOptions, refsets: Dict[str, Optional[str]]) -> None:
     """UPPER FLANGE UP STEELS - see the module docstring. One key job copy for all of them."""
-    box = job.part_box
-    xlength = nx.round_to_125(box.MaxX - box.MinX) + 2 * UpperSteelOverhang
-    ywidth = nx.round_to_125(box.MaxY - box.MinY) + 2 * UpperSteelOverhang
-    height = nx.round_to_125(box.MaxZ - box.MinZ + UpperSteelMinThickness)
-    min_point = drawdie._centered_min(box, xlength, ywidth, box.MinZ)
+    min_point, xlength, ywidth, height = _upper_steel_size(job.part_box)
 
     columns, rows = options.upper_rows, options.upper_cols
     column_width = (xlength - (columns - 1) * merlin.SplitGap) / columns
@@ -862,18 +873,11 @@ def _faces(is_upper: bool, height: float) -> Tuple[float, NXOpen.Matrix3x3, NXOp
     return 0.0, drawdie._z_matrix(_VectorZ), drawdie._z_matrix(_VectorZN), height, drawdie._z_matrix(_VectorZ)
 
 
-def _balanced(center: float, count: int, target_spacing: float) -> List[float]:
-    """count values balanced about center, a whole number of inches apart (at least 1"): target_spacing rounded
-    down."""
-    spacing = max(1.0, float(math.floor(round(target_spacing, 6))))
-    return [center + (i - (count - 1) / 2) * spacing for i in range(count)]
-
-
 def _place_jack_pair(width: float, length: float, z: float, orientation: NXOpen.Matrix3x3, inset: float,
                      body_refset: NXOpen.ReferenceSet) -> None:
     """Two TSG jack screws (CBORE_BLIND) on diagonal corners, balanced about the centre on a 1" grid."""
-    xs = _balanced(width / 2, 2, width - 2 * inset)
-    ys = _balanced(length / 2, 2, length - 2 * inset)
+    xs = drawdie._balanced(width / 2, 2, width - 2 * inset)
+    ys = drawdie._balanced(length / 2, 2, length - 2 * inset)
     drawdie._place_draw_die_children("steel jack screw", drawdie._jck12mmScrewTsgPath,
                                      [(NXOpen.Point3d(xs[1], ys[0], z), orientation),
                                       (NXOpen.Point3d(xs[0], ys[1], z), orientation)],
@@ -924,15 +928,52 @@ def _f3(value: float) -> str:
 # Dialog
 # ---------------------------------------------------------------------------------------------------
 
+def draw_steels(bodies: Sequence[NXOpen.Body], stations: Dict[str, NXOpen.Assemblies.Component],
+                options: FlangeUpOptions) -> None:
+    """
+    Outlines with temporary lines the lower and upper flange up steels over bodies, where the build makes them, for
+    the sides options builds. The pads and riser are not drawn. Leaves any lines already up; the caller erases.
+    """
+    if not bodies:
+        nx.syslog("Flange Up preview: no bodies picked, nothing drawn.")
+        return
+    box = nx.combine_boxes([nx.body_box(b) for b in bodies])
+
+    if options.lower:
+        station = stations["lad"]
+        # Both X halves, one after the other; the flange side keeps one of them.
+        boxes = drawdie._form_steel_boxes(_lower_steel_size(drawdie._box_in_station(station, box)), 2,
+                                          options.lower_rows)
+        if options.flange == FlangeLeft:
+            boxes = boxes[:options.lower_rows]
+        elif options.flange == FlangeRight:
+            boxes = boxes[options.lower_rows:]
+        for origin, x, y, z in boxes:
+            drawdie._draw_box(station, origin, x, y, z, drawdie.PreviewLowerColor)
+        nx.syslog("Flange Up preview: lower {}, {} along Y - {} box(es) drawn in {}.".format(
+            options.flange, options.lower_rows, len(boxes), station.DisplayName))
+
+    if options.upper:
+        station = stations["uad"]
+        boxes = drawdie._form_steel_boxes(_upper_steel_size(drawdie._box_in_station(station, box)),
+                                          options.upper_rows, options.upper_cols)
+        for origin, x, y, z in boxes:
+            drawdie._draw_box(station, origin, x, y, z, drawdie.PreviewUpperColor)
+        nx.syslog("Flange Up preview: upper {} along X by {} along Y - {} box(es) drawn in {}.".format(
+            options.upper_rows, options.upper_cols, len(boxes), station.DisplayName))
+
+
 class _FlangeUpDialog(Dialog):
     """FlangeUp.dlx: Customer, the bodies, the op, Lower (Rows (y), flange side), Upper (Rows (x), Cols (y)).
-    GM keys and guided retainers are placed from DrawDie's preset parts, so no spreadsheet is opened."""
+    GM keys and guided retainers are placed from DrawDie's preset parts, so no spreadsheet is opened. While it is
+    open, the steels of the checked sides are outlined with temporary lines over the picked bodies."""
 
     dlx_name = "FlangeUp.dlx"
 
-    def __init__(self, title: str, numbers: Sequence[str]) -> None:
+    def __init__(self, title: str, stations: Dict[str, Dict[str, NXOpen.Assemblies.Component]]) -> None:
         self.title = title
-        self.numbers = list(numbers)
+        self.stations = stations
+        self.numbers = sorted(stations)
         super().__init__()
         # Captured in ok(): the blocks are gone once Launch returns.
         self.customer_choice = CustomerNone
@@ -960,9 +1001,23 @@ class _FlangeUpDialog(Dialog):
         self.block("lower").Value = True
         self.block("upper").Value = True
         self._enable_sides()
+        self._preview()
 
     def update(self, block: NXOpen.BlockStyler.UIBlock) -> None:
         self._enable_sides()
+        self._preview()
+
+    def _preview(self) -> None:
+        """The outlines of what OK would build; a failure goes to the syslog and leaves the dialog working."""
+        try:
+            station = str(self.block("station").ValueAsString)
+            options = FlangeUpOptions(station, bool(self.block("lower").Value), bool(self.block("upper").Value),
+                                      int(self.block("lower_rows").Value), str(self.block("flange").ValueAsString),
+                                      int(self.block("upper_rows").Value), int(self.block("upper_cols").Value))
+            drawdie._erase_preview()
+            draw_steels(self._picked_bodies(), self.stations[station], options)
+        except Exception as ex:
+            nx.syslog("Flange Up: the preview failed: {}".format(ex))
 
     def _enable_sides(self) -> None:
         lower = bool(self.block("lower").Value)

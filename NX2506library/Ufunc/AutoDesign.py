@@ -10,7 +10,7 @@ asking for them, in this order:
   - TRIM     - GM 2nd Trim Station, -02 stations (BlankStation.build, is3d True)
   - PRC      - GM Pierce into LAD02 (buttons) and UAD02 (punches, retainers) (Pierce.build, station "02", no
                station menu; pierce only, no secondary pass)
-  - DRAW     - Draw Die into LAD02 and UAD02 (DrawDie.build), each side on the dialog's own Rows (x) x Cols (y)
+  - DRAW     - Draw Die into LAD02 and UAD02 (DrawDie.build), each side on the dialog's own blocks along X x Y
   - RESTRIKE - GM Cast Post, once in LAD02 (LWR-3D) and once in UAD02 (UPR-3D) (CastPost.build)
   - DEADHIT  - GM Split Form with backing plate and SHCS from the backside in LAD02 (LWR-3D), then the Draw Die's
                upper half in UAD02 (cavity steels 3/8" past the part a side and mounting plate, UPR-3D), each side on
@@ -38,9 +38,10 @@ Kept from the C#:
     overall time.
   - A DebugSignDotNet deploy (this file under ...\\bin\\DebugSignDotNet) skips every pierce detail's
     spreadsheet - the C# #if DEBUGSIGNDOTNET.
-  - Edit Spreadsheets (checked every time the dialog opens) off: no pierce detail's Excel sheet is opened
+  - Edit Spreadsheets (checked every time the dialog opens) off: no pierce button's or punch's Excel sheet is opened
     (Pierce.build's skip_spreadsheets) - they keep their seed settings. The draw die / dead hit / flange up keys
-    and guided retainers never open one: they are placed from preset parts already set (2026-11-03).
+    and guided retainers and the pierce ball lock retainers never open one: they are placed from preset parts
+    already set (2026-11-03, ball lock retainers 2026-11-05).
 
 The progress window is progress_window.ProgressWindow (ProgressWindow.ps1), a separate PowerShell window (Python in NX cannot show WinForms) that
 follows this run's progress file: Auto Design's own lines (#LOG / #TITLE / #DONE) and every builder step written
@@ -176,6 +177,9 @@ class AutoDesign(object):
                           "callback).\n\nTry running it from File -> Execute -> NX Open rather than from a menu or "
                           "toolbar button.".format(title, _ErrorCannotLaunchDialog))
             return
+        finally:
+            # The dialog's DRAW, DEADHIT and FLANGEUP outlines.
+            drawdie._erase_preview()
 
         # A cancel prints nothing: Dialog.run already marked the run cancelled.
         if not accepted:
@@ -586,7 +590,8 @@ class _AutoDesignDialog(Dialog):
     """
     AutoDesign.dlx: Select all / Select solids, the body picker (shown only for Select solids), Normal / Heavy, and
     a checkbox per program labelled with its body count in the assembly (only the checked ones run), with DRAW's and
-    DEADHIT's lower and upper rows / cols and FLANGEUP's flange side and steel rows / cols.
+    DEADHIT's lower and upper rows / cols and FLANGEUP's flange side and steel rows / cols. While it is open, the
+    blocks of DRAW, DEADHIT and FLANGEUP, when checked, are outlined with temporary lines where they will be built.
     """
 
     dlx_name = "AutoDesign.dlx"
@@ -615,6 +620,10 @@ class _AutoDesignDialog(Dialog):
         self.edit_spreadsheets = True
         self.run_programs: Set[str] = set(Programs)
         self.customer_choice = CustomerNone
+        # Each previewed program's bodies in the assembly, found the first time the preview needs them.
+        self._program_bodies: Dict[str, List[NXOpen.Body]] = {}
+        # The op DRAW and FLANGEUP build in, found the first time the preview needs it; empty when there is none.
+        self._op_stations: Optional[Dict[str, NXOpen.Assemblies.Component]] = None
 
     def initialize(self) -> None:
         mask = NXOpen.Selection.MaskTriple(NXOpen.UF.UFConstants.UF_solid_type, 0, _SolidBodyDetail)
@@ -640,10 +649,71 @@ class _AutoDesignDialog(Dialog):
         # Not remembered (the .dlx): on every time.
         self.block("edit_spreadsheets").Value = True
         self._update_bodies_block()
+        self._preview()
 
     def update(self, block: NXOpen.BlockStyler.UIBlock) -> None:
         if block == self.block("scope"):
             self._update_bodies_block()
+        self._preview()
+
+    def _preview(self) -> None:
+        """The DRAW, DEADHIT and FLANGEUP blocks OK would build; a failure goes to the syslog, the dialog works on."""
+        from DeadStrike import draw_preview
+
+        try:
+            # Once for all of them: each draw only adds its lines.
+            drawdie._erase_preview()
+            self._preview_draw()
+            self._preview_flange_up()
+            draw_preview(self._preview_bodies(AutoDesignDeadHit), self._grid("deadhit_lower"),
+                         self._grid("deadhit_upper"))
+        except Exception as ex:
+            nx.syslog("Auto Design: the preview failed: {}".format(ex))
+
+    def _preview_draw(self) -> None:
+        """DRAW's post and cavity steels in its op's LADnn / UADnn."""
+        bodies = self._preview_bodies(AutoDesignDraw)
+        stations = self._preview_stations(AutoDesignDraw) if bodies else {}
+        if stations:
+            drawdie.draw_steels(bodies, stations, self._grid("draw_lower"), self._grid("draw_upper"))
+
+    def _preview_flange_up(self) -> None:
+        """FLANGEUP's lower and upper steels, as _run's flange_up sets them."""
+        bodies = self._preview_bodies(AutoDesignFlangeUp)
+        stations = self._preview_stations(AutoDesignFlangeUp) if bodies else {}
+        if stations:
+            import FlangeUp as flangeup
+            options = flangeup.FlangeUpOptions(drawdie.DefaultStation, True, True,
+                                               int(self.block("flangeup_lower_rows").Value),
+                                               str(self.block("flangeup_flange").ValueAsString),
+                                               int(self.block("flangeup_upper_rows").Value),
+                                               int(self.block("flangeup_upper_cols").Value))
+            flangeup.draw_steels(bodies, stations, options)
+
+    def _preview_stations(self, program: str) -> Dict[str, NXOpen.Assemblies.Component]:
+        """The default op's LADnn / UADnn, looked up once; empty, with a syslog line, when it has no pair."""
+        if self._op_stations is None:
+            self._op_stations = drawdie.find_op_stations().get(drawdie.DefaultStation, {})
+        if not self._op_stations:
+            nx.syslog("Auto Design: no LAD{0} / UAD{0} pair - {1} is not previewed.".format(drawdie.DefaultStation,
+                                                                                           program))
+        return self._op_stations
+
+    def _grid(self, name: str) -> Tuple[int, int]:
+        """A half's blocks along X, along Y."""
+        return int(self.block(name + "_rows").Value), int(self.block(name + "_cols").Value)
+
+    def _preview_bodies(self, program: str) -> List[NXOpen.Body]:
+        """The bodies OK would send to program: none unless it is checked, then as _run groups them."""
+        if not bool(self.block("run_" + program).Value):
+            return []
+        if not self._select_all():
+            return [b for b in self._picked_bodies() if auto_design_program(b) == program]
+        if program not in self._program_bodies:
+            self._program_bodies[program] = ([b for b in all_solid_body_occurrences(nx.display_part())
+                                              if auto_design_program(b) == program]
+                                             if self.program_parts.get(program) else [])
+        return self._program_bodies[program]
 
     def enable_ok(self) -> bool:
         return (self.customer_picked() and (self._select_all() or len(self._picked_bodies()) > 0)

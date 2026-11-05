@@ -23,7 +23,7 @@ import os
 import random
 import re
 import sys
-from typing import Callable, Iterable, List, Optional, Sequence, cast
+from typing import Callable, Iterable, List, Optional, Sequence, Set, cast
 
 # Session.Execute does not put the script's folder on sys.path, so the shared module would not import.
 _here = os.path.dirname(os.path.abspath(__file__))
@@ -264,12 +264,28 @@ def _random_file_token() -> str:
     return "{:.15g}".format(random.random()).replace("0.", "")
 
 
+def _child_component_names() -> Set[str]:
+    """The lower-case name of every child, loaded or not, of every part in the session that can be asked."""
+    names: Set[str] = set()
+    for part in nx.session_.Parts:
+        try:
+            root = part.ComponentAssembly.RootComponent
+            if root is not None:
+                names.update(child.DisplayName.lower() for child in root.GetChildren())
+        except NXOpen.NXException:
+            # "Part is only partially loaded": its children are not new details' names anyway.
+            continue
+    return names
+
+
 def _next_part_path(directory: str, name: str) -> str:
     """
-    Merlin.NextPartPath - {directory}\\{name}-{n}.prt with the lowest n from 1 that is free: no such file on disk and
-    no part with that leaf in the session (NX cannot hold two parts with one leaf, whatever their folders).
+    Merlin.NextPartPath - {directory}\\{name}-{n}.prt with the lowest n from 1 that is free: no such file on disk, no
+    part with that leaf in the session (NX cannot hold two parts with one leaf, whatever their folders) and no
+    component of that name. A component whose file was deleted stays in its parent, unloaded, so it is in neither of
+    the others, but NX still refuses the name with "File already exists" (error 1020004).
     """
-    leaves = {part.Leaf.lower() for part in nx.session_.Parts}
+    leaves = {part.Leaf.lower() for part in nx.session_.Parts} | _child_component_names()
     n = 1
     while True:
         leaf = "{}-{}".format(name, n)

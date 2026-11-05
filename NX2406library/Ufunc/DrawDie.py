@@ -11,7 +11,7 @@ The form steels are 2 x 4 unless the caller says otherwise; the upper's grid nee
 The draw-die UFunc picks through a Block Styler dialog (DrawDie.dlx, tools\\make-dlx.py, 2026-10-29): the Customer
 radio (None / TSG / GM, None on opening; TSG uses the CTS parts), the part's solid bodies and a radio of the
 ops - the display part's station numbers with both a ladNN and a uadNN, read when it opens (none is an error box
-before it; the work part's number is checked first when it is one) - then Lower and Upper Rows (x) / Cols (y), each
+before it; the work part's number is checked first when it is one) - then Lower and Upper blocks along X / Y, each
 side's form steels along X by along Y (2026-11-04, 2 x 4 by default). OK stays greyed out until TSG or GM is checked
 and a body is picked. OpBodiesDialog is shared with Pierce.py (Pierce.dlx); _DrawDieDialog adds the grids to it, and outlines
 each half's form steels with temporary lines while it is open: posts 186, cavity 211, redrawn on every change.
@@ -128,6 +128,8 @@ PreviewUpperColor = 211
 
 # The 12 edges of a box, as pairs of corner indices (corner bit 0 = +X, bit 1 = +Y, bit 2 = +Z).
 _BoxEdges = [(0, 1), (2, 3), (4, 5), (6, 7), (0, 2), (1, 3), (4, 6), (5, 7), (0, 4), (1, 5), (2, 6), (3, 7)]
+# Whether any preview lines are up since the last erase (_draw_box / _erase_preview).
+_preview_drawn = False
 
 CavityMinThickness = 2.75
 
@@ -1913,7 +1915,7 @@ class OpBodiesDialog(Dialog):
 
 class _DrawDieDialog(OpBodiesDialog):
     """
-    DrawDie.dlx: OpBodiesDialog's blocks, then Lower / Upper Rows (x) / Cols (y) - each half's form steels along X by
+    DrawDie.dlx: OpBodiesDialog's blocks, then Lower / Upper blocks along X / Y - each half's form steels along X by
     along Y, as Dead Strike's Rows / Cols. The upper can have a different number of steels than the lower. While it is
     open, each half's steels are outlined with temporary lines over the picked bodies, redrawn on every change.
     """
@@ -1985,6 +1987,8 @@ def _box_in_station(station: NXOpen.Assemblies.Component, box: nx.Box3d) -> nx.B
 def _draw_box(station: NXOpen.Assemblies.Component, origin: NXOpen.Point3d, x: float, y: float, z: float,
               color: int) -> None:
     """One box's 12 edges as temporary lines; they go on the next regenerate."""
+    global _preview_drawn
+    _preview_drawn = True
     # The Python binding's names (NXOpen_UF.pyd): NXOpen.UF.Obj.DispProps and NXOpen.UF.Disp.ViewType - not the
     # .NET UFObj / DispViewType, which do not exist here. Neither is in the stubs.
     uf: Any = NXOpen.UF
@@ -2008,22 +2012,40 @@ def _draw_box(station: NXOpen.Assemblies.Component, origin: NXOpen.Point3d, x: f
 def draw_preview(bodies: Sequence[NXOpen.Body], stations: Dict[str, NXOpen.Assemblies.Component],
                  lower_grid: Tuple[int, int], upper_grid: Tuple[int, int]) -> None:
     """
-    Clears the last preview, then outlines the post steels under bodies in the op's LADnn and the cavity steels over
-    them in its UADnn, sized and split as the build does it (the grids are along X, along Y).
+    Clears the last preview, then draw_steels.
     """
     _erase_preview()
+    draw_steels(bodies, stations, lower_grid, upper_grid)
+
+
+def draw_steels(bodies: Sequence[NXOpen.Body], stations: Dict[str, NXOpen.Assemblies.Component],
+                lower_grid: Tuple[int, int], upper_grid: Tuple[int, int]) -> None:
+    """
+    Outlines the post steels under bodies in the op's LADnn and the cavity steels over them in its UADnn, sized and
+    split as the build does it (the grids are along X, along Y). Leaves any lines already up; Auto Design's dialog
+    erases once and draws this and DeadStrike.draw_preview.
+    """
     if not bodies:
+        nx.syslog("Draw Die preview: no bodies picked, nothing drawn (lower {} x {}, upper {} x {}).".format(
+            lower_grid[0], lower_grid[1], upper_grid[0], upper_grid[1]))
         return
     box = nx.combine_boxes([nx.body_box(b) for b in bodies])
-    for station, size_of, grid, color in ((stations["lad"], _post_size, lower_grid, PreviewLowerColor),
-                                          (stations["uad"], _cavity_size, upper_grid, PreviewUpperColor)):
-        for origin, x, y, z in _form_steel_boxes(size_of(_box_in_station(station, box)), grid[0], grid[1]):
+    for half, station, size_of, grid, color in (("lower", stations["lad"], _post_size, lower_grid, PreviewLowerColor),
+                                                ("upper", stations["uad"], _cavity_size, upper_grid,
+                                                 PreviewUpperColor)):
+        boxes = _form_steel_boxes(size_of(_box_in_station(station, box)), grid[0], grid[1])
+        for origin, x, y, z in boxes:
             _draw_box(station, origin, x, y, z, color)
+        nx.syslog("Draw Die preview: {} {} along X by {} along Y - {} box(es) drawn in {}, {} bodies.".format(
+            half, grid[0], grid[1], len(boxes), station.DisplayName, len(bodies)))
 
 
 def _erase_preview() -> None:
-    """Temporary lines go on a regenerate."""
-    nx.ufsession_.Disp.RegenerateDisplay()
+    """Temporary lines go on a regenerate, which blinks the screen, so only when some were drawn."""
+    global _preview_drawn
+    if _preview_drawn:
+        _preview_drawn = False
+        nx.ufsession_.Disp.RegenerateDisplay()
 
 
 def main() -> None:
