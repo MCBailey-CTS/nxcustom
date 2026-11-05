@@ -172,15 +172,45 @@ def display_part_reset() -> Iterator[None]:
         set_work_part(original_work)
 
 
+# How many suppress_display blocks are open.
+_suppress_depth = 0
+
+
 @contextlib.contextmanager
 def suppress_display() -> Iterator[None]:
-    """SuppressDisplayReset - suppresses display updates, regenerates on exit."""
-    ufsession_.Disp.SetDisplay(UF_DISP_SUPPRESS_DISPLAY)
+    """
+    SuppressDisplayReset - suppresses display updates, regenerates on exit. Nested blocks share the outermost one, so
+    Auto Design's stays suppressed as each program's own block ends.
+    """
+    global _suppress_depth
+    if _suppress_depth == 0:
+        ufsession_.Disp.SetDisplay(UF_DISP_SUPPRESS_DISPLAY)
+    _suppress_depth += 1
     try:
         yield
     finally:
-        ufsession_.Disp.SetDisplay(UF_DISP_UNSUPPRESS_DISPLAY)
-        ufsession_.Disp.RegenerateDisplay()
+        _suppress_depth -= 1
+        if _suppress_depth == 0:
+            ufsession_.Disp.SetDisplay(UF_DISP_UNSUPPRESS_DISPLAY)
+            ufsession_.Disp.RegenerateDisplay()
+
+
+@contextlib.contextmanager
+def display_unsuppressed() -> Iterator[None]:
+    """
+    Lifts an open suppress_display for the block and puts it back after; does nothing when none is open. For a call that
+    fails under suppression: a part import into a post first displayed under Auto Design's block threw NX's "invalid
+    vector subscript" (error 69) from the display code.
+    """
+    if _suppress_depth == 0:
+        yield
+        return
+    ufsession_.Disp.SetDisplay(UF_DISP_UNSUPPRESS_DISPLAY)
+    ufsession_.Disp.RegenerateDisplay()
+    try:
+        yield
+    finally:
+        ufsession_.Disp.SetDisplay(UF_DISP_SUPPRESS_DISPLAY)
 
 
 @contextlib.contextmanager
@@ -309,7 +339,19 @@ def create_linked_body(child: NXOpen.Assemblies.Component) -> NXOpen.Features.Fe
 
 def create_linked_bodies(child: NXOpen.Assemblies.Component) -> List[NXOpen.Features.ExtractFace]:
     """Component.__CreateLinkedBodies - like create_linked_body, but one LINKED_BODY feature per solid body."""
+    return create_linked_bodies_of([child])
+
+
+def create_linked_bodies_of(children: Iterable[NXOpen.Assemblies.Component]) -> List[NXOpen.Features.ExtractFace]:
+    """
+    Wave links the solid bodies of all the children with one builder, a LINKED_BODY feature each: 200 occurrences
+    linked and subtracted this way took 2.2s against 11.6s one at a time. Each body gets its own rule, because one
+    rule holding several occurrences of a part keeps only one of them. No solid bodies gives no features.
+    """
     part = work_part()
+    bodies = [body for child in children for body in solid_body_members(child)]
+    if not bodies:
+        return []
     builder = part.BaseFeatures.CreateWaveLinkBuilder(None)
     try:
         extract = builder.ExtractFaceBuilder
@@ -317,8 +359,8 @@ def create_linked_bodies(child: NXOpen.Assemblies.Component) -> List[NXOpen.Feat
         builder.Type = NXOpen.Features.WaveLinkBuilder.Types.BodyLink
         extract.Associative = True
         extract.FeatureOption = NXOpen.Features.ExtractFaceBuilder.FeatureOptionType.SeparateFeatureForEachBody
-        rule = part.ScRuleFactory.CreateRuleBodyDumb(solid_body_members(child), False)
-        extract.ExtractBodyCollector.ReplaceRules([rule], False)
+        rules = [part.ScRuleFactory.CreateRuleBodyDumb([body], False) for body in bodies]
+        extract.ExtractBodyCollector.ReplaceRules(rules, False)
         extract.FixAtCurrentTimestamp = False
         builder.Commit()
         return [o for o in builder.GetCommittedObjects() if isinstance(o, NXOpen.Features.ExtractFace)]

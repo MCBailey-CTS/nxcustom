@@ -23,6 +23,7 @@ import os
 import random
 import re
 import sys
+import time
 from typing import Callable, Iterable, List, Optional, Sequence, Set, cast
 
 # Session.Execute does not put the script's folder on sys.path, so the shared module would not import.
@@ -421,18 +422,22 @@ def _subtract_components(get_target: Callable[[], NXOpen.Body],
                          components: Iterable[NXOpen.Assemblies.Component], refset: str) -> None:
     """
     Merlin.SubtractComponents - link each component's refset into the work part and subtract it. A tool that
-    misses the target (670030) prints the parts and nothing else.
+    misses the target (670030) prints the parts and nothing else. Each one's steps are timed to the syslog.
     """
     for comp in components:
         if not nx.has_reference_set(nx.prototype(comp), refset):
             nx.warn("Component {} does not have reference set {}, skipping boolean".format(comp.DisplayName, refset))
             continue
 
+        times = [time.time()]
         try:
             nx.set_reference_set(comp, refset)
+            times.append(time.time())
             linked = nx.create_linked_body(comp)
+            times.append(time.time())
             # Re-fetched every time - a boolean can replace the target body.
             nx.subtract(get_target(), linked.GetBodies())
+            times.append(time.time())
         except NXOpen.NXException as ex:
             # The tool misses the target: a note naming the parts, not an exception (no tblExceptions row).
             if ex.ErrorCode == nx.ErrorNoInterference:
@@ -446,6 +451,9 @@ def _subtract_components(get_target: Callable[[], NXOpen.Body],
             nx.print_exception(ex)
         finally:
             nx.set_reference_set(comp, "BODY")
+            times.append(time.time())
+            nx.syslog("Point Component: subtract {} {} - seconds for refset, link, boolean, back to BODY: {}".format(
+                comp.DisplayName, refset, " ".join("{:.2f}".format(b - a) for a, b in zip(times, times[1:]))))
 
 
 # ---------------------------------------------------------------------------------------------------

@@ -332,7 +332,8 @@ def _import_cast_text(part: NXOpen.Part, path: str, xlength: float, ywidth: floa
             importer.DestinationCoordinateSystem = part.NXMatrices.Create(nx.identity_matrix())
             importer.DestinationPoint = NXOpen.Point3d(block_origin.X + xlength / 2, block_origin.Y + ywidth / 2,
                                                        block_origin.Z)
-            importer.Commit()
+            with nx.display_unsuppressed():
+                importer.Commit()
         finally:
             importer.Destroy()
     finally:

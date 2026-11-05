@@ -2,7 +2,7 @@
 The design-check validators that read attributes, the AutoSize UDO status, linked-body timestamps and SHCS
 lengths - ports of src\\UFuncs\\DesignCheck\\Validators\\AttributeCheck.cs, RequiredAttributes.cs,
 DescriptionNXAttribute.cs, AutoUpdateStatus.cs, TimeStamps.cs and ShcsIncrements.cs over the design_check.Check
-contract (src\\python\\design_check.py).
+contract (src\\UFuncs\\python\\design_check.py).
 
 Ported from:
   - AttributeCheck                               -> AttributeCheck

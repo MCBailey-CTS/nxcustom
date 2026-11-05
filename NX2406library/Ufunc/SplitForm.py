@@ -610,18 +610,23 @@ def _promote_to_component(block: NXOpen.Features.Block, description: str, text: 
 def _subtract_and_refset_fasteners(fasteners: Sequence[NXOpen.Assemblies.Component], bottom_face: NXOpen.Face,
                                    body_refset: Optional[NXOpen.ReferenceSet]) -> None:
     """
-    Merlin.SubtractAndRefsetFasteners - work layer 96; per fastener: link it on the reference set it arrived on,
-    subtract from bottom_face's body, stamp `subtract`; layer-98 fasteners go to Empty, the rest to BODY and into
-    body_refset (None leaves them out).
+    Merlin.SubtractAndRefsetFasteners - work layer 96; all of them linked on the reference sets they arrived on and
+    subtracted from bottom_face's body together; then per fastener: stamp `subtract`; layer-98 fasteners go to Empty,
+    the rest to BODY and into body_refset (None leaves them out).
     """
     nx.display_part().Layers.WorkLayer = 96
+    subtracted = True
+    try:
+        # A fastener arrives on the reference set it is subtracted with (CBORE, SHORT-TAP, ...).
+        drawdie._subtract_linked_components(bottom_face.GetBody, fasteners)
+    except Exception as ex:
+        subtracted = False
+        nx.print_exception(ex)
+
     for fastener in fasteners:
         try:
-            # The fastener arrives on the reference set it is subtracted with (CBORE, SHORT-TAP, ...).
-            subtract_refset = fastener.ReferenceSet
-            link = nx.create_linked_body(fastener)
-            _subtract_linked_body(nx.display_part(), bottom_face.GetBody(), link)
-            drawdie._stamp_fastener_subtract(fastener, subtract_refset)
+            if subtracted:
+                drawdie._stamp_fastener_subtract(fastener, fastener.ReferenceSet)
             if fastener.Layer == 98:
                 nx.set_reference_set(fastener, "Empty")
                 continue
@@ -698,12 +703,13 @@ def _place_split_keys(is_upper: bool, xlength: float, this_block_origin: NXOpen.
     """
     Merlin.PlaceSplitKeys - PlaceEdgeItems with the GM / CTS key, x_edge_inset 2.4498 and the .0748 front/back nudge
     on GM only. The caller saves and restores the WCS (an upper rotates it). An upper's keys sit on top of the block,
-    block_z up (PlaceEdgeItems assumes the old 8"). key_shift moves the keys off centre (DrawDie.key_shift_for).
+    block_z up (PlaceEdgeItems assumes the old 8"). key_shift moves the keys off centre (DrawDie.key_shift_for). Three
+    keys: front, back and one X key at the block's centre (centre_x_key, as the draw die's cavity steels).
     """
     return drawdie._place_edge_items(_gmKeyPath if is_gm else _ctsSmartKeyMetric, this_block_origin, xlength,
                                      block_height, is_upper, front_back_nudge=0.0748 if is_gm else 0.0,
                                      x_edge_inset=2.4498, extra_z=block_z - SplitFormHeight if is_upper else 0.0,
-                                     layer=layer, key_shift=key_shift)
+                                     layer=layer, key_shift=key_shift, centre_x_key=True)
 
 
 def _find_bottom_face() -> NXOpen.Face:

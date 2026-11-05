@@ -1244,22 +1244,30 @@ def _place_draw_die_children(label: str, path: str, placements: Iterable[Placeme
     """
     Merlin.PlaceDrawDieChildren - adds one path per placement to the display part on layer (BODY reference set),
     subtracting subtract_refset from the dynamic block when it is not None and adding each to body_refset when that
-    is not None. One at a time, so a part that fails costs only itself. Returns what was placed.
+    is not None. Added one at a time, so a part that fails costs only itself, then subtracted together. Returns what
+    was placed.
     """
     placed: List[NXOpen.Assemblies.Component] = []
 
     for origin, orientation in placements:
         try:
-            if subtract_refset is None:
-                child = nx.add_component(nx.display_part(), path, "BODY", None, origin, orientation, layer)
-            else:
-                child = _drop_and_subtract(path, origin, orientation, subtract_refset, layer=layer)
+            child = nx.add_component(nx.display_part(), path, "BODY", None, origin, orientation, layer)
 
             if body_refset is not None:
                 body_refset.AddObjectsToReferenceSet([child])
             placed.append(child)
         except Exception as ex:
             nx.print_("Draw Die: could not place {} ({}) in {}".format(
+                label, os.path.splitext(os.path.basename(path))[0], nx.display_part().Leaf))
+            nx.print_exception(ex)
+
+    if subtract_refset is not None:
+        try:
+            for child in _subtract_refsets_from_dynamic_block(nx.display_part(), [
+                    (component, subtract_refset, "BODY") for component in placed]):
+                _stamp_fastener_subtract(child, subtract_refset)
+        except Exception as ex:
+            nx.print_("Draw Die: could not subtract {} ({}) from {}".format(
                 label, os.path.splitext(os.path.basename(path))[0], nx.display_part().Leaf))
             nx.print_exception(ex)
 
@@ -1598,25 +1606,6 @@ def _switch_auto_size_off(part: NXOpen.BasePart) -> None:
     nx.set_attribute(part, _AutoUpdateAttribute, "OFF")
 
 
-def _drop_and_subtract(path: str, origin: NXOpen.Point3d, orientation: Optional[NXOpen.Matrix3x3],
-                       subtract_refset: str, restore_refset: str = "BODY",
-                       layer: int = 99) -> NXOpen.Assemblies.Component:
-    """
-    Merlin.DropAndSubtract - drops a library part at origin (BODY refset, layer), switches it to subtract_refset,
-    subtracts its linked body from the display part's dynamic block, restores restore_refset, and stamps a fastener
-    with the subtract instance attribute.
-    """
-    display = nx.display_part()
-    component = nx.add_component(display, path, "BODY", None, origin, orientation, layer)
-    _subtract_refset_from_dynamic_block(display, component, subtract_refset, restore_refset)
-
-    # The subtract prints and skips a part without the reference set - nothing to stamp then.
-    if nx.has_reference_set(nx.prototype(component), subtract_refset):
-        _stamp_fastener_subtract(component, subtract_refset)
-
-    return component
-
-
 def _subtract_refset_from_dynamic_block(target_part: NXOpen.Part, component: NXOpen.Assemblies.Component,
                                         subtract_refset: str, restore_refset: str = "BODY") -> None:
     """
@@ -1636,6 +1625,61 @@ def _subtract_refset_from_dynamic_block(target_part: NXOpen.Part, component: NXO
             raise
         nx.print_("Could not subtract {} from {}".format(component.DisplayName, component.OwningPart.Leaf))
     nx.set_reference_set(component, restore_refset)
+
+
+@nx.traced("Draw Die")
+def _subtract_linked_components(get_target: Callable[[], NXOpen.Body],
+                                components: Sequence[NXOpen.Assemblies.Component]) -> None:
+    """
+    Links the components, each already on the reference set to subtract, into the work part with one builder (a
+    LINKED_BODY feature each) and subtracts them from the target in one boolean. A tool that misses the target
+    raises nothing in a boolean of several, so it gets no "could not subtract" print. If the boolean fails, the links
+    are subtracted one at a time, so one bad tool costs only itself.
+    """
+    links = nx.create_linked_bodies_of(components)
+    tools = [body for link in links for body in link.GetBodies()]
+    if not tools:
+        return
+
+    try:
+        nx.subtract(get_target(), tools)
+        return
+    except NXOpen.NXException as ex:
+        nx.syslog("Draw Die: subtract of {} tools failed ({}), going one at a time".format(len(tools), ex.ErrorCode))
+
+    for link in links:
+        try:
+            nx.subtract(get_target(), link.GetBodies())
+        except NXOpen.NXException as ex:
+            if ex.ErrorCode == _ErrorCouldNotSubtract:
+                nx.print_("Could not subtract {} from {}".format(link.GetFeatureName(), nx.work_part().Leaf))
+            else:
+                nx.print_exception(ex)
+
+
+def _subtract_refsets_from_dynamic_block(
+        target_part: NXOpen.Part, items: Sequence[Tuple[NXOpen.Assemblies.Component, str, str]]
+) -> List[NXOpen.Assemblies.Component]:
+    """
+    _subtract_refset_from_dynamic_block for several parts at once: items are (component, subtract_refset,
+    restore_refset). Returns the components subtracted: one without its reference set is warned about and left out.
+    """
+    usable = []
+    for item in items:
+        if nx.has_reference_set(nx.prototype(item[0]), item[1]):
+            usable.append(item)
+        else:
+            nx.warn("Component {} doesn't containt a reference set {}".format(item[0].DisplayName, item[1]))
+
+    try:
+        for component, subtract_refset, _ in usable:
+            nx.set_reference_set(component, subtract_refset)
+        _subtract_linked_components(lambda: nx.dynamic_block(target_part).GetBodies()[0], [i[0] for i in usable])
+    finally:
+        for component, _, restore_refset in usable:
+            nx.set_reference_set(component, restore_refset)
+
+    return [item[0] for item in usable]
 
 
 def _stamp_fastener_subtract(fastener: NXOpen.Assemblies.Component, subtract_refset: str) -> None:

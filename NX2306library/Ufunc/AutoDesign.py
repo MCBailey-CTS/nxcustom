@@ -38,7 +38,7 @@ Kept from the C#:
     overall time.
   - A DebugSignDotNet deploy (this file under ...\\bin\\DebugSignDotNet) skips every pierce detail's
     spreadsheet - the C# #if DEBUGSIGNDOTNET.
-  - Edit Spreadsheets (checked every time the dialog opens) off: no pierce button's or punch's Excel sheet is opened
+  - Edit Spreadsheets (unchecked every time the dialog opens; about 11s a sheet) off: no pierce button's or punch's Excel sheet is opened
     (Pierce.build's skip_spreadsheets) - they keep their seed settings. The draw die / dead hit / flange up keys
     and guided retainers and the pierce ball lock retainers never open one: they are placed from preset parts
     already set (2026-11-03, ball lock retainers 2026-11-05).
@@ -74,6 +74,10 @@ import NXOpen.UF  # noqa: E402
 
 import tsg_nx as nx  # noqa: E402
 import DrawDie as drawdie  # noqa: E402
+# Up here, not where they are used: an import in a Block Styler callback fails with No module named, though the file
+# is on sys.path (the preview's did, 2026-11-05).
+import FlangeUp as flangeup  # noqa: E402
+from DeadStrike import build_in_station, draw_preview  # noqa: E402
 from progress_window import ProgressWindow  # noqa: E402
 from tsg_dialog import CustomerNone, Dialog, is_gm_customer, title_with_version  # noqa: E402
 
@@ -252,6 +256,8 @@ def _run(is_gm: bool, title: str, dialog: "_AutoDesignDialog") -> None:
     total = (sum(1 for p in Programs if groups.get(p)) + (1 if groups.get(AutoDesignRestrike) else 0)
              + (1 if groups.get(AutoDesignDeadHit) else 0))
     counter = [0]
+    # The main components the programs add (_print_created).
+    created = [0]
 
     def start_operation(what: str) -> None:
         counter[0] += 1
@@ -287,7 +293,7 @@ def _run(is_gm: bool, title: str, dialog: "_AutoDesignDialog") -> None:
         finally:
             nx.set_display_part(top_level)
             nx.set_work_part(top_level)
-            _print_created(program, top_level, before)
+            created[0] += _print_created(program, top_level, before)
 
     def blank(bodies: List[NXOpen.Body]) -> None:
         from BlankStation import BlankStation
@@ -321,7 +327,6 @@ def _run(is_gm: bool, title: str, dialog: "_AutoDesignDialog") -> None:
         _restrike_posts(is_gm, group(AutoDesignRestrike), "uad02", is_upper=True)
 
     def flange_up(bodies: List[NXOpen.Body]) -> None:
-        import FlangeUp as flangeup
         options = flangeup.FlangeUpOptions(drawdie.DefaultStation, True, True, dialog.flangeup_lower_rows,
                                            dialog.flangeup_flange, dialog.flangeup_upper_rows,
                                            dialog.flangeup_upper_cols)
@@ -329,7 +334,6 @@ def _run(is_gm: bool, title: str, dialog: "_AutoDesignDialog") -> None:
         flangeup.build(is_gm, bodies, options)
 
     def dead_hit(bodies: List[NXOpen.Body]) -> None:
-        from DeadStrike import build_in_station
         start_operation(AutoDesignDeadHit + " LAD02")
         build_in_station(is_gm, bodies, "lad02", False, dialog.deadhit_lower_rows, dialog.deadhit_lower_cols,
                          _log_line)
@@ -343,13 +347,14 @@ def _run(is_gm: bool, title: str, dialog: "_AutoDesignDialog") -> None:
     start = datetime.datetime.now()
     log.follow()
     try:
-        run_program(AutoDesignBlank, blank)
-        run_program(AutoDesignTrim, trim)
-        run_program(AutoDesignPierce, pierce)
-        run_program(AutoDesignDraw, draw)
-        run_program(AutoDesignRestrike, restrike)
-        run_program(AutoDesignDeadHit, dead_hit)
-        run_program(AutoDesignFlangeUp, flange_up)
+        with nx.suppress_display():
+            run_program(AutoDesignBlank, blank)
+            run_program(AutoDesignTrim, trim)
+            run_program(AutoDesignPierce, pierce)
+            run_program(AutoDesignDraw, draw)
+            run_program(AutoDesignRestrike, restrike)
+            run_program(AutoDesignDeadHit, dead_hit)
+            run_program(AutoDesignFlangeUp, flange_up)
     except Exception as ex:
         log.write_line("Auto Design failed: {}".format(ex))
         nx.print_exception(ex)
@@ -359,8 +364,9 @@ def _run(is_gm: bool, title: str, dialog: "_AutoDesignDialog") -> None:
         # Session.__UsingTimer prints the elapsed TimeSpan (syslog); the progress window gets it readable.
         elapsed = datetime.datetime.now() - start
         nx.info(drawdie._time_span(elapsed))
-        log.set_title("{} ({} of {}) - finished in {}".format(title, counter[0], total, _elapsed_text(elapsed)))
-        log.write_line("Auto Design finished in {}.".format(_elapsed_text(elapsed)))
+        finished = "finished in {} - {} component(s) created".format(_elapsed_text(elapsed), created[0])
+        log.set_title("{} ({} of {}) - {}".format(title, counter[0], total, finished))
+        log.write_line("Auto Design {}.".format(finished))
 
 
 def _elapsed_text(elapsed: datetime.timedelta) -> str:
@@ -384,16 +390,18 @@ def _component_tags(top_level: NXOpen.BasePart) -> Set[int]:
     return {c.Tag for c in nx.descendants(root, include_root=False, include_suppressed=True, include_unloaded=True)}
 
 
-def _print_created(program: str, top_level: NXOpen.BasePart, before: Set[int]) -> None:
+def _print_created(program: str, top_level: NXOpen.BasePart, before: Set[int]) -> int:
     """
     Lists each main component the program added under top_level - a new occurrence whose parent was already there
-    (a station, the -000) - with that parent, in the listing window and the progress log. Children of a new
-    component and library parts (fasteners, jacks, keys) are left out. Never raises: it must not fail the run.
+    (a station, the -000) - with that parent, in the listing window and the progress log, and returns how many.
+    Children of a new component and library parts (fasteners, jacks, keys) are left out. Never raises: it must not
+    fail the run.
     """
+    created = 0
     try:
         root = nx.root_component(top_level)
         if root is None:
-            return
+            return created
         for component in nx.descendants(root, include_root=False):
             if component.Tag in before:
                 continue
@@ -408,8 +416,10 @@ def _print_created(program: str, top_level: NXOpen.BasePart, before: Set[int]) -
                                                  parent.DisplayName if parent is not None else top_level.Leaf)
             nx.syslog("Auto Design: " + line)
             _log_line(line)
+            created += 1
     except Exception as ex:
         nx.print_exception(ex)
+    return created
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -621,7 +631,7 @@ class _AutoDesignDialog(Dialog):
         self.flangeup_lower_rows = 2
         self.flangeup_upper_rows = 2
         self.flangeup_upper_cols = 1
-        self.edit_spreadsheets = True
+        self.edit_spreadsheets = False
         self.run_programs: Set[str] = set(Programs)
         self.customer_choice = CustomerNone
         # Each previewed program's bodies in the assembly, found the first time the preview needs them.
@@ -650,8 +660,8 @@ class _AutoDesignDialog(Dialog):
                   for k in sorted(self.program_parts) if k not in DisplayedPrograms]
         self.block("others").Label = "Not a program: " + ", ".join(others) if others else ""
         self.block("others").Show = bool(others)
-        # Not remembered (the .dlx): on every time.
-        self.block("edit_spreadsheets").Value = True
+        # Not remembered (the .dlx): off every time.
+        self.block("edit_spreadsheets").Value = False
         self._update_bodies_block()
         self._preview()
 
@@ -662,8 +672,6 @@ class _AutoDesignDialog(Dialog):
 
     def _preview(self) -> None:
         """The DRAW, DEADHIT and FLANGEUP blocks OK would build; a failure goes to the syslog, the dialog works on."""
-        from DeadStrike import draw_preview
-
         try:
             # Once for all of them: each draw only adds its lines.
             drawdie._erase_preview()
@@ -686,7 +694,6 @@ class _AutoDesignDialog(Dialog):
         bodies = self._preview_bodies(AutoDesignFlangeUp)
         stations = self._preview_stations(AutoDesignFlangeUp) if bodies else {}
         if stations:
-            import FlangeUp as flangeup
             options = flangeup.FlangeUpOptions(drawdie.DefaultStation, True, True,
                                                int(self.block("flangeup_lower_rows").Value),
                                                str(self.block("flangeup_flange").ValueAsString),

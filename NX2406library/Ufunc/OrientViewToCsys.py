@@ -1,41 +1,32 @@
 """
-Python port of the NX work in the OrientViewToCsys form (src\\UFuncs\\OrientViewToCsys.cs), whose static methods
-now live in src\\Static\\OrientViewToCsys.cs (partial class Static):
+The orient-view-to-csys UFunc, Python only since 2026-10-30: its menu button runs this file's main(), a Block Styler
+dialog (OrientViewToCsys.dlx, _OrientDialog) in place of the WinForms OrientViewToCsys form. The form,
+src\\Static\\OrientViewToCsys.cs and the older port of those statics (src\\python\\OrientViewToCsys.py) are in git
+at 97eb2a6. The form had no [UFunc] attribute or _Runner case, so the name is new. Never run in NX.
 
-- OrientViewToCsysTop()    (was NewMethod5) -> OrientViewToCsys.top()
-- OrientViewToCsysRight()  (was NewMethod4) -> OrientViewToCsys.right()
-- OrientViewToCsysLeft()   (was NewMethod3) -> OrientViewToCsys.left()
-- OrientViewToCsysFront()  (was NewMethod2) -> OrientViewToCsys.front()
-- OrientViewToCsysBottom() (was NewMethod1) -> OrientViewToCsys.bottom()
-- OrientViewToCsysBack()   (was NewMethod)  -> OrientViewToCsys.back()
+The dialog is the form's six view buttons (Front / Top / Right, Back / Bottom / Left) and a label showing the last
+side clicked (the form put it in its title bar). Each button is one of the form's Static methods:
 
-Each orients the display part's work view to the WCS turned to that side, puts the WCS back, and returns the
-name the form shows as its title. Nothing else in the form does NX work: the constructor, the tooltips and the
-button dispatch stay C#.
+- Top    (OrientViewToCsysTop, was NewMethod5): the work view oriented to the WCS as it is.
+- Right  (OrientViewToCsysRight, NewMethod4): WCS turned Z +90, then X +90.
+- Left   (OrientViewToCsysLeft, NewMethod3): Z -90, then X +90.
+- Front  (OrientViewToCsysFront, NewMethod2): X +90.
+- Bottom (OrientViewToCsysBottom, NewMethod1): X 180.
+- Back   (OrientViewToCsysBack, NewMethod): Z 180, then X +90.
 
-Quirks kept from the C#:
-- The WCS is rotated through the *work* part (__work_part_.WCS) but read and restored through the *display*
-  part. NX owns one WCS, on the display part, so the two are the same object whenever the display part is the
-  work part; when they differ, the C# documentation says WCS methods need the display part to own the WCS.
-- prev_csys is the WCS's own coordinate system, read before the rotation. If NX rotates that object in place
-  rather than replacing it, its Origin/Orientation are read after the rotation, and the restore is a no-op.
-  Unverified either way; the C# behaves identically, since it reads the same properties at the same point.
+Every side but Top turns the display part's WCS, orients the display part's work view to it and puts the WCS back
+(OrientViewToCsysTurned). The WCS origin and orientation are copied as values before the turn, as the C# did after
+its fix: the old buttons kept WCS.CoordinateSystem, which can follow the WCS as it turns, and turned the work part's
+WCS while reading the display part's. No undo mark and no try/finally around the restore, like the C#.
 
-NOT WIRED: the form still calls the C# methods. NEVER RUN IN NX - untested. To wire, ViewButton_Clicked would
-call e.g.
-    Text = (string)PythonLibrary.Execute("OrientViewToCsys.py", "OrientViewToCsys", "top");
-(assuming PythonLibrary.Execute hands back the Python return value; otherwise set Text from the button).
-
-Binding notes: WCS.Rotate's pyd docstring types its axis as NXOpen.WCSAxis, while the enum is registered as
-NXOpen.WCS.Axis (the name the C# uses). This uses NXOpen.WCS.Axis; if that attribute is missing in NX, try
-NXOpen.WCSAxis. View.Orient(matrix) is confirmed in NXOpen.pyd. The stubs declare neither WCS.Rotate,
-WCS.Axis nor View.Orient.
+Close only: closing it is how it ends, so there is no confirm box and the run is not marked cancelled.
 """
 
 from __future__ import annotations
 
 import os
 import sys
+from typing import Dict, List, Tuple
 
 # Session.Execute does not put the script's folder on sys.path, so the shared module would not import.
 _here = os.path.dirname(os.path.abspath(__file__))
@@ -47,59 +38,73 @@ if os.path.isdir(_shared_python) and _shared_python not in sys.path:
     sys.path.insert(1, _shared_python)
 
 import NXOpen  # noqa: E402
+import NXOpen.BlockStyler  # noqa: E402
 
 import tsg_nx as nx  # noqa: E402
+from tsg_dialog import Dialog, title_with_version  # noqa: E402
+
+ufunc_name = "orient-view-to-csys"
+
+# Button id -> (the side, the WCS turns in order). Top turns nothing.
+_Sides: Dict[str, Tuple[str, List[Tuple[NXOpen.WCS.Axis, float]]]] = {
+    "top": ("Top", []),
+    "right": ("Right", [(NXOpen.WCS.Axis.ZAxis, 90.0), (NXOpen.WCS.Axis.XAxis, 90.0)]),
+    "left": ("Left", [(NXOpen.WCS.Axis.ZAxis, -90.0), (NXOpen.WCS.Axis.XAxis, 90.0)]),
+    "front": ("Front", [(NXOpen.WCS.Axis.XAxis, 90.0)]),
+    "bottom": ("Bottom", [(NXOpen.WCS.Axis.XAxis, 180.0)]),
+    "back": ("Back", [(NXOpen.WCS.Axis.ZAxis, 180.0), (NXOpen.WCS.Axis.XAxis, 90.0)]),
+}
 
 
-class OrientViewToCsys(object):
-
-    @staticmethod
-    def top() -> str:
-        """Static.OrientViewToCsysTop - orients the work view to the WCS as it is."""
-        display = nx.display_part()
-        current_csys = display.WCS.CoordinateSystem
-        display.Views.WorkView.Orient(current_csys.Orientation.Element)
-        return "Top"
-
-    @staticmethod
-    def right() -> str:
-        """Static.OrientViewToCsysRight"""
-        _orient_rotated([(NXOpen.WCS.Axis.ZAxis, 90.0), (NXOpen.WCS.Axis.XAxis, 90.0)])
-        return "Right"
-
-    @staticmethod
-    def left() -> str:
-        """Static.OrientViewToCsysLeft"""
-        _orient_rotated([(NXOpen.WCS.Axis.ZAxis, -90.0), (NXOpen.WCS.Axis.XAxis, 90.0)])
-        return "Left"
-
-    @staticmethod
-    def front() -> str:
-        """Static.OrientViewToCsysFront"""
-        _orient_rotated([(NXOpen.WCS.Axis.XAxis, 90.0)])
-        return "Front"
-
-    @staticmethod
-    def bottom() -> str:
-        """Static.OrientViewToCsysBottom"""
-        _orient_rotated([(NXOpen.WCS.Axis.XAxis, 180.0)])
-        return "Bottom"
-
-    @staticmethod
-    def back() -> str:
-        """Static.OrientViewToCsysBack"""
-        _orient_rotated([(NXOpen.WCS.Axis.ZAxis, 180.0), (NXOpen.WCS.Axis.XAxis, 90.0)])
-        return "Back"
+def orient(turns: List[Tuple[NXOpen.WCS.Axis, float]]) -> None:
+    """Static.OrientViewToCsysTop / OrientViewToCsysTurned: orient the display part's work view to its WCS turned by
+    turns, then put the WCS back. With no turns the WCS is left alone."""
+    display = nx.display_part()
+    wcs = display.WCS
+    if not turns:
+        display.Views.WorkView.Orient(wcs.CoordinateSystem.Orientation.Element)
+        return
+    o = wcs.CoordinateSystem.Origin
+    m = wcs.CoordinateSystem.Orientation.Element
+    origin = NXOpen.Point3d(o.X, o.Y, o.Z)
+    orientation = NXOpen.Matrix3x3()
+    orientation.Xx, orientation.Xy, orientation.Xz = m.Xx, m.Xy, m.Xz
+    orientation.Yx, orientation.Yy, orientation.Yz = m.Yx, m.Yy, m.Yz
+    orientation.Zx, orientation.Zy, orientation.Zz = m.Zx, m.Zy, m.Zz
+    for axis, angle in turns:
+        wcs.Rotate(axis, angle)
+    display.Views.WorkView.Orient(wcs.CoordinateSystem.Orientation.Element)
+    wcs.SetOriginAndMatrix(origin, orientation)
 
 
-def _orient_rotated(rotations: list[tuple[NXOpen.WCS.Axis, float]]) -> None:
-    """The body every view but Top shares: rotate the WCS (in order), orient the work view to it, put it back.
+class _OrientDialog(Dialog):
+    """OrientViewToCsys.dlx: ViewButton_Clicked on each button; the label stands in for the form's Text."""
 
-    No try/finally around the restore, like the C#: if the orient throws, the WCS stays rotated.
-    """
-    prev_csys = nx.display_part().WCS.CoordinateSystem
-    for axis, angle in rotations:
-        nx.work_part().WCS.Rotate(axis, angle)
-    view_csys = nx.display_part().WCS.CoordinateSystem
-    nx.display_part().Views.WorkView.Orient(view_csys.Orientation.Element)
-    nx.display_part().WCS.SetOriginAndMatrix(prev_csys.Origin, prev_csys.Orientation.Element)
+    dlx_name = "OrientViewToCsys.dlx"
+    close_only = True
+
+    def __init__(self, title: str) -> None:
+        self.title = title
+        super().__init__()
+
+    def update(self, block: NXOpen.BlockStyler.UIBlock) -> None:
+        for block_id, (side, turns) in _Sides.items():
+            if block == self.block(block_id):
+                orient(turns)
+                self.block("last").Label = "View: {}".format(side)
+                return
+
+
+def main() -> None:
+    """The orient-view-to-csys UFunc - its menu button runs this file. An escaping exception is printed."""
+    import usage_db
+
+    with usage_db.run(ufunc_name):
+        try:
+            _OrientDialog(title_with_version("Orient View To Csys")).run()
+        except Exception as ex:
+            nx.print_exception(ex)
+
+
+if __name__ == "__main__":
+    main()

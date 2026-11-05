@@ -431,19 +431,24 @@ def _find_bottom_face() -> NXOpen.Face:
 def _subtract_and_refset_fasteners(fasteners: Sequence[NXOpen.Assemblies.Component], bottom_face: NXOpen.Face,
                                    body_refset: Optional[NXOpen.ReferenceSet]) -> None:
     """
-    Merlin.SubtractAndRefsetFasteners - work layer 96; each fastener (arriving on the reference set it is
-    subtracted with) is linked and subtracted from bottom_face's body, stamped with the subtract attribute, then put
-    on Empty (layer 98) or on BODY and added to body_refset (None leaves it out). Per-fastener try/except.
+    Merlin.SubtractAndRefsetFasteners - work layer 96; the fasteners (arriving on the reference sets they are
+    subtracted with) are linked and subtracted from bottom_face's body together, then each is stamped with the
+    subtract attribute and put on Empty (layer 98) or on BODY and added to body_refset (None leaves it out).
+    Per-fastener try/except.
     """
     nx.display_part().Layers.WorkLayer = 96
+    subtracted = True
+    try:
+        # Part.__SubtractLinkedBody builds in the display part; it is also the work part here.
+        drawdie._subtract_linked_components(bottom_face.GetBody, fasteners)
+    except Exception as ex:
+        subtracted = False
+        nx.print_exception(ex)
+
     for fastener in fasteners:
         try:
-            # The fastener arrives on the reference set it is subtracted with (CBORE, SHORT-TAP, ...).
-            subtract_refset = fastener.ReferenceSet
-            link = nx.create_linked_body(fastener)
-            # Part.__SubtractLinkedBody builds in the display part; it is also the work part here.
-            nx.subtract(bottom_face.GetBody(), link.GetBodies())
-            drawdie._stamp_fastener_subtract(fastener, subtract_refset)
+            if subtracted:
+                drawdie._stamp_fastener_subtract(fastener, fastener.ReferenceSet)
             if fastener.Layer == 98:
                 nx.set_reference_set(fastener, nx.RefsetEmpty)
                 continue

@@ -5,13 +5,15 @@ src\\Static.cs (the pickers, LinkedBodyName, WaveLinkBoolean) and src\\Ui\\Dialo
 deleted that day (in git at 97eb2a6). This module was src\\python\\assembly_wavelink.py, which the form's buttons
 ran after their C# picks (2026-10-21).
 
-The form's 14 buttons are the Operation menu of one Block Styler dialog (AssemblyWavelink.dlx, _WavelinkDialog)
-holding the target / tool picks, the boolean's reference set and Blank Tool Components; its Apply button runs
-wave_link_fasteners, wave_link_subtool or wave_link_boolean below. First opened in NX 2026-10-30 (as an
-OK / Apply / Cancel dialog, whose OK closed it); the operations themselves are not yet confirmed there.
+The form's 14 buttons are real buttons again (2026-11-05), in its Fasteners and Booleans groups, two to a row, in one
+Block Styler dialog (AssemblyWavelink.dlx, _WavelinkDialog) below the target / tool picks, with the boolean's reference
+set and Blank Tool Components after them. A button runs wave_link_fasteners, wave_link_subtool or wave_link_boolean
+below on the picks, so the picks now come first: NX opens no selection from a dialog callback, which is how the form
+picked after the click. First opened in NX 2026-10-30 (as an OK / Apply / Cancel dialog, whose OK closed it); the
+operations themselves are not yet confirmed there.
 
 Since 2026-10-30 the dialog is modeless, like the form was: NX stays usable while it is up, and only Close ends it
-(Apply runs an operation and stays open). main() returns as soon as it is shown, so the usage run (tblUFuncsExe, the
+(a button runs an operation and stays open). main() returns as soon as it is shown, so the usage run (tblUFuncsExe, the
 syslog banners) is closed when the dialog closes, and GetUnloadOption keeps this file loaded until NX exits
 (UnloadLibrary disposes the dialog). A second launch while it is open just says so.
 """
@@ -315,7 +317,7 @@ ufunc_name = "assembly-wavelink"
 _RefsetTap, _RefsetShortTap, _RefsetReam, _RefsetReamShort = "TAP", "SHORT-TAP", "REAM", "REAM_SHORT"
 _RefsetClrHole, _RefsetCBore, _RefsetTapInsert = "CLR_HOLE", "CBORE", "TAP_INSERT"
 
-# The Operation menu (the form's buttons, in its order) -> the fastener button's (shcs, dwl, jck) reference sets.
+# The fastener buttons -> their (shcs, dwl, jck) reference sets.
 _FastenerOperations: Dict[str, Tuple[Optional[str], Optional[str], Optional[str]]] = {
     "Tap & Ream": (_RefsetTap, _RefsetReam, None),
     "Short - Tap & Ream": (_RefsetShortTap, _RefsetReamShort, None),
@@ -331,6 +333,14 @@ _OperationSubTool = "Sub-Tool"
 # The boolean buttons -> Feature.BooleanType member names (Link = Create: links only).
 _BooleanOperations: Dict[str, str] = {"Subtract": "Subtract", "Unite": "Unite", "Intersect": "Intersect",
                                       "Link": "Create"}
+# AssemblyWavelink.dlx's button ids -> the operations above.
+_OperationButtons: Dict[str, str] = {
+    "short_tap_ream": "Short - Tap & Ream", "tap_ream": "Tap & Ream", "tap": "Tap", "ream": "Ream",
+    "short_tap": "Short-Tap", "short_ream": "Short-Ream", "clr_hole": "Clr-Hole", "cbore": "Cbore",
+    "tap_insert": "Tap Insert", "subtract": "Subtract", "unite": "Unite", "intersect": "Intersect", "link": "Link",
+    "sub_tool": _OperationSubTool}
+# Only Link goes through BODY; the form's reference set dialog left it out of the other booleans.
+_RefsetBody = "BODY"
 
 # The reference set menu when the picked tools share none (SetEnumMembers needs one member).
 _NoReferenceSet = "(no common reference set)"
@@ -372,16 +382,15 @@ class _WavelinkDialog(Dialog):
     """
     AssemblyWavelink.dlx, in place of the WinForms form, its pickers (Static.SelectFastenerTargetsAndTools,
     SelectSubToolTargetAndTools, SelectBooleanTargetsAndTools) and the ReferenceSetDialog:
-      - Operation: the form's 14 buttons;
-      - Target bodies (solid, anywhere in the assembly; one for Sub-Tool - a new pick replaces the old);
-      - Tool components;
-      - Reference set (the booleans only): the reference sets every picked tool has, BODY left out except for Link;
+      - Target bodies (solid, anywhere in the assembly) and Tool components;
+      - Fasteners and Booleans: the form's 14 buttons, each running on those picks;
+      - Reference set (for the booleans): the reference sets every picked tool has;
       - Blank Tool Components (chkBlankTools; Sub-Tool never read it).
-    The pickers' filters run as the cursor passes over an object (filter(), 2026-10-30): one they reject does not
-    highlight and cannot be picked. update() applies them again to what is already picked, since changing the
-    operation or the targets can make an earlier pick invalid (and keeps Sub-Tool to the latest target). The
-    dialog is modeless and Close only: its Apply button runs the operation, clears both picks and stays open, as the
-    form did (an OK closed the modeless dialog too, 2026-10-30). Closing it without an Apply marks the run cancelled.
+    The operation is only known when its button is pressed, so filter() (2026-10-30: a rejected object does not
+    highlight and cannot be picked) holds the rules every operation shares, and the button applies the rest
+    (_picks_for), listing what it leaves out. A button runs the operation, clears both picks and stays open, as the
+    form did. The buttons are greyed out until there is something to run. The dialog is modeless and Close only;
+    closing it without running anything marks the run cancelled.
     """
 
     dlx_name = "AssemblyWavelink.dlx"
@@ -405,49 +414,44 @@ class _WavelinkDialog(Dialog):
         self._refresh()
 
     def update(self, block: NXOpen.BlockStyler.UIBlock) -> None:
-        if block == self.block("apply"):
-            try:
-                self._apply()
-            finally:
-                self._refresh()
-            return
-        if block == self.block("operation") or block == self.block("targets"):
-            self._filter_targets()
-            self._filter_tools()
-        elif block == self.block("tools"):
+        for button, operation in _OperationButtons.items():
+            if block == self.block(button):
+                try:
+                    self._press(operation)
+                finally:
+                    self._refresh()
+                return
+        if block == self.block("targets") or block == self.block("tools"):
             self._filter_tools()
         self._refresh()
 
     def filter(self, block: NXOpen.BlockStyler.UIBlock, obj: NXOpen.TaggedObject) -> bool:
         if block == self.block("targets"):
-            return isinstance(obj, NXOpen.Body) and self._target_ok(obj)
+            return isinstance(obj, NXOpen.Body) and obj.IsSolidBody
         if block == self.block("tools"):
-            return isinstance(obj, NXOpen.Assemblies.Component) and self._tool_ok(obj, self._target_owners())
+            return isinstance(obj, NXOpen.Assemblies.Component) and self._tool_allowed(obj, self._target_owners())
         return True
 
-    def _can_apply(self) -> bool:
-        if not self._targets() or not self._tools():
-            return False
-        return not self._is_boolean() or self._reference_set() is not None
+    def _can_run(self) -> bool:
+        return bool(self._targets()) and bool(self._tools())
 
-    def _apply(self) -> None:
-        """The Apply button: run the operation, then clear both picks for the next one."""
-        if not self._run_operation():
+    def _press(self, operation: str) -> None:
+        """An operation's button: run it on the picks, then clear both for the next one."""
+        if not self._run_operation(operation):
             return
         self.applied = True
         self.block("targets").SetSelectedObjects([])
         self.block("tools").SetSelectedObjects([])
 
-    def _run_operation(self) -> bool:
+    def _run_operation(self, operation: str) -> bool:
         if self.usage_run is not None:
             import usage_db
             usage_db.resume(self.usage_run)
-        targets, tools = self._targets(), self._tools()
+        targets, tools = self._picks_for(operation)
         if not targets or not tools:
-            # _refresh greys Apply out for this; it is a backstop.
-            self.message("Select the target bodies and the tool components.")
+            self.message("{}: no target body and tool component to run on - the listing window says why.".format(
+                operation))
             return False
-        operation = self._operation()
         blank_tools = bool(self.block("blank_tools").Value)
         undo_name = title_with_version(ufunc_name)
         if operation in _FastenerOperations:
@@ -455,11 +459,18 @@ class _WavelinkDialog(Dialog):
             AssemblyWavelink.wave_link_fasteners(undo_name, blank_tools, shcs or "", dwl or "", jck or "", targets,
                                                  tools)
         elif operation == _OperationSubTool:
+            # SelectSingleSolidBody1: the form took one target.
+            if len(targets) > 1:
+                self.message("Sub-Tool takes one target body; {} are picked.".format(len(targets)))
+                return False
             AssemblyWavelink.wave_link_subtool("{} - WavelinkSubtool".format(undo_name), targets[0], tools)
         else:
             reference_set = self._reference_set()
             if reference_set is None:
                 self.message("The picked tools share no reference set to link through.")
+                return False
+            if reference_set == _RefsetBody and operation != "Link":
+                self.message("{} cannot go through BODY: pick another reference set.".format(operation))
                 return False
             AssemblyWavelink.wave_link_boolean(blank_tools, _BooleanOperations[operation], reference_set, targets,
                                                tools)
@@ -467,22 +478,14 @@ class _WavelinkDialog(Dialog):
 
     # ----- picks -----
 
-    def _operation(self) -> str:
-        return str(self.block("operation").ValueAsString)
-
-    def _is_boolean(self) -> bool:
-        return self._operation() in _BooleanOperations
-
     def _targets(self) -> List[NXOpen.Body]:
         return [cast(NXOpen.Body, o) for o in self.selected(self.block("targets")) if isinstance(o, NXOpen.Body)]
 
     def _tools(self) -> List[NXOpen.Assemblies.Component]:
         return components_of(self.selected(self.block("tools")))
 
-    def _target_ok(self, body: NXOpen.Body) -> bool:
-        if not body.IsSolidBody:
-            return False
-        if self._operation() not in _FastenerOperations:
+    def _target_ok(self, body: NXOpen.Body, operation: str) -> bool:
+        if operation not in _FastenerOperations:
             return True
         # SelectFastenerTargetsAndTools: an occurrence, not in a strip / press / layout or an assembly holder.
         if not body.IsOccurrence:
@@ -491,25 +494,36 @@ class _WavelinkDialog(Dialog):
         lower = name.lower()
         return not any(token in lower for token in ("strip", "press", "layout")) and not _is_assembly_holder(name)
 
-    def _tool_ok(self, tool: NXOpen.Assemblies.Component, target_owners: Set[int]) -> bool:
+    @staticmethod
+    def _tool_allowed(tool: NXOpen.Assemblies.Component, target_owners: Set[int]) -> bool:
+        """The rule every operation shares."""
+        return tool.Tag not in target_owners and not _is_assembly_holder(tool.DisplayName)
+
+    def _tool_ok(self, tool: NXOpen.Assemblies.Component, operation: str) -> bool:
         name = tool.DisplayName
-        if tool.Tag in target_owners or _is_assembly_holder(name):
-            return False
-        operation = self._operation()
         if operation in _FastenerOperations:
             return not _is_layout(name) and "strip" not in name.lower() and not _is_fastener_extended(name)
         if operation == _OperationSubTool:
             return any(n.upper() in _SubToolRefSetNames for n in _reference_set_names(tool))
         return True
 
-    def _filter_targets(self) -> None:
-        picked = self._targets()
-        kept = [b for b in picked if self._target_ok(b)]
-        if self._operation() == _OperationSubTool and len(kept) > 1:
-            # SelectSingleSolidBody1: one target - the latest pick wins.
-            kept = kept[-1:]
-        if len(kept) != len(picked):
-            self.block("targets").SetSelectedObjects(kept)
+    def _picks_for(self, operation: str) -> Tuple[List[NXOpen.Body], List[NXOpen.Assemblies.Component]]:
+        """The picks the operation's own form picker would have allowed; the rest are listed, not run on."""
+        targets: List[NXOpen.Body] = []
+        tools: List[NXOpen.Assemblies.Component] = []
+        for body in self._targets():
+            if self._target_ok(body, operation):
+                targets.append(body)
+            else:
+                owner = body.OwningComponent
+                nx.print_("{}: skipped target body in {}.".format(
+                    operation, owner.DisplayName if owner is not None else body.OwningPart.Leaf))
+        for tool in self._tools():
+            if self._tool_ok(tool, operation):
+                tools.append(tool)
+            else:
+                nx.print_("{}: skipped tool {}.".format(operation, tool.DisplayName))
+        return targets, tools
 
     def _target_owners(self) -> Set[int]:
         """The tags of the picked targets' components - a tool may not be one of them."""
@@ -518,7 +532,7 @@ class _WavelinkDialog(Dialog):
     def _filter_tools(self) -> None:
         owners = self._target_owners()
         picked = self._tools()
-        kept = [t for t in picked if self._tool_ok(t, owners)]
+        kept = [t for t in picked if self._tool_allowed(t, owners)]
         if len(kept) != len(picked):
             self.block("tools").SetSelectedObjects(kept)
 
@@ -534,23 +548,22 @@ class _WavelinkDialog(Dialog):
         try:
             self._refresh_reference_sets()
         finally:
-            # Apply stands in for the OK a Close-only dialog has not got: greyed out until there is something to run.
-            self.block("apply").Enable = self._can_apply()
+            # Greyed out until there is something to run.
+            enable = self._can_run()
+            for button in _OperationButtons:
+                self.block(button).Enable = enable
 
     def _refresh_reference_sets(self) -> None:
-        boolean = self._is_boolean()
-        self.block("reference_set").Show = boolean
-        self.block("blank_tools").Enable = self._operation() != _OperationSubTool
-        if not boolean:
-            return
-        exclude = [] if self._operation() == "Link" else ["BODY"]
-        names = _common_reference_sets(self._tools(), exclude)
+        names = _common_reference_sets(self._tools(), [])
         if names == self._reference_sets:
             return
         previous = self._reference_set()
         self._reference_sets = names
-        self.block("reference_set").SetEnumMembers(names or [_NoReferenceSet])
-        self.block("reference_set").ValueAsString = previous if previous in names else (names or [_NoReferenceSet])[0]
+        members = names or [_NoReferenceSet]
+        others = [n for n in names if n != _RefsetBody]
+        self.block("reference_set").SetEnumMembers(members)
+        # BODY only serves Link, so anything else first.
+        self.block("reference_set").ValueAsString = previous if previous in names else (others or members)[0]
 
 
 def execute() -> None:

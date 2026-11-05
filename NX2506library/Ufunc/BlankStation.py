@@ -24,7 +24,7 @@ station = "01" for the Blank Station (is3d False) and "02" for the Secondary Tri
      4x 12mm-shcs-050-2x (CBORE), dowels + jack screws .5" in from X, jacks .25" lower; UPR-PROFILE subtracted;
   3. punch Punch1 into uad{station} - 3.625" (2D) / 7" (3D) below the backing plate, color 60, FILL IN, 2 Unikix pins
      (SUB_TOOL; the library part until every slug is built, then the run's pins are Save As'd to
-     unikix-pins-{n}.prt), 2x 10mm-shcs-020-2x (SHORT-TAP), 1x 8mm-shcs-065-2x from the bottom on layer 98 kept out of BODY;
+     unikix-pins-{blank|secondary}-{n}.prt), 2x 10mm-shcs-020-2x (SHORT-TAP), 1x 8mm-shcs-065-2x from the bottom on layer 98 kept out of BODY;
      UPR-PROFILE INTERSECTED;
   4. window Window1 into upd{station} - slug box +6", 25 mm thick on top of the slug (3D: grown 4" in -Z), built
      upside down (flipZ re-base), chamfered, color 136, 4140 PH, 4x 12mm-shcs-030-2x, dowels + jacks, 2 extra SHCS;
@@ -135,7 +135,7 @@ _shcs12mm030Path = "G:\\0Library\\Fasteners\\Metric\\SocketHeadCapScrews-2X\\012
 _shcs12mm040Path = "G:\\0Library\\Fasteners\\Metric\\SocketHeadCapScrews-2X\\012-2x\\12mm-shcs-040-2x.prt"
 _dwl12mm025Path = "G:\\0Library\\Fasteners\\Metric\\Dowels\\12mm-dwl-025.prt"
 _unikixPinsPath = "G:\\0Library\\Unikix\\Smart Unikix Pins.prt"
-# What the run's pins are Save As'd to, beside the -000: {_unikixPinsName}-{n}.prt.
+# What the run's pins are Save As'd to, beside the -000: {_unikixPinsName}-{blank|secondary}-{n}.prt.
 _unikixPinsName = "unikix-pins"
 
 # ChamferVerticalEdges' default ".25in".
@@ -169,8 +169,6 @@ RetainerAboveWindow3d = 20 / 25.4
 UpperZRefset = "UPR-3D"
 LowerZRefset = "LWR-3D"
 
-# NXException.ErrorCode values handled by the stages.
-_ErrorCouldNotSubtract = 670030
 _ErrorTaperNoSolidBody = 671468
 _ErrorTaperIncompatibleDirection = 671443
 
@@ -251,6 +249,11 @@ class _Stations(object):
         self.part_uad = part_uad
         self.part_upd = part_upd
         self.part_lad = part_lad
+
+
+def _part_name(name: str, is3d: bool) -> str:
+    """A detail's file name before its number: BP1 -> BP1-blank, or BP1-secondary on the Secondary Trim Station."""
+    return "{}-{}".format(name, "secondary" if is3d else "blank")
 
 
 class _Out(object):
@@ -340,7 +343,7 @@ def build_blank_stations(is3d: bool, bodies1: Sequence[NXOpen.Body], material: s
         except Exception as ex:
             nx.print_exception(ex)
 
-    _save_as_unikix_pins(unikix_pins, os.path.dirname(starting_display.FullPath))
+    _save_as_unikix_pins(unikix_pins, os.path.dirname(starting_display.FullPath), is3d)
 
     # The stages leave the work part pointed at whichever detail component they last built; put the session back on
     # the -000 with the work part matching the display part.
@@ -349,17 +352,18 @@ def build_blank_stations(is3d: bool, bodies1: Sequence[NXOpen.Body], material: s
 
 
 @nx.traced("Blank Station")
-def _save_as_unikix_pins(pins: Sequence[NXOpen.Assemblies.Component], directory: str) -> None:
+def _save_as_unikix_pins(pins: Sequence[NXOpen.Assemblies.Component], directory: str, is3d: bool) -> None:
     """
-    Save As the library Smart Unikix Pins the run placed to the next free unikix-pins-{n}.prt, once all its stations are
-    built: every pin of the run shares the one prototype, so they all take the one number. The library part is no
+    Save As the library Smart Unikix Pins the run placed to the next free unikix-pins-{blank|secondary}-{n}.prt, once
+    all its stations are built: every pin of the run shares the one prototype, so they all take the one number. The library part is no
     longer loaded after this, so the next run (Auto Design's Secondary Trim after its Blank) opens it again and gets
     its own number. Any older pin in the session still on the library part moves to this number with them.
     """
     if not pins:
         return
     try:
-        status = cast(NXOpen.Part, nx.prototype(pins[0])).SaveAs(merlin._next_part_path(directory, _unikixPinsName))
+        status = cast(NXOpen.Part, nx.prototype(pins[0])).SaveAs(
+            merlin._next_part_path(directory, _part_name(_unikixPinsName, is3d)))
         if status is not None:
             status.Dispose()
     except Exception as ex:
@@ -536,7 +540,7 @@ def _build_one_slug(i: int, count: int, is3d: bool, box: nx.Box3d, owning_comp: 
 
     # Backing plate
     try:
-        component_backing = _create_backing_plate(current, min_bp, max_bp, stations.part_uad)
+        component_backing = _create_backing_plate(current, min_bp, max_bp, stations.part_uad, is3d)
         component_backing = _first_descendant_named(current, component_backing.DisplayName)
         _set_body_up_assembly_path(component_backing)
     except Exception as ex:
@@ -548,7 +552,7 @@ def _build_one_slug(i: int, count: int, is3d: bool, box: nx.Box3d, owning_comp: 
 
     # Retainer
     try:
-        _create_retainer(current, owning_comp, min_bp, max_bp, stations.part_uad, retainer)
+        _create_retainer(current, owning_comp, min_bp, max_bp, stations.part_uad, retainer, is3d)
         retainer.value = _first_descendant_named(current, _require(retainer.value).DisplayName)
         _set_body_up_assembly_path(retainer.value)
     except Exception as ex:
@@ -561,7 +565,7 @@ def _build_one_slug(i: int, count: int, is3d: bool, box: nx.Box3d, owning_comp: 
     # Punch
     try:
         _create_punch(current, owning_comp, min_bp, max_bp, stations.part_uad, 7.0 if is3d else 3.625, punch,
-                      unikix_pins)
+                      unikix_pins, is3d)
         if punch.value is not None:
             trim_steels.append(punch.value)
 
@@ -576,7 +580,7 @@ def _build_one_slug(i: int, count: int, is3d: bool, box: nx.Box3d, owning_comp: 
     # Window - 3D grows the block 4" in the -Z direction (lowers the bottom corner)
     try:
         window_min_for_block = nx.add_z(window_min, -4) if is3d else window_min
-        component_window = _create_window(current, window_min_for_block, window_max, stations.part_upd,
+        component_window = _create_window(current, window_min_for_block, window_max, stations.part_upd, is3d,
                                           add_extra_shcs=True)
         component_window = _first_descendant_named(current, component_window.DisplayName)
         _set_body_up_assembly_path(component_window)
@@ -603,7 +607,7 @@ def _build_one_slug(i: int, count: int, is3d: bool, box: nx.Box3d, owning_comp: 
     # intersect's lowest point (lts_min_z, set before the window) and pins the top to +3.
     try:
         _create_lower_trim_steel(current, box, owning_comp, material_thickness, window_min, stations.part_lad,
-                                 lower_trim_steel,
+                                 lower_trim_steel, is3d,
                                  override_min_z=lts_min_z,
                                  override_max_z=3.0 if is3d else None,
                                  add_extra_shcs=True)
@@ -784,7 +788,7 @@ def _set_body_up_assembly_path(component: NXOpen.Assemblies.Component) -> None:
 
 @nx.traced("Blank Station")
 def _create_backing_plate(current: NXOpen.Part, min_bp: NXOpen.Point3d, max_bp: NXOpen.Point3d,
-                          station_uad: NXOpen.Part) -> NXOpen.Assemblies.Component:
+                          station_uad: NXOpen.Part, is3d: bool) -> NXOpen.Assemblies.Component:
     """Merlin.CreateBackingPlate - the upper-punch backing plate into station_uad, two diagonal-corner SHCS."""
     nx.set_display_part(station_uad)
     nx.display_part().Layers.WorkLayer = 1
@@ -792,7 +796,7 @@ def _create_backing_plate(current: NXOpen.Part, min_bp: NXOpen.Point3d, max_bp: 
     nx.set_layer(block_backing.GetBodies()[0], 1)
     block_backing.SetName("DYNAMIC BLOCK")
     owning_backing = nx.display_part()
-    component_backing = merlin._create_cts_component(block_backing, "BP1")
+    component_backing = merlin._create_cts_component(block_backing, _part_name("BP1", is3d))
 
     # Origin on the block's corner rather than the station's, before the subtool below. uad station - upper, so the
     # csys goes on the block's far vertex.
@@ -835,13 +839,15 @@ def _create_backing_plate(current: NXOpen.Part, min_bp: NXOpen.Point3d, max_bp: 
 
 @nx.traced("Blank Station")
 def _create_retainer(current: NXOpen.Part, owning_comp: NXOpen.Assemblies.Component, min_bp: NXOpen.Point3d,
-                     max_bp: NXOpen.Point3d, station_uad: NXOpen.Part, component_retainer: _Out) -> None:
+                     max_bp: NXOpen.Point3d, station_uad: NXOpen.Part, component_retainer: _Out,
+                     is3d: bool) -> None:
     """Merlin.CreateRetainer - the upper trim retainer into station_uad, then UPR-PROFILE subtracted."""
     nx.set_display_part(station_uad)
 
     block_retainer = nx.create_block(nx.add_z(min_bp, -1.25), nx.add_z(max_bp, -.24))
     # uad station - upper, so the csys goes on the block's far vertex.
-    component_retainer.value = _promote_detail_block(block_retainer, "Retainer1", rebase_to_block=True,
+    component_retainer.value = _promote_detail_block(block_retainer, _part_name("Retainer1", is3d),
+                                                     rebase_to_block=True,
                                                      opposite_corner=True)
 
     # The block runs from min_bp lowered by 1.25, so that lowered corner is the part's origin in Z.
@@ -875,7 +881,7 @@ def _create_retainer(current: NXOpen.Part, owning_comp: NXOpen.Assemblies.Compon
 @nx.traced("Blank Station")
 def _create_punch(current: NXOpen.Part, owning_comp: NXOpen.Assemblies.Component, min_bp: NXOpen.Point3d,
                   max_bp: NXOpen.Point3d, station_uad: NXOpen.Part, punch_depth: float,
-                  component_punch: _Out, unikix_pins: List[NXOpen.Assemblies.Component]) -> None:
+                  component_punch: _Out, unikix_pins: List[NXOpen.Assemblies.Component], is3d: bool) -> None:
     """
     Merlin.CreatePunch - the WB trim punch into station_uad, punch_depth below the backing plate's bottom (3D 7",
     2D 3.625"), Unikix pins (added to unikix_pins, still the library part) and SHCS, then UPR-PROFILE INTERSECTED.
@@ -883,7 +889,8 @@ def _create_punch(current: NXOpen.Part, owning_comp: NXOpen.Assemblies.Component
     nx.set_display_part(station_uad)
     block_punch = nx.create_block(nx.add_z(min_bp, -punch_depth), nx.add_z(max_bp, -.24))
     # uad station - upper, so the csys goes on the block's far vertex.
-    component_punch.value = _promote_detail_block(block_punch, "Punch1", rebase_to_block=True, opposite_corner=True)
+    component_punch.value = _promote_detail_block(block_punch, _part_name("Punch1", is3d), rebase_to_block=True,
+                                                  opposite_corner=True)
 
     # The lowered corner is the part's origin in Z - min_bp itself sits punch_depth above it.
     punch_span = NXOpen.Point3d(max_bp.X - min_bp.X, max_bp.Y - min_bp.Y, max_bp.Z - min_bp.Z)
@@ -931,7 +938,8 @@ def _create_punch(current: NXOpen.Part, owning_comp: NXOpen.Assemblies.Component
 
 @nx.traced("Blank Station")
 def _create_window(current: NXOpen.Part, window_min: NXOpen.Point3d, window_max: NXOpen.Point3d,
-                   station_upd: NXOpen.Part, add_extra_shcs: bool = False) -> NXOpen.Assemblies.Component:
+                   station_upd: NXOpen.Part, is3d: bool,
+                   add_extra_shcs: bool = False) -> NXOpen.Assemblies.Component:
     """
     Merlin.CreateWindow - the window into station_upd, built upside down (flipZ), corner SHCS and blind-ream dowels;
     add_extra_shcs drops two extra SHCS at the dowel locations offset +/-1" in Y.
@@ -939,7 +947,8 @@ def _create_window(current: NXOpen.Part, window_min: NXOpen.Point3d, window_max:
     nx.set_display_part(station_upd)
     block_window = nx.create_block(window_min, window_max)
     # The window part is built upside down (a roll about X).
-    component_window = _promote_detail_block(block_window, "Window1", rebase_to_block=True, flip_z=True)
+    component_window = _promote_detail_block(block_window, _part_name("Window1", is3d), rebase_to_block=True,
+                                             flip_z=True)
 
     # The station's top face is now part Z 0 and the station's +Z is part -Z, so the fasteners go in at window_min.Z
     # pointing +Z, and the station's -Y edge is part Y = width.
@@ -1196,7 +1205,8 @@ def _station_box_in_assembly(current: NXOpen.Part, station: NXOpen.Part, station
 @nx.traced("Blank Station")
 def _create_lower_trim_steel(current: NXOpen.Part, box: nx.Box3d, owning_comp: NXOpen.Assemblies.Component,
                              material_thickness: float, window_min: NXOpen.Point3d, station_lad: NXOpen.Part,
-                             component_lower_trim_steel: _Out, override_min_z: Optional[float] = None,
+                             component_lower_trim_steel: _Out, is3d: bool,
+                             override_min_z: Optional[float] = None,
                              override_max_z: Optional[float] = None, add_extra_shcs: bool = False) -> None:
     """
     Merlin.CreateLowerTrimSteel - the lower blank steel into station_lad, corner SHCS and dowels, then LWR-PROFILE
@@ -1213,7 +1223,8 @@ def _create_lower_trim_steel(current: NXOpen.Part, box: nx.Box3d, owning_comp: N
                              override_max_z if override_max_z is not None else window_min.Z - material_thickness)
     nx.display_part().Layers.WorkLayer = 1
     block_lower_trim_steel = nx.create_block(lts_min, lts_max)
-    component_lower_trim_steel.value = _promote_detail_block(block_lower_trim_steel, "lts", hide_subtool_layer=False,
+    component_lower_trim_steel.value = _promote_detail_block(block_lower_trim_steel, _part_name("lts", is3d),
+                                                             hide_subtool_layer=False,
                                                              rebase_to_block=True)
 
     # Everything below places inside the new part, and the block's lts_min corner is now that part's origin.
@@ -1422,20 +1433,12 @@ def _add_corner_fasteners(block_min: NXOpen.Point3d, block_max: NXOpen.Point3d, 
 def _subtract_fasteners_from_block(fasteners: Iterable[NXOpen.Assemblies.Component]) -> None:
     """
     Merlin.SubtractFastenersFromBlock - each fastener's CBORE linked in and subtracted from the display part's dynamic
-    block (670030 printed and skipped), stamped, then back on BODY. One catch around the lot, as in the C#.
+    block, all in one boolean, stamped, then back on BODY. One catch around the lot, as in the C#.
     """
     try:
-        for f in fasteners:
-            nx.set_reference_set(f, "CBORE")
-            link = nx.create_linked_body(f)
-            try:
-                nx.subtract(nx.dynamic_block(nx.display_part()).GetBodies()[0], link.GetBodies())
-                _stamp_fastener_subtract(f, "CBORE")
-            except NXOpen.NXException as ex:
-                if ex.ErrorCode != _ErrorCouldNotSubtract:
-                    raise
-                nx.print_("Could not subtract {} from {}".format(f.DisplayName, f.OwningPart.Leaf))
-            nx.set_reference_set(f, "BODY")
+        for f in drawdie._subtract_refsets_from_dynamic_block(nx.display_part(),
+                                                              [(f, "CBORE", "BODY") for f in fasteners]):
+            _stamp_fastener_subtract(f, "CBORE")
     except Exception as ex:
         nx.print_exception(ex)
 
@@ -1448,7 +1451,7 @@ def _add_dowels_and_jack_screws(min_point: NXOpen.Point3d, max_point: NXOpen.Poi
     """
     Merlin.AddDowelsAndJackScrews - 2 dowels, 2x 12mm-jck-screw (CBORE) and 2x 12mm-jck-screw-tsg (CBORE_BLIND, on a
     1" grid from each other), laid out as seen in the -000 and mirrored into the part's frame (upper_frame: through the block centre; flipped_frame:
-    Y only). Each one dropped and subtracted on its own, so one failure does not cost the rest.
+    Y only). Each one dropped on its own, so one failure does not cost the rest, then all subtracted together.
     """
     length = max_point.X - min_point.X
     width = max_point.Y - min_point.Y
@@ -1477,13 +1480,25 @@ def _add_dowels_and_jack_screws(min_point: NXOpen.Point3d, max_point: NXOpen.Poi
         (_jck12mmScrewTsgPath, tsg_second, "CBORE_BLIND"),
     )
 
+    display = nx.display_part()
+    dropped = []
     for path, physical, refset in placements:
         try:
-            _drop_and_subtract(path, at(physical), orientation, refset)
+            component = nx.add_component(display, path, "BODY", None, at(physical), orientation, 99)
+            dropped.append((component, refset, "BODY"))
         except Exception as ex:
             nx.print_("Could not place {} ({}) in {}".format(os.path.splitext(os.path.basename(path))[0], refset,
-                                                             nx.display_part().Leaf))
+                                                             display.Leaf))
             nx.print_exception(ex)
+
+    try:
+        subtracted = drawdie._subtract_refsets_from_dynamic_block(display, dropped)
+        for component, refset, _ in dropped:
+            if component in subtracted:
+                _stamp_fastener_subtract(component, refset)
+    except Exception as ex:
+        nx.print_("Could not subtract the dowels and jack screws from {}".format(display.Leaf))
+        nx.print_exception(ex)
 
 
 def _drop_and_subtract(path: str, origin: NXOpen.Point3d, orientation: Optional[NXOpen.Matrix3x3],
