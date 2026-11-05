@@ -8,9 +8,10 @@ The dead strike tooling Auto Design builds for its DEADHIT program, on bodies pi
   - Upper (since 2026-10-29): the Draw Die's upper half (DrawDie.build_upper) with the cavity steels overhanging the
     part 3/8" a side (DeadStrikeCavityOverhang) instead of the draw die's 1" - the cavity steels and the mounting
     plate in UAD02, subtracting UPR-3D.
-  - Both sides take the dialog's grid (2026-10-29): Rows (x) blocks along X by Cols (y) along Y, the same on the
-    upper and the lower. (The split form's own rows run along Y and the draw die's 2 x 4 is 2 along X by 4 along Y,
-    so passing Rows / Cols straight through gave the lower Rows along Y and left the upper at 2 x 4.)
+  - Each side takes its own grid from the dialog (2026-11-05; one grid for both until then): Rows (x) blocks along X
+    by Cols (y) along Y. (The split form's own rows run along Y and the draw die's 2 x 4 is 2 along X by 4 along Y,
+    so passing Rows / Cols straight through gave the lower Rows along Y and left the upper at 2 x 4.) Auto Design's
+    DEADHIT has its own lower and upper pairs too (deadhit_lower_rows / deadhit_upper_rows, ...).
 
 The lower blocks are sized off the picked bodies (size_off_bodies), not the reference sets the split form UFunc uses:
 X / Y the bodies + .375" a side, the top at their highest point and the bottom 2.75"+ under their lowest. On
@@ -18,10 +19,12 @@ X / Y the bodies + .375" a side, the top at their highest point and the bottom 2
 blocks with a .375" wall left standing round the subtract.
 
 The dialog (DeadStrike.dlx, tools\\make-dlx.py): the Customer radio (None / TSG / GM, None on opening; GM builds with
-the GM parts, TSG uses the CTS parts), the solid bodies (anywhere in the assembly), Rows (x) / Cols (y) (1-5,
-both sides' grid), and Lower / Upper boxes (both checked by default) to build only one side.
+the GM parts, TSG uses the CTS parts), the solid bodies (anywhere in the assembly), then Lower and Upper boxes (both
+checked by default, to build only one side), each followed by that side's Rows (x) / Cols (y) (1-5, greyed out while
+the side is unchecked).
 OK stays greyed out until TSG or GM is checked, a body is picked and a side is checked. While it is open, the blocks of
-the checked sides are outlined with temporary lines over the picked bodies, redrawn on every change (2026-11-05).
+the checked sides are outlined with temporary lines over the picked bodies, each side at its own grid, redrawn on every
+change (2026-11-05).
 
 All the bodies go into one build per side. The lower form's sizing and subtract switch the bodies' components'
 reference sets and back, which kills the picked body occurrences, so the upper looks them up again
@@ -51,6 +54,7 @@ if os.path.isdir(_shared_python) and _shared_python not in sys.path:
 
 import NXOpen  # noqa: E402
 import NXOpen.Assemblies  # noqa: E402
+import NXOpen.BlockStyler  # noqa: E402
 import NXOpen.UF  # noqa: E402
 
 import tsg_nx as nx  # noqa: E402
@@ -83,13 +87,16 @@ class DeadStrike(object):
             drawdie._erase_preview()
         if not accepted:
             return
-        build(is_gm_customer(dialog.customer_choice), dialog.bodies, dialog.rows, dialog.cols, dialog.lower,
-              dialog.upper)
+        build(is_gm_customer(dialog.customer_choice), dialog.bodies, dialog.lower_rows, dialog.lower_cols,
+              dialog.upper_rows, dialog.upper_cols, dialog.lower, dialog.upper)
 
 
-def build(is_gm: bool, bodies: Sequence[NXOpen.Body], rows: int, cols: int, lower: bool = True,
-          upper: bool = True) -> None:
-    """The lower split form in LAD02, then the upper in UAD02 on the bodies looked up again."""
+def build(is_gm: bool, bodies: Sequence[NXOpen.Body], lower_rows: int, lower_cols: int, upper_rows: int,
+          upper_cols: int, lower: bool = True, upper: bool = True) -> None:
+    """
+    The lower split form in LAD02 (lower_rows along X by lower_cols along Y), then the upper in UAD02 (upper_rows by
+    upper_cols) on the bodies looked up again.
+    """
     top_level = nx.display_part()
     starting_work = nx.work_part()
     refs = [_body_ref(b) for b in bodies]
@@ -97,9 +104,9 @@ def build(is_gm: bool, bodies: Sequence[NXOpen.Body], rows: int, cols: int, lowe
 
     try:
         if lower:
-            build_in_station(is_gm, _resolve_bodies(refs), LowerStation, False, rows, cols)
+            build_in_station(is_gm, _resolve_bodies(refs), LowerStation, False, lower_rows, lower_cols)
         if upper:
-            build_in_station(is_gm, _resolve_bodies(refs), UpperStation, True, rows, cols)
+            build_in_station(is_gm, _resolve_bodies(refs), UpperStation, True, upper_rows, upper_cols)
     finally:
         nx.set_display_part(top_level)
         nx.set_work_part(starting_work)
@@ -239,7 +246,7 @@ def _resolve_bodies(refs: Sequence[BodyRef]) -> List[NXOpen.Body]:
 
 
 class _DeadStrikeDialog(Dialog):
-    """DeadStrike.dlx: the bodies, Rows (x) / Cols (y), Lower / Upper."""
+    """DeadStrike.dlx: the bodies, Lower and its Rows (x) / Cols (y), Upper and its Rows (x) / Cols (y)."""
 
     dlx_name = "DeadStrike.dlx"
 
@@ -248,8 +255,10 @@ class _DeadStrikeDialog(Dialog):
         super().__init__()
         # Captured in ok(): the blocks are gone once Launch returns.
         self.bodies: List[NXOpen.Body] = []
-        self.rows = 2
-        self.cols = 1
+        self.lower_rows = 2
+        self.lower_cols = 1
+        self.upper_rows = 2
+        self.upper_cols = 1
         self.lower = True
         self.upper = True
         self.customer_choice = CustomerNone
@@ -265,18 +274,30 @@ class _DeadStrikeDialog(Dialog):
         self.reset_customer()
         self.block("lower").Value = True
         self.block("upper").Value = True
+        self._enable_sides()
         self._preview()
 
     def update(self, block: NXOpen.BlockStyler.UIBlock) -> None:
-        # Any change - bodies, Rows / Cols, Lower / Upper - redraws the outlines.
+        # Any change - bodies, a side's Rows / Cols, Lower / Upper - redraws the outlines.
+        self._enable_sides()
         self._preview()
+
+    def _enable_sides(self) -> None:
+        """A side's Rows / Cols are greyed out while that side is unchecked."""
+        lower = bool(self.block("lower").Value)
+        upper = bool(self.block("upper").Value)
+        self.block("lower_rows").Enable = lower
+        self.block("lower_cols").Enable = lower
+        self.block("upper_rows").Enable = upper
+        self.block("upper_cols").Enable = upper
 
     def _preview(self) -> None:
         """The outlines of what OK would build; a failure goes to the syslog and leaves the dialog working."""
         try:
-            grid = (int(self.block("rows").Value), int(self.block("cols").Value))
+            lower_grid = (int(self.block("lower_rows").Value), int(self.block("lower_cols").Value))
+            upper_grid = (int(self.block("upper_rows").Value), int(self.block("upper_cols").Value))
             drawdie._erase_preview()
-            draw_preview(self._picked_bodies(), grid, grid, bool(self.block("lower").Value),
+            draw_preview(self._picked_bodies(), lower_grid, upper_grid, bool(self.block("lower").Value),
                          bool(self.block("upper").Value))
         except Exception as ex:
             nx.syslog("Dead Strike: the preview failed: {}".format(ex))
@@ -301,8 +322,10 @@ class _DeadStrikeDialog(Dialog):
             self.message("Select the dead strike solid bodies.")
             return False
 
-        self.rows = int(self.block("rows").Value)
-        self.cols = int(self.block("cols").Value)
+        self.lower_rows = int(self.block("lower_rows").Value)
+        self.lower_cols = int(self.block("lower_cols").Value)
+        self.upper_rows = int(self.block("upper_rows").Value)
+        self.upper_cols = int(self.block("upper_cols").Value)
         self.customer_choice = self.customer()
         return True
 
