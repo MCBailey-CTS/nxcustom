@@ -2,12 +2,14 @@
 The profile-subtract UFunc: a standalone Python UFunc (no C# class); its menu button runs this file's main().
 
 Three dialogs (tools\\make-dlx.py, 2026-10-29), all anywhere in the assembly:
-  - ProfileSubtractTargets.dlx: target faces only - a face of each target solid body (the body is the target; the
-    faces the subtract makes are colored like the first face picked on that body, 2026-10-29). Each face's body is
-    blanked as soon as it is picked (so the tool faces behind it can be picked next), one taken out of the pick is
-    unblanked, and every one still blanked is unblanked when the run ends - cancelled, finished or failed;
-  - one target body picked: ProfileSubtractTools.dlx - the offset and many planar tool faces;
-  - many target bodies picked: ProfileSubtractTool.dlx - the offset and a single planar tool face.
+  - ProfileSubtractTargets.dlx: target faces only - a face of each target solid body (the body is the target). Each
+    face's body is blanked as soon as it is picked (so the tool faces behind it can be picked next), one taken out of
+    the pick is unblanked, and every one still blanked is unblanked when the run ends - cancelled, finished or failed;
+  - one target body picked: ProfileSubtractTools.dlx - the offset, many planar tool faces and the Wall color radio;
+  - many target bodies picked: ProfileSubtractTool.dlx - the offset, a single planar tool face and the Wall color
+    radio.
+Wall color (2026-11-05) colors the faces the subtract makes: Same color as block is the first face picked on that
+body, Blue (211) is color 211.
 OK stays greyed out until something is picked.
 
 The offset's units follow the job (tsg_dialog.detect_customer, 2026-10-29): a GM job - or one it cannot tell -
@@ -33,7 +35,7 @@ so one bad face does not drop the rest):
     chamfer whose side lines are too short for the radius is left as it is (noted in the syslog);
   - the offset curves are extruded 10" both ways along the linked face's normal (Boss._snap_extrude) and the
     extrude is subtracted from the target body, and the faces the subtract made (the boolean's own faces) are
-    colored like the target face. A profile that does not reach the body (NX error 670030) is noted in the listing
+    colored as Wall color says. A profile that does not reach the body (NX error 670030) is noted in the listing
     window, its extrude deleted, and not logged to tblExceptions. The offset, radius and extrude lengths are
     converted to the target part's units. The display is not suppressed (2026-10-29).
 The starting display and work parts are restored in a finally. The edge and offset curves stay in the part as plain
@@ -85,6 +87,10 @@ CornerRadiusMm = 25.0
 # How far off 45 degrees a chamfer's angle to each side line may be.
 _ChamferAngleTolerance = 2.0
 
+# The Wall color radio's Blue choice, and the color it gives the faces the subtract makes.
+WallColorBlueChoice = "Blue (211)"
+WallColorBlue = 211
+
 
 class ProfileSubtract(object):
 
@@ -92,8 +98,9 @@ class ProfileSubtract(object):
     def execute() -> None:
         """
         The targets dialog (a face per target body), then the tools dialog for one target body (many faces) or for
-        many (one face), then build per body, the new faces colored like that body's first picked face. The target
-        bodies, blanked once picked, are unblanked at the end - cancelled, finished or failed.
+        many (one face), then build per body, the new faces colored like that body's first picked face or 211, as
+        the Wall color radio says. The target bodies, blanked once picked, are unblanked at the end - cancelled,
+        finished or failed.
         """
         title = title_with_version("Profile Subtract")
         targets_dialog = _TargetsDialog(title)
@@ -106,15 +113,15 @@ class ProfileSubtract(object):
             if not tools_dialog.run() or not tools_dialog.tool_faces:
                 return
 
-            # The target faces by their body, in pick order: each body is built once, and its new faces take the
-            # color of its first picked face.
+            # The target faces by their body, in pick order: each body is built once, and with Same color as block
+            # its new faces take the color of its first picked face.
             bodies: List[NXOpen.Body] = []
             colors: Dict[int, int] = {}
             for face in targets:
                 body = face.GetBody()
                 if body.Tag not in colors:
                     bodies.append(body)
-                    colors[body.Tag] = face.Color
+                    colors[body.Tag] = WallColorBlue if tools_dialog.blue_walls else face.Color
 
             built: Set[int] = set()
             for target in bodies:
@@ -452,7 +459,8 @@ def _box_size(curves: Sequence[NXOpen.Curve]) -> float:
 class _TargetsDialog(Dialog):
     """
     ProfileSubtractTargets.dlx: target faces, nothing else - a face of each target solid body, whose color the faces
-    the subtract makes take (2026-10-29; it used to pick the bodies). Each face's body is blanked as soon as it is
+    the subtract makes take with Same color as block (2026-10-29; it used to pick the bodies). Each face's body is
+    blanked as soon as it is
     picked (so the tool faces behind it can be picked in the next dialog); a body none of whose faces is still picked
     is unblanked again. The caller unblanks the rest (unblank_targets) when the run ends.
     """
@@ -519,9 +527,9 @@ class _TargetsDialog(Dialog):
 
 class _ToolsDialog(Dialog):
     """
-    The offset and the planar tool faces: ProfileSubtractTools.dlx (many faces, for one target) or
-    ProfileSubtractTool.dlx (one face, for many targets). The offset's units follow the job: Offset (mm) 20 for GM or
-    a job detect_customer cannot tell, Offset (in) .5 for TSG.
+    The offset, the planar tool faces and the Wall color radio: ProfileSubtractTools.dlx (many faces, for one target)
+    or ProfileSubtractTool.dlx (one face, for many targets). The offset's units follow the job: Offset (mm) 20 for GM
+    or a job detect_customer cannot tell, Offset (in) .5 for TSG.
     """
 
     def __init__(self, title: str, many_faces: bool) -> None:
@@ -533,6 +541,8 @@ class _ToolsDialog(Dialog):
         self.offset = 0.0
         # Offset in millimetres (GM job, or one detect_customer cannot tell) or inches (TSG job).
         self.offset_in_mm = True
+        # The Wall color radio: Blue (211), or else Same color as block.
+        self.blue_walls = False
 
     def initialize(self) -> None:
         self.block("tool_faces").SetSelectionFilter(NXOpen.Selection.SelectionAction.ClearAndEnableSpecific,
@@ -560,6 +570,7 @@ class _ToolsDialog(Dialog):
             self.message("Select the tool planar faces.")
             return False
         self.offset = float(self.block("offset").Value)
+        self.blue_walls = str(self.block("wall_color").ValueAsString) == WallColorBlueChoice
         return True
 
     def _picked_faces(self) -> List[NXOpen.Face]:

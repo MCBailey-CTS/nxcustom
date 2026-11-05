@@ -4,15 +4,19 @@ The C# wrapper was deleted 2026-10-22 (in git at 1cb53d8): the UFunc's menu butt
 
 The Merlin builder for a full draw station minus the nitrogen, from the "DRAW DIE PROGRAM" spec. Run from the
 -000; one run builds both halves into the op picked in the dialog (LAD02 / UAD02 for Auto Design and Dead Strike):
-  - LADnn: the lower cast binder (BINDER-3D), eight post form steels (LWR-3D) and the lower cast riser under them.
-  - UADnn: eight cavity form steels (UPR-3D) and the mounting plate on top of them.
+  - LADnn: the lower cast binder (BINDER-3D), the post form steels (LWR-3D) and the lower cast riser under them.
+  - UADnn: the cavity form steels (UPR-3D) and the mounting plate on top of them.
+The form steels are 2 x 4 unless the caller says otherwise; the upper's grid need not match the lower's.
 
 The draw-die UFunc picks through a Block Styler dialog (DrawDie.dlx, tools\\make-dlx.py, 2026-10-29): the Customer
 radio (None / TSG / GM, None on opening; TSG uses the CTS parts), the part's solid bodies and a radio of the
 ops - the display part's station numbers with both a ladNN and a uadNN, read when it opens (none is an error box
-before it; the work part's number is checked first when it is one), and Edit Spreadsheets (checked on every opening;
-off, no key's or guided retainer's sheet is opened, as in Auto Design - 2026-10-29). OK stays greyed out until TSG or GM is checked
-and a body is picked. OpBodiesDialog is shared with Pierce.py (Pierce.dlx).
+before it; the work part's number is checked first when it is one) - then Lower and Upper Rows (x) / Cols (y), each
+side's form steels along X by along Y (2026-11-04, 2 x 4 by default). OK stays greyed out until TSG or GM is checked
+and a body is picked. OpBodiesDialog is shared with Pierce.py (Pierce.dlx); _DrawDieDialog adds the grids to it.
+GM keys and guided retainers are placed from preset library parts (Smart GM Key {width}-{length}.prt, Smart GM
+Guided Retainer 50.prt), already set to the spec's sizes, and no spreadsheet is opened (2026-11-03; the Edit
+Spreadsheets box, which opened each sheet and wrote it, is gone).
 All sizes are measured off the selected part bodies' box in the -000, mapped into each station's coordinates.
 
 Two ways in:
@@ -163,40 +167,29 @@ _shcs20mm060Path = "G:\\0Library\\Fasteners\\Metric\\SocketHeadCapScrews-2X\\020
 _jck12mmScrewTsgPath = "G:\\0Library\\Fasteners\\Metric\\JackScrews\\12mm-jck-screw-tsg.prt"
 _tsgNitroExtensionPath = "G:\\0Library\\TsgComponents\\NitroExtensions\\Smart TSG Nitro Extension.prt"
 _tsgPadBalancerPath = "G:\\0Library\\TsgComponents\\PadBalancers\\Smart TSG Pad Balancers.prt"
-_gmKeyPath = "G:\\0Library\\0Customer\\GM\\Smart GM Key.prt"
-_gmGuidedRetainerPath = "G:\\0Library\\0Customer\\GM\\Smart GM Guided Retainer.prt"
 _gmHoistRingPath = "G:\\0Library\\0Customer\\GM\\GM 16MM DIA PLDW Hoist Ring.prt"
 _gmCastPadLocatorPath = "G:\\CTS\\junk\\blank-station-data\\GM CAST PAD LOCATOR.prt"
 _ctsSmartKeyMetric = "G:\\0Library\\Keys\\Smart Key Metric.prt"
 _ctsSmartSlGuidedKeeper = "G:\\0Library\\StandardLifters\\GuidedKeepers\\Smart SL Guided Keepers.prt"
 
-# Smart GM Key sizes: (Main!I3 radio value = the Data sheet's column B row number, the Label the sheet gives it).
-PostKeySize = (6, "25mm - 50mm")        # Jolico J-996457
-CavityKeySize = (7, "25mm - 80mm")      # Jolico J-996443 - the seed's own setting
-RiserKeySize = (8, "25mm - 100mm")      # Jolico J-996444
-PlateKeySize = (8, "25mm - 100mm")      # Jolico J-996444
+# GM keys and guided retainers come from preset parts (2026-11-03): copies of the Smart GM Key / Guided Retainer
+# Save As'd in the library folder with their spreadsheet and expressions already set, so no sheet is opened. A key
+# size is the preset's "{width}-{length}" (mm) - "Smart GM Key 25-100.prt".
+_gmLibraryDir = "G:\\0Library\\0Customer\\GM\\"
+PostKeySize = "25-50"                   # Jolico J-996457
+CavityKeySize = "25-80"                 # Jolico J-996443
+RiserKeySize = "25-100"                 # Jolico J-996444
+PlateKeySize = "25-100"                 # Jolico J-996444
 
-# Smart GM Key sheet cells (1-based row, column). Main!I3 is the hidden cell the size radio buttons write.
-_keySizeCell = (3, 9)
-# Exp-Attr: expression name in B / value in C on rows 3-30 (UG_ACTIVE_RNG), attribute "Title" (str) in E / value
-# in F on rows 3-6 (UG_ATTR_RNG).
-_keyExpressionRows = (3, 30)
-_keyAttributeRows = (3, 6)
+# Smart GM Guided Retainer presets: GRS.50.HD (the binder's: Plate Adapter Cap, 105 mm stroke, 75 mm travel) and
+# GRS.65.HD.
+_gmGuidedRetainer50Path = _gmLibraryDir + "Smart GM Guided Retainer 50.prt"
+_gmGuidedRetainer65Path = _gmLibraryDir + "Smart GM Guided Retainer 65.prt"
 
-# Smart GM Guided Retainer, as the spec pictures it: GRS.50.HD with the Plate Adapter Cap, 105 mm stroke, 75 mm travel.
-GuidedRetainerModel = 1                 # Main!J4 model radio: 1 = GRS.50.HD, 2 = GRS.65.HD (the seed's)
-GuidedRetainerStroke = 105.0            # mm - must be in the sheet's GRS_50_HD list (55-155 by 10)
-GuidedRetainerTravel = 75.0             # mm
-GuidedRetainerDescription = "GRS.50.HD.J.1050.FH.AC Guided Retainer"
 
-# Smart GM Guided Retainer sheet cells (1-based row, column), all on Main's hidden columns J-L but G.
-_retainerModelCell = (4, 10)            # J4
-_retainerStrokeCell = (9, 7)            # G9
-_retainerTravelCell = (12, 7)           # G12
-# Exp-Attr: expression name in B / value in C on rows 3-37 (UG_ACTIVE_RNG), attribute title in E / value in F on
-# rows 3-7 (UG_ATTR_RNG: Description, Material, LABEL, LIBRARY, REVISION).
-_retainerExpressionRows = (3, 37)
-_retainerAttributeRows = (3, 7)
+def _key_path(job: "DrawDieJob", size: str) -> str:
+    """The key to place: the GM preset of size ("25-100") for GM, else the CTS Smart Key Metric (its seed size)."""
+    return "{}Smart GM Key {}.prt".format(_gmLibraryDir, size) if job.is_gm else _ctsSmartKeyMetric
 
 # uf_csys.h: UF_CSYS_ROOT_COORDS 1, UF_CSYS_WORK_COORDS 2.
 _UF_CSYS_ROOT_COORDS = 1
@@ -228,18 +221,20 @@ class DrawDie(object):
 
     @staticmethod
     def build(is_gm: bool, bodies: Sequence[NXOpen.TaggedObject], quiet: bool = False,
-              skip_spreadsheets: bool = False) -> None:
+              lower_grid: Tuple[int, int] = (FormSteelColumns, FormSteelRows),
+              upper_grid: Tuple[int, int] = (FormSteelColumns, FormSteelRows)) -> None:
         """
         Merlin.BuildDrawDie(is_gm, bodies) - the build half, on part bodies the caller already picked (AutoDesign).
         No units / -000 gates and no pick: run with the -000 as the display part. quiet leaves out the elapsed time
-        and "Created reference set" lines; skip_spreadsheets leaves every key's and guided retainer's sheet unopened
-        (AutoDesign's Edit Spreadsheets off).
+        and "Created reference set" lines. lower_grid / upper_grid are the posts' and the cavity steels' (along X,
+        along Y) counts.
         """
-        DrawDie._build_halves(is_gm, bodies, quiet, skip_spreadsheets, lower=True, upper=True)
+        DrawDie._build_halves(is_gm, bodies, quiet, lower=True, upper=True, lower_grid=lower_grid,
+                              upper_grid=upper_grid)
 
     @staticmethod
     def build_upper(is_gm: bool, bodies: Sequence[NXOpen.TaggedObject], quiet: bool = False,
-                    skip_spreadsheets: bool = False, cavity_overhang: float = CavityOverhang,
+                    cavity_overhang: float = CavityOverhang,
                     columns: int = FormSteelColumns, rows: int = FormSteelRows) -> None:
         """
         build, the upper half only: the cavity form steels and the mounting plate in UAD02, subtracting UPR-3D.
@@ -247,23 +242,21 @@ class DrawDie(object):
         (3/8" a side instead of the draw die's 1") and its own grid: columns cavity steels along X by rows along Y
         (the draw die's 2 x 4 by default).
         """
-        DrawDie._build_halves(is_gm, bodies, quiet, skip_spreadsheets, lower=False, upper=True,
+        DrawDie._build_halves(is_gm, bodies, quiet, lower=False, upper=True,
                               cavity_overhang=cavity_overhang, upper_grid=(columns, rows))
 
     @staticmethod
-    def _build_halves(is_gm: bool, bodies: Sequence[NXOpen.TaggedObject], quiet: bool, skip_spreadsheets: bool,
+    def _build_halves(is_gm: bool, bodies: Sequence[NXOpen.TaggedObject], quiet: bool,
                       lower: bool, upper: bool, cavity_overhang: float = CavityOverhang,
+                      lower_grid: Tuple[int, int] = (FormSteelColumns, FormSteelRows),
                       upper_grid: Tuple[int, int] = (FormSteelColumns, FormSteelRows)) -> None:
-        global _skip_spreadsheets
-        _skip_spreadsheets = bool(skip_spreadsheets)
         try:
             with nx.quiet_listing(quiet):
                 build_draw_die(bool(is_gm), [cast(NXOpen.Body, body) for body in bodies], build_lower_half=lower,
-                               build_upper_half=upper, cavity_overhang=cavity_overhang, upper_grid=upper_grid)
+                               build_upper_half=upper, cavity_overhang=cavity_overhang, lower_grid=lower_grid,
+                               upper_grid=upper_grid)
         except Exception as ex:
             nx.print_exception(ex)
-        finally:
-            _skip_spreadsheets = False
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -292,7 +285,7 @@ class DrawDieJob(object):
         # How far the cavity steels overhang the part's box, per side (upper only): 1" for the draw die, 3/8" for
         # Dead Strike.
         self.cavity_overhang = CavityOverhang
-        # The form steel grid: columns along X by rows along Y. Dead Strike sets the upper's from its Rows / Cols.
+        # The form steel grid: columns along X by rows along Y, set per half (build_draw_die's lower_grid / upper_grid).
         self.form_steel_columns = FormSteelColumns
         self.form_steel_rows = FormSteelRows
 
@@ -310,8 +303,9 @@ class DrawDieJob(object):
 def static_draw_die(is_gm: bool) -> None:
     """
     Merlin.StaticDrawDie - run from the -000: the units and -000 gates, the ops with both a LADnn and a UADnn (none
-    is an error before the dialog), then the dialog (customer, part bodies, op) and build_draw_die into that op. The
-    dialog's Customer radio decides is_gm (TSG uses the CTS parts); the argument is not used.
+    is an error before the dialog), then the dialog (customer, part bodies, op, each half's steel grid) and
+    build_draw_die into that op. The dialog's Customer radio decides is_gm (TSG uses the CTS parts); the argument is
+    not used.
     """
     ok, message = _check_info_units()
     if not ok:
@@ -329,18 +323,12 @@ def static_draw_die(is_gm: bool) -> None:
             nx.display_part().Leaf))
         return
 
-    dialog = OpBodiesDialog("DrawDie.dlx", title_with_version("Draw Die"), numbers, "Select the part's solid bodies.",
-                            spreadsheets=True)
+    dialog = _DrawDieDialog(title_with_version("Draw Die"), numbers)
     if not dialog.run():
         return
 
-    # Edit Spreadsheets off: no key's or guided retainer's sheet is opened (as Auto Design's box).
-    global _skip_spreadsheets
-    _skip_spreadsheets = not dialog.edit_spreadsheets
-    try:
-        build_draw_die(is_gm_customer(dialog.customer_choice), dialog.bodies, station=dialog.station)
-    finally:
-        _skip_spreadsheets = False
+    build_draw_die(is_gm_customer(dialog.customer_choice), dialog.bodies, station=dialog.station,
+                   lower_grid=dialog.lower_grid, upper_grid=dialog.upper_grid)
 
 
 # The C# stage dialog is commented out - every stage is built, as if all its boxes were ticked.
@@ -398,14 +386,16 @@ def _try_find_draw_die_stations(lower: bool = True, upper: bool = True, station:
 def build_draw_die(is_gm: bool, bodies: Sequence[NXOpen.Body], build_lower_half: bool = True,
                    build_upper_half: bool = True, station: str = DefaultStation,
                    cavity_overhang: float = CavityOverhang,
+                   lower_grid: Tuple[int, int] = (FormSteelColumns, FormSteelRows),
                    upper_grid: Tuple[int, int] = (FormSteelColumns, FormSteelRows)) -> None:
     """
     Merlin.BuildDrawDie - the build half of static_draw_die, on part bodies the caller already has, so AutoDesign
     can drive it. Run from the -000; the caller brings the units and -000 gates. Builds the lower stages (binder,
     posts, riser) into LADnn and the upper ones (cavity, mounting plate) into UADnn (nn = station, 02 unless the
     dialog picked another op) - only the halves asked for
-    (Dead Strike builds the upper alone). Each stage is caught on its own, so a failed binder still leaves the posts
-    and riser to be built, and a failed lower half the upper one.
+    (Dead Strike builds the upper alone). lower_grid / upper_grid are each half's form steels, (along X, along Y).
+    Each stage is caught on its own, so a failed binder still leaves the posts and riser to be built, and a failed
+    lower half the upper one.
     """
     stations = _try_find_draw_die_stations(build_lower_half, build_upper_half, station)
     if stations is None:
@@ -479,6 +469,7 @@ def build_draw_die(is_gm: bool, bodies: Sequence[NXOpen.Body], build_lower_half:
                                _map_box_to_station(part_box, station_lad, top_level, starting_work))
             lower.binder_refset = refsets.get(DrawDieBinderRefset)
             lower.form_steel_refset = refsets.get(DrawDieLowerRefset)
+            lower.form_steel_columns, lower.form_steel_rows = lower_grid
 
         upper: Optional[DrawDieJob] = None
         if build_upper and station_uad is not None:
@@ -679,14 +670,13 @@ def _build_draw_die_binder(job: DrawDieJob) -> nx.Box3d:
 
     # Guided retainers: 55 mm in from the corners plus two at mid-length, 1 mm off the bottom.
     def guided_retainers() -> None:
-        retainer_path = _gmGuidedRetainerPath if job.is_gm else _ctsSmartSlGuidedKeeper
+        retainer_path = _gmGuidedRetainer50Path if job.is_gm else _ctsSmartSlGuidedKeeper
         # Upside down (a 180 degree roll about X), like the nitro extensions - +Z put them in the wrong way up.
         retainers = _place_draw_die_children(
             "binder guided retainer", retainer_path,
             [(p, upside_down) for p in _corners_and_mid_length(xlength, ywidth, BinderGuidedRetainerInset,
                                                                -BinderGuidedRetainerOffBottom)],
             layer=99, subtract_refset=None, body_refset=body_refset)
-        _set_draw_die_guided_retainer(retainers, job)
         _save_as_draw_die_part(retainers, job, "draw-die-binder-guided-retainer")
 
     _draw_die_step("binder guided retainers", guided_retainers)
@@ -703,9 +693,9 @@ def _build_draw_die_binder(job: DrawDieJob) -> nx.Box3d:
 
 def _build_draw_die_posts(job: DrawDieJob) -> nx.Box3d:
     """
-    Merlin.BuildDrawDiePosts - eight post form steels: the part's box (rounded up to 1/8") split down its centre in
-    X and into four along Y, .004" apart, at least 2.5" thick under the part's lowest point, LWR-3D subtracted.
-    Returns the overall box.
+    Merlin.BuildDrawDiePosts - the post form steels: the part's box (rounded up to 1/8") split into the job's grid
+    (2 along X by 4 along Y by default), .004" apart, at least 2.5" thick under the part's lowest point, LWR-3D
+    subtracted. Returns the overall box.
     """
     box = job.part_box
     xlength = nx.round_to_125(box.MaxX - box.MinX)
@@ -745,9 +735,8 @@ def _build_draw_die_riser(job: DrawDieJob, posts: nx.Box3d) -> nx.Box3d:
         fixed_description=True)
 
     def riser_keys() -> None:
-        keys = _place_draw_die_edge_keys(job, xlength, ywidth, RiserThickness)
+        keys = _place_draw_die_edge_keys(job, xlength, ywidth, RiserThickness, RiserKeySize)
         nx.find_or_create_reference_set(new_part, "BODY").AddObjectsToReferenceSet(keys)
-        _set_draw_die_key_size(keys, job, RiserKeySize)
         _save_as_draw_die_part(keys, job, "draw-die-riser-key")
 
     _draw_die_step("riser keys", riser_keys)
@@ -858,9 +847,9 @@ def _link_lowest_binder_face(job: DrawDieJob, new_part: NXOpen.Part) -> None:
 
 def _build_draw_die_cavity(job: DrawDieJob) -> nx.Box3d:
     """
-    Merlin.BuildDrawDieCavity - eight cavity form steels: the part's box + job.cavity_overhang per side (1" for the
-    draw die, 3/8" for Dead Strike), split like the posts, at least 2.75" thick over the part's highest point, UPR-3D
-    subtracted. Returns the overall box.
+    Merlin.BuildDrawDieCavity - the cavity form steels: the part's box + job.cavity_overhang per side (1" for the
+    draw die, 3/8" for Dead Strike), split into the job's own grid, at least 2.75" thick over the part's highest
+    point, UPR-3D subtracted. Returns the overall box.
     """
     min_point, xlength, ywidth, height = _cavity_size(job.part_box, job.cavity_overhang)
 
@@ -969,9 +958,8 @@ def _build_draw_die_mounting_plate(job: DrawDieJob, cavity: nx.Box3d) -> nx.Box3
     _draw_die_step("mounting plate hoist rings", hoist_rings)
 
     def plate_keys() -> None:
-        keys = _place_draw_die_edge_keys(job, xlength, ywidth, thickness)
+        keys = _place_draw_die_edge_keys(job, xlength, ywidth, thickness, PlateKeySize)
         body_refset.AddObjectsToReferenceSet(keys)
-        _set_draw_die_key_size(keys, job, PlateKeySize)
         _save_as_draw_die_part(keys, job, "draw-die-mounting-plate-key")
 
     _draw_die_step("mounting plate keys", plate_keys)
@@ -987,14 +975,14 @@ def _build_draw_die_mounting_plate(job: DrawDieJob, cavity: nx.Box3d) -> nx.Box3
 def _build_draw_die_form_steels(job: DrawDieJob, min_point: NXOpen.Point3d, xlength: float, ywidth: float,
                                 height: float, name: str, subtract_refset: Optional[str], shcs_path: str,
                                 shcs_inset: float, jack_inset: float, key_save_name: str,
-                                key_size: Tuple[int, str], keys_both_ways: bool = False) -> None:
+                                key_size: str, keys_both_ways: bool = False) -> None:
     """
-    Merlin.BuildDrawDieFormSteels - job.form_steel_columns along X (two, either side of the X centreline) by
-    job.form_steel_rows along Y (four), .004" apart,
+    Merlin.BuildDrawDieFormSteels - job.form_steel_columns along X by job.form_steel_rows along Y (2 x 4 by
+    default), .004" apart,
     each a different random color with its joint faces and mounting face yellow. Per block: 4 backside SHCS
     (SHORT-TAP), 2 TSG jack screws (CBORE_BLIND) - the second snapped to whole inches from the first - and 2 keys
-    (4 with keys_both_ways). The keys are sized (key_size) and Save As'd once, after every block, so all eight share
-    one job copy.
+    (4 with keys_both_ways), the key_size preset. The keys are Save As'd once, after every block, so all the blocks
+    share one job copy.
     """
     columns, rows = max(1, job.form_steel_columns), max(1, job.form_steel_rows)
     column_width = (xlength - (columns - 1) * merlin.SplitGap) / columns
@@ -1004,7 +992,7 @@ def _build_draw_die_form_steels(job: DrawDieJob, min_point: NXOpen.Point3d, xlen
         raise RuntimeError("{} x {} is too small to split {} x {}.".format(
             _f3(xlength), _f3(ywidth), columns, rows))
 
-    # Without replacement, so all eight come out different.
+    # Without replacement, so the blocks come out different (the palette repeats past its own length).
     colors = random.sample(merlin.SplitComponentColors, len(merlin.SplitComponentColors))
     keys: List[NXOpen.Assemblies.Component] = []
     index = 0
@@ -1014,20 +1002,19 @@ def _build_draw_die_form_steels(job: DrawDieJob, min_point: NXOpen.Point3d, xlen
             try:
                 _build_one_form_steel(job, min_point, column, row, index, column_width, row_length, height, name,
                                       colors[index % len(colors)], subtract_refset, shcs_path, shcs_inset,
-                                      jack_inset, keys_both_ways, keys)
+                                      jack_inset, keys_both_ways, key_size, keys)
             except Exception as ex:
                 nx.print_("Draw Die: {} block {} of {} failed.".format(name, index + 1, columns * rows))
                 nx.print_exception(ex)
             index += 1
 
-    _set_draw_die_key_size(keys, job, key_size)
     _save_as_draw_die_part(keys, job, key_save_name)
 
 
 def _build_one_form_steel(job: DrawDieJob, min_point: NXOpen.Point3d, column: int, row: int, index: int,
                           column_width: float, row_length: float, height: float, name: str, color: int,
                           subtract_refset: Optional[str], shcs_path: str, shcs_inset: float, jack_inset: float,
-                          keys_both_ways: bool, keys: List[NXOpen.Assemblies.Component]) -> None:
+                          keys_both_ways: bool, key_size: str, keys: List[NXOpen.Assemblies.Component]) -> None:
     """The body of BuildDrawDieFormSteels' per-block loop."""
     block_min = NXOpen.Point3d(min_point.X + column * (column_width + merlin.SplitGap),
                                min_point.Y + row * (row_length + merlin.SplitGap),
@@ -1081,8 +1068,9 @@ def _build_one_form_steel(job: DrawDieJob, min_point: NXOpen.Point3d, column: in
 
     def block_keys() -> None:
         # Off centre by this block's grid position, so no two steels key into the same place (KeyShiftStep).
-        placed = (_place_draw_die_edge_keys(job, column_width, row_length, height, shift) if keys_both_ways
-                  else _place_draw_die_front_back_keys(job, column_width, row_length, height,
+        placed = (_place_draw_die_edge_keys(job, column_width, row_length, height, key_size, shift)
+                  if keys_both_ways
+                  else _place_draw_die_front_back_keys(job, column_width, row_length, height, key_size,
                                                        KeyShiftStep * (row * job.form_steel_columns + column)))
         body_refset.AddObjectsToReferenceSet(placed)
         keys.extend(placed)
@@ -1297,149 +1285,6 @@ def _save_as_draw_die_part(placed: Sequence[NXOpen.Assemblies.Component], job: D
         nx.print_exception(ex)
 
 
-# True while a DrawDie.build(..., skip_spreadsheets=True) runs - no key's or guided retainer's sheet is opened.
-_skip_spreadsheets = False
-
-
-def _set_draw_die_key_size(placed: Sequence[NXOpen.Assemblies.Component], job: DrawDieJob,
-                           size: Tuple[int, str]) -> bool:
-    """
-    Merlin.WriteDrawDieKeySpreadsheet (a stub in the C#) - sets the Smart GM Key behind placed to size: its size radio
-    (Main!I3) through _apply_draw_die_sheet, then checks the Label came out as the size's. CTS keys (Smart Key Metric)
-    have a different sheet and are left alone. False, printed, when anything failed.
-    """
-    if not placed:
-        return False
-
-    if not job.is_gm:
-        nx.warn("Draw Die: CTS key sheet not mapped - {} left at its seed size.".format(placed[0].DisplayName))
-        return False
-
-    selection, label = size
-    return _apply_draw_die_sheet(
-        placed[0], "key ({})".format(label),
-        numbers=[(_keySizeCell, float(selection))],
-        expression_rows=_keyExpressionRows, attribute_rows=_keyAttributeRows,
-        checks=[(("Exp-Attr", 5, 6), label)])
-
-
-def _set_draw_die_guided_retainer(placed: Sequence[NXOpen.Assemblies.Component], job: DrawDieJob) -> bool:
-    """
-    Merlin.WriteGuidedRetainerSpreadsheet (a stub in the C#) - sets the Smart GM Guided Retainer behind placed to the
-    spec's GRS.50.HD, stroke 105 mm, travel 75 mm, with the Plate Adapter Cap. The cap's checkbox (Main!L14, a
-    logical) is not written - the seed has it on - but the checks fail the edit when it is off, or when the sheet
-    calls the stroke or travel invalid. CTS keepers (Smart SL Guided Keepers) are left alone.
-    """
-    if not placed:
-        return False
-
-    if not job.is_gm:
-        nx.warn("Draw Die: CTS guided keeper sheet not mapped - {} left at its seed settings.".format(
-            placed[0].DisplayName))
-        return False
-
-    return _apply_draw_die_sheet(
-        placed[0], "guided retainer ({})".format(GuidedRetainerDescription),
-        numbers=[(_retainerModelCell, GuidedRetainerModel),
-                 (_retainerStrokeCell, GuidedRetainerStroke),
-                 (_retainerTravelCell, GuidedRetainerTravel)],
-        expression_rows=_retainerExpressionRows, attribute_rows=_retainerAttributeRows,
-        # J10 is a logical, but EvaluateCell hands it back as a double: TRUE -1, FALSE 0.
-        checks=[(("Main", 10, 10), "-1"),                      # J10 valid stroke for the model
-                (("Main", 7, 10), "1"),                        # J7 valid travel (available travel >= 0)
-                (("Main", 15, 12), "1"),                       # L15 Plate Adapter Cap on
-                (("Exp-Attr", 3, 6), GuidedRetainerDescription)])
-
-
-def _apply_draw_die_sheet(placed: NXOpen.Assemblies.Component, label: str,
-                          numbers: Sequence[Tuple[Tuple[int, int], float]],
-                          expression_rows: Tuple[int, int], attribute_rows: Tuple[int, int],
-                          checks: Sequence[Tuple[Tuple[str, int, int], str]]) -> bool:
-    """
-    The draw-die twin of PierceMerlin.ApplySheetExpressions, for a smart part with an embedded Main / Exp-Attr sheet:
-    writes numbers into Main ((row, col) 1-based), recalculates, copies Exp-Attr's expressions (name in B, value in C
-    on expression_rows) and attributes (title in E, value in F on attribute_rows) into the part, then saves and
-    terminates the sheet so the sheet and the part agree. checks are ((sheet, row, col), expected text) read after the
-    recalculation; a miss is printed and makes the result False, but the part is still written.
-    Call it before _save_as_draw_die_part: the edit changes the library part in session only, and the Save As writes
-    it to the job copy. The prototype is made the display part for the edit and the display and work parts are put
-    back. False, printed, when anything failed. With _skip_spreadsheets the sheet is not opened and False is returned.
-    """
-    if _skip_spreadsheets:
-        nx.info("Draw Die: spreadsheets skipped - {} {} keeps its seed settings.".format(placed.DisplayName, label))
-        return False
-
-    display = nx.display_part()
-    work = nx.work_part()
-    part = cast(NXOpen.Part, nx.prototype(placed))
-    ok = True
-
-    try:
-        nx.set_display_part(part)
-        nx.set_work_part(part)
-
-        manager = cast(Any, nx.session_).SpreadsheetManager
-        sheet = manager.Open(cast(Any, NXOpen).SpreadsheetManager.Sheettype.Modeling, part.FullPath)
-        types = cast(Any, NXOpen).SpreadsheetCellData.Types
-
-        def text(cell: Any) -> str:
-            if cell.Type == types.String:
-                return cell.StringValue
-            if cell.Type == types.Int:
-                return str(cell.IntValue)
-            if cell.Type == types.Logical:
-                return str(bool(cell.LogicalValue))
-            return nx.cs_double_str(cell.DoubleValue)
-
-        try:
-            main = sheet.GetSheetNumberOfName("Main")
-            for (row, col), value in numbers:
-                data = manager.CreateCellData()
-                data.DoubleValue = float(value)
-                sheet.SetNumber(row, col, data, main)
-            sheet.Recalculate()
-
-            # EvaluateCell, not GetValue: GetValue hands back an empty string for a formula cell (every Exp-Attr
-            # value is one) and reads Main whatever sheet it is given.
-            for (sheet_name, row, col), expected in checks:
-                got = text(sheet.EvaluateCell(row, col, sheet.GetSheetNumberOfName(sheet_name)))
-                if got != expected:
-                    ok = False
-                    nx.warn("Draw Die: {} {} {}!R{}C{} is {}, expected {}.".format(
-                        part.Leaf, label, sheet_name, row, col, got, expected))
-
-            exp_attr = sheet.GetSheetNumberOfName("Exp-Attr")
-
-            for row in range(expression_rows[0], expression_rows[1] + 1):
-                name = text(sheet.EvaluateCell(row, 2, exp_attr))
-                try:
-                    part.Expressions.FindObject(name).SetFormula(text(sheet.EvaluateCell(row, 3, exp_attr)))
-                except Exception as ex:
-                    ok = False
-                    nx.print_exception(ex, "{} Exp-Attr row {}, expression {}".format(label, row, name))
-
-            for row in range(attribute_rows[0], attribute_rows[1] + 1):
-                title = text(sheet.EvaluateCell(row, 5, exp_attr))
-                if '"' in title:
-                    title = title.split('"')[1]                 # the key's '"Description" (str)'
-                part.SetUserAttribute(title.strip(), -1, text(sheet.EvaluateCell(row, 6, exp_attr)),
-                                      NXOpen.Update.Option.Now)
-        finally:
-            sheet.Save()
-            sheet.Terminate()
-
-        nx.ufsession_.Modeling.Update()
-    except Exception as ex:
-        ok = False
-        nx.print_("Draw Die: could not set {} to {}.".format(part.Leaf, label))
-        nx.print_exception(ex)
-    finally:
-        nx.set_display_part(display)
-        nx.set_work_part(work)
-
-    return ok
-
-
 def key_shift_for(column: int, row: int, columns: int) -> Tuple[float, float]:
     """
     The (x, y) key shift of the block at column / row of a grid (KeyShiftStep). With edge keys both ways the block's
@@ -1460,11 +1305,11 @@ def shift_first_corner(corners: Sequence[NXOpen.Point3d], shift: Tuple[float, fl
     return moved
 
 
-def _place_draw_die_front_back_keys(job: DrawDieJob, xlength: float, ywidth: float, height: float,
+def _place_draw_die_front_back_keys(job: DrawDieJob, xlength: float, ywidth: float, height: float, key_size: str,
                                     shift_x: float = 0.0) -> List[NXOpen.Assemblies.Component]:
     """Merlin.PlaceDrawDieFrontBackKeys - two keys on the mounting face, X-centred (+ shift_x), 1.5" in from each Y
     end."""
-    path = _gmKeyPath if job.is_gm else _ctsSmartKeyMetric
+    path = _key_path(job, key_size)
     nudge = 0.0748 if job.is_gm else 0.0
     z = height if job.is_upper else 0.0
     orientation = _compute_upper_key_orientation() if job.is_upper else _lower_key_front_back_orientation()
@@ -1483,7 +1328,7 @@ def _place_draw_die_front_back_keys(job: DrawDieJob, xlength: float, ywidth: flo
 _UpperXKeyEdgeInset = 2.4498 - 0.0748
 
 
-def _place_draw_die_edge_keys(job: DrawDieJob, xlength: float, ywidth: float, height: float,
+def _place_draw_die_edge_keys(job: DrawDieJob, xlength: float, ywidth: float, height: float, key_size: str,
                               key_shift: Tuple[float, float] = (0.0, 0.0)) -> List[NXOpen.Assemblies.Component]:
     """
     Merlin.PlaceDrawDieEdgeKeys - four keys on the mounting face, one in from each edge on the centrelines, through
@@ -1493,7 +1338,7 @@ def _place_draw_die_edge_keys(job: DrawDieJob, xlength: float, ywidth: float, he
     current_wcs = wcs.CoordinateSystem.Orientation.Element
 
     try:
-        return _place_edge_items(_gmKeyPath if job.is_gm else _ctsSmartKeyMetric, NXOpen.Point3d(0.0, 0.0, 0.0),
+        return _place_edge_items(_key_path(job, key_size), NXOpen.Point3d(0.0, 0.0, 0.0),
                                  xlength, ywidth, job.is_upper,
                                  front_back_nudge=0.0748 if job.is_gm else 0.0,
                                  x_edge_inset=_UpperXKeyEdgeInset if job.is_upper else 2.4498,
@@ -1551,22 +1396,18 @@ def _create_block_origin_and_lengths(origin: NXOpen.Point3d, xlength: float, ywi
                                      height: float) -> NXOpen.Features.Block:
     """
     BasePart.__CreateBlock(Point3d, Matrix3x3, double, double, double) with the absolute orientation - an
-    origin-and-edge-lengths block in the work part. The block takes its orientation from the WCS, so the display
-    part's WCS is turned to absolute for the commit and put back afterwards.
+    origin-and-edge-lengths block in the work part, absolute whatever the WCS is (nx.wcs_turned_to).
     """
-    csys = nx.display_part().WCS.CoordinateSystem
-    original = csys.Orientation.Element
-    csys.SetDirections(_VectorX, _VectorY)
-    builder = nx.work_part().Features.CreateBlockFeatureBuilder(None)
-    try:
-        builder.Type = NXOpen.Features.BlockFeatureBuilder.Types.OriginAndEdgeLengths
-        builder.BooleanOption.Type = NXOpen.GeometricUtilities.BooleanOperation.BooleanType.Create
-        builder.SetOriginAndLengths(origin, nx.cs_double_str(xlength), nx.cs_double_str(ywidth),
-                                    nx.cs_double_str(height))
-        csys.SetDirections(nx.axis_x(original), nx.axis_y(original))
-        return cast(NXOpen.Features.Block, builder.Commit())
-    finally:
-        builder.Destroy()
+    with nx.wcs_turned_to(_VectorX, _VectorY):
+        builder = nx.work_part().Features.CreateBlockFeatureBuilder(None)
+        try:
+            builder.Type = NXOpen.Features.BlockFeatureBuilder.Types.OriginAndEdgeLengths
+            builder.BooleanOption.Type = NXOpen.GeometricUtilities.BooleanOperation.BooleanType.Create
+            builder.SetOriginAndLengths(origin, nx.cs_double_str(xlength), nx.cs_double_str(ywidth),
+                                        nx.cs_double_str(height))
+            return cast(NXOpen.Features.Block, builder.Commit())
+        finally:
+            builder.Destroy()
 
 
 def _create_new_component_core(name_prefix: str, objects: Sequence[NXOpen.DisplayableObject],
@@ -1999,13 +1840,10 @@ class OpBodiesDialog(Dialog):
     assembly) and "station" (a radio of op numbers, filled from numbers; the .dlx holds only a placeholder) - for
     Draw Die (DrawDie.dlx) and Pierce (Pierce.dlx). The customer is set from the assembly on opening (None if unsure), the op is the work part's when it is
     one of them (else the first), and OK stays greyed out until TSG or GM is checked and a body is picked.
-    spreadsheets: the .dlx also has an "edit_spreadsheets" toggle (Draw Die), checked on opening.
     """
 
-    def __init__(self, dlx_name: str, title: str, numbers: Sequence[str], no_bodies_message: str,
-                 spreadsheets: bool = False) -> None:
+    def __init__(self, dlx_name: str, title: str, numbers: Sequence[str], no_bodies_message: str) -> None:
         self.dlx_name = dlx_name
-        self.spreadsheets = spreadsheets
         self.title = title
         self.numbers = list(numbers)
         self.no_bodies_message = no_bodies_message
@@ -2014,7 +1852,6 @@ class OpBodiesDialog(Dialog):
         self.customer_choice = CustomerNone
         self.bodies: List[NXOpen.Body] = []
         self.station = self.numbers[0]
-        self.edit_spreadsheets = True
 
     def initialize(self) -> None:
         mask = NXOpen.Selection.MaskTriple(NXOpen.UF.UFConstants.UF_solid_type, 0, _SolidBodyDetail)
@@ -2030,9 +1867,6 @@ class OpBodiesDialog(Dialog):
         match = _OpStationPattern.search(nx.work_part().Leaf.lower())
         number = match.group(2) if match is not None and match.group(2) in self.numbers else self.numbers[0]
         self.block("station").ValueAsString = number
-        if self.spreadsheets:
-            # Not remembered: checked every time, as Auto Design's.
-            self.block("edit_spreadsheets").Value = True
 
     def enable_ok(self) -> bool:
         return self.customer_picked() and len(self._picked_bodies()) > 0
@@ -2048,13 +1882,31 @@ class OpBodiesDialog(Dialog):
             return False
         self.customer_choice = self.customer()
         self.station = str(self.block("station").ValueAsString)
-        if self.spreadsheets:
-            self.edit_spreadsheets = bool(self.block("edit_spreadsheets").Value)
         return True
 
     def _picked_bodies(self) -> List[NXOpen.Body]:
         return [cast(NXOpen.Body, o) for o in self.selected(self.block("bodies"))
                 if isinstance(o, NXOpen.Body) and cast(NXOpen.Body, o).IsSolidBody]
+
+
+class _DrawDieDialog(OpBodiesDialog):
+    """
+    DrawDie.dlx: OpBodiesDialog's blocks, then Lower / Upper Rows (x) / Cols (y) - each half's form steels along X by
+    along Y, as Dead Strike's Rows / Cols. The upper can have a different number of steels than the lower.
+    """
+
+    def __init__(self, title: str, numbers: Sequence[str]) -> None:
+        super().__init__("DrawDie.dlx", title, numbers, "Select the part's solid bodies.")
+        # Captured in ok(): the blocks are gone once Launch returns.
+        self.lower_grid = (FormSteelColumns, FormSteelRows)
+        self.upper_grid = (FormSteelColumns, FormSteelRows)
+
+    def ok(self) -> bool:
+        if not super().ok():
+            return False
+        self.lower_grid = (int(self.block("lower_rows").Value), int(self.block("lower_cols").Value))
+        self.upper_grid = (int(self.block("upper_rows").Value), int(self.block("upper_cols").Value))
+        return True
 
 
 def main() -> None:

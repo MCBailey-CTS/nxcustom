@@ -100,15 +100,14 @@ def build(is_gm: bool, bodies: Sequence[NXOpen.Body], rows: int, cols: int, lowe
 
 
 def build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: str, is_upper: bool, rows: int,
-                     cols: int, log: Optional[Callable[[str], None]] = None, skip_spreadsheets: bool = False,
-                     quiet: bool = False) -> None:
+                     cols: int, log: Optional[Callable[[str], None]] = None, quiet: bool = False) -> None:
     """
     The lower: GM Split Form with backing plate and SHCS from the backside over bodies, built into station_name
     (lad02): makes that station the work component of the -000, as a user would before opening the split form
     dialog, which sizes and subtracts off LWR-3D. The upper is the Draw Die's upper half (DrawDie.build_upper: the
     cavity steels, 3/8" past the part a side, and mounting plate in UAD02, subtracting UPR-3D; station_name is not
     used). Both sides are rows blocks along X by cols along Y. log also gets each step (Auto Design's progress
-    window); skip_spreadsheets and quiet go to the draw die.
+    window); quiet goes to the draw die.
     """
     from SplitFormWithPlateBackside import SplitFormWithPlateBackside
 
@@ -131,7 +130,7 @@ def build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: s
                 rows, cols))
             # 3/8" a side, not the draw die's 1"; rows along X (the draw die's columns) by cols along Y.
             drawdie.DrawDie.build_upper(is_gm, cast(Sequence[NXOpen.TaggedObject], list(bodies)), quiet,
-                                        skip_spreadsheets, cavity_overhang=drawdie.DeadStrikeCavityOverhang,
+                                        cavity_overhang=drawdie.DeadStrikeCavityOverhang,
                                         columns=rows, rows=cols)
             say("Finished the dead strike upper.")
         finally:

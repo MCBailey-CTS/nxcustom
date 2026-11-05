@@ -436,47 +436,53 @@ def round_to_125(distance: float) -> float:
     return distance
 
 
+@contextlib.contextmanager
+def wcs_turned_to(x_direction: NXOpen.Vector3d, y_direction: NXOpen.Vector3d) -> Iterator[None]:
+    """
+    The display part's WCS turned to these directions for the block, its origin kept, and put back on exit. A new
+    block takes its orientation from the WCS. This goes through WCS.SetOriginAndMatrix because
+    WCS.CoordinateSystem.SetDirections left the block on the part's saved WCS: a station saved with a flipped WCS
+    gave a flipped block (2026-11-05, the Secondary Trim Station's upside down window).
+    """
+    wcs = display_part().WCS
+    origin = wcs.Origin
+    original = wcs.CoordinateSystem.Orientation.Element
+    wcs.SetOriginAndMatrix(origin, matrix_from_axes(x_direction, y_direction))
+    try:
+        yield
+    finally:
+        wcs.SetOriginAndMatrix(origin, original)
+
+
 def create_block(min_point: NXOpen.Point3d, max_point: NXOpen.Point3d,
                  x_direction: NXOpen.Vector3d = NXOpen.Vector3d(1.0, 0.0, 0.0),
                  y_direction: NXOpen.Vector3d = NXOpen.Vector3d(0.0, 1.0, 0.0)) -> NXOpen.Features.Block:
-    """BasePart.__CreateBlock(Matrix3x3, Point3d, Point3d) - diagonal-points block in the work part.
-
-    The block takes its orientation from the WCS, so the WCS is turned to the given directions for the
-    commit and put back afterwards.
-    """
-    csys = display_part().WCS.CoordinateSystem
-    original = csys.Orientation.Element
-    csys.SetDirections(x_direction, y_direction)
-    builder = work_part().Features.CreateBlockFeatureBuilder(None)
-    try:
-        builder.Type = NXOpen.Features.BlockFeatureBuilder.Types.DiagonalPoints
-        builder.BooleanOption.Type = NXOpen.GeometricUtilities.BooleanOperation.BooleanType.Create
-        builder.SetTwoDiagonalPoints(min_point, max_point)
-        return cast(NXOpen.Features.Block, builder.Commit())
-    finally:
-        builder.Destroy()
-        csys.SetDirections(NXOpen.Vector3d(original.Xx, original.Xy, original.Xz),
-                           NXOpen.Vector3d(original.Yx, original.Yy, original.Yz))
+    """BasePart.__CreateBlock(Matrix3x3, Point3d, Point3d) - diagonal-points block in the work part, oriented by
+    the given directions whatever the WCS is (wcs_turned_to)."""
+    with wcs_turned_to(x_direction, y_direction):
+        builder = work_part().Features.CreateBlockFeatureBuilder(None)
+        try:
+            builder.Type = NXOpen.Features.BlockFeatureBuilder.Types.DiagonalPoints
+            builder.BooleanOption.Type = NXOpen.GeometricUtilities.BooleanOperation.BooleanType.Create
+            builder.SetTwoDiagonalPoints(min_point, max_point)
+            return cast(NXOpen.Features.Block, builder.Commit())
+        finally:
+            builder.Destroy()
 
 
 def create_block_two_points_and_height(orientation: NXOpen.Matrix3x3, origin_point: NXOpen.Point3d,
                                        corner_point: NXOpen.Point3d, height: float) -> NXOpen.Features.Block:
-    """BasePart.__CreateBlock(Matrix3x3, Point3d, Point3d, double) - two-points-and-height block in the work part.
-
-    Like create_block, the WCS is turned to orientation for the commit and put back afterwards.
-    """
-    csys = display_part().WCS.CoordinateSystem
-    original = csys.Orientation.Element
-    csys.SetDirections(axis_x(orientation), axis_y(orientation))
-    builder = work_part().Features.CreateBlockFeatureBuilder(None)
-    try:
-        builder.Type = NXOpen.Features.BlockFeatureBuilder.Types.TwoPointsAndHeight
-        builder.BooleanOption.Type = NXOpen.GeometricUtilities.BooleanOperation.BooleanType.Create
-        builder.SetTwoPointsAndHeight(origin_point, corner_point, str(height))
-        csys.SetDirections(axis_x(original), axis_y(original))
-        return cast(NXOpen.Features.Block, builder.Commit())
-    finally:
-        builder.Destroy()
+    """BasePart.__CreateBlock(Matrix3x3, Point3d, Point3d, double) - two-points-and-height block in the work part,
+    oriented by orientation whatever the WCS is (wcs_turned_to)."""
+    with wcs_turned_to(axis_x(orientation), axis_y(orientation)):
+        builder = work_part().Features.CreateBlockFeatureBuilder(None)
+        try:
+            builder.Type = NXOpen.Features.BlockFeatureBuilder.Types.TwoPointsAndHeight
+            builder.BooleanOption.Type = NXOpen.GeometricUtilities.BooleanOperation.BooleanType.Create
+            builder.SetTwoPointsAndHeight(origin_point, corner_point, str(height))
+            return cast(NXOpen.Features.Block, builder.Commit())
+        finally:
+            builder.Destroy()
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -1252,11 +1258,16 @@ def assembly_file_version() -> str:
     python folder (the build output); and the newest *.dll beside it, since the posted Ufunc folder names each build
     after its UFunc (dead-hit.dll, point-component.dll, ...) and has no TSG_Library.dll - the newest one is the
     last post, which also copied the python files.
+    TSG_LIBRARY_DLL counts only when that DLL is in this folder: the variable outlives the C# call that set it, so a
+    ribbon .py run later in the session (or a DLL run from a dev bin folder) would otherwise get that DLL's version.
     """
     import glob
     import os
     folder = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    candidates = [_calling_dll(), os.path.join(folder, "TSG_Library.dll")]
+    calling = _calling_dll()
+    if calling and os.path.normcase(os.path.dirname(os.path.abspath(calling))) != os.path.normcase(folder):
+        calling = ""
+    candidates = [calling, os.path.join(folder, "TSG_Library.dll")]
     try:
         candidates.extend(sorted(glob.glob(os.path.join(folder, "*.dll")), key=os.path.getmtime, reverse=True))
     except Exception:

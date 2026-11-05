@@ -411,22 +411,18 @@ def _create_block(origin: NXOpen.Point3d, orientation: NXOpen.Matrix3x3, xlength
                   height: float) -> NXOpen.Features.Block:
     """
     BasePart.__CreateBlock(Point3d, Matrix3x3, double, double, double) - an origin-and-edge-lengths block in the work
-    part. The block takes its orientation from the WCS, so the display part's WCS is turned to orientation for the
-    commit and put back afterwards.
+    part, oriented by orientation whatever the WCS is (nx.wcs_turned_to).
     """
-    csys = nx.display_part().WCS.CoordinateSystem
-    original = csys.Orientation.Element
-    csys.SetDirections(nx.axis_x(orientation), nx.axis_y(orientation))
-    builder = nx.work_part().Features.CreateBlockFeatureBuilder(None)
-    try:
-        builder.Type = NXOpen.Features.BlockFeatureBuilder.Types.OriginAndEdgeLengths
-        builder.BooleanOption.Type = NXOpen.GeometricUtilities.BooleanOperation.BooleanType.Create
-        builder.SetOriginAndLengths(origin, nx.cs_double_str(xlength), nx.cs_double_str(ywidth),
-                                    nx.cs_double_str(height))
-        csys.SetDirections(nx.axis_x(original), nx.axis_y(original))
-        return cast(NXOpen.Features.Block, builder.Commit())
-    finally:
-        builder.Destroy()
+    with nx.wcs_turned_to(nx.axis_x(orientation), nx.axis_y(orientation)):
+        builder = nx.work_part().Features.CreateBlockFeatureBuilder(None)
+        try:
+            builder.Type = NXOpen.Features.BlockFeatureBuilder.Types.OriginAndEdgeLengths
+            builder.BooleanOption.Type = NXOpen.GeometricUtilities.BooleanOperation.BooleanType.Create
+            builder.SetOriginAndLengths(origin, nx.cs_double_str(xlength), nx.cs_double_str(ywidth),
+                                        nx.cs_double_str(height))
+            return cast(NXOpen.Features.Block, builder.Commit())
+        finally:
+            builder.Destroy()
 
 
 def _chamfer_vertical_edges(block: NXOpen.Features.Block, chamfer: float) -> None:

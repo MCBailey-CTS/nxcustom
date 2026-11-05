@@ -10,11 +10,12 @@ asking for them, in this order:
   - TRIM     - GM 2nd Trim Station, -02 stations (BlankStation.build, is3d True)
   - PRC      - GM Pierce into LAD02 (buttons) and UAD02 (punches, retainers) (Pierce.build, station "02", no
                station menu; pierce only, no secondary pass)
-  - DRAW     - Draw Die into LAD02 and UAD02 (DrawDie.build)
+  - DRAW     - Draw Die into LAD02 and UAD02 (DrawDie.build), each side on the dialog's own Rows (x) x Cols (y)
   - RESTRIKE - GM Cast Post, once in LAD02 (LWR-3D) and once in UAD02 (UPR-3D) (CastPost.build)
   - DEADHIT  - GM Split Form with backing plate and SHCS from the backside in LAD02 (LWR-3D), then the Draw Die's
-               upper half in UAD02 (cavity steels 3/8" past the part a side and mounting plate, UPR-3D), both the
-               dialog's Rows (x) x Cols (y) over all the DEADHIT bodies (DeadStrike.build_in_station, the dead-strike UFunc's builder)
+               upper half in UAD02 (cavity steels 3/8" past the part a side and mounting plate, UPR-3D), each side on
+               the dialog's own Rows (x) x Cols (y), over all the DEADHIT bodies (DeadStrike.build_in_station, the
+               dead-strike UFunc's builder)
   - FLANGEUP - Flange Up into LAD02 (cast lower holding pad, riser, lower flange up steels) and UAD02 (cast upper
                holding pad, upper flange up steels) (FlangeUp.build, 2026-11-02), with the dialog's flange side and
                steel rows / cols; a missing PAD-PROFILE / LWR-PROFILE skips that boolean without asking
@@ -23,9 +24,9 @@ try/except, so a failed draw die still leaves the restrike posts to be built.
 
 The dialog (AutoDesign.dlx, tools\\make-dlx.py) asks for all the strip's solids or a selection, and the construction -
 Normal (S7 trim steels) or Heavy (D2) - which only the blank and 2nd trim stations use; below that, each program's
-body count in the assembly (a read-out of what Select all would find), with DRAW's column / steels per row spinners
-(read but not used yet: the draw die does not take them), DEADHIT's Rows (x) / Cols (y) (both sides' grid) and FLANGEUP's
-flange side and steel rows / cols.
+body count in the assembly (a read-out of what Select all would find), with DRAW's and DEADHIT's Lower and Upper
+Rows (x) / Cols (y) (2026-11-04: the upper can have a different number of steels than the lower) and FLANGEUP's flange
+side and steel rows / cols.
 
 Kept from the C#:
   - The bodies are grouped as (owning component, prototype body), not occurrences, and re-resolved
@@ -37,9 +38,9 @@ Kept from the C#:
     overall time.
   - A DebugSignDotNet deploy (this file under ...\\bin\\DebugSignDotNet) skips every pierce detail's
     spreadsheet - the C# #if DEBUGSIGNDOTNET.
-  - Edit Spreadsheets (checked every time the dialog opens) off: no part's Excel sheet is opened - the pierce
-    details (Pierce.build's skip_spreadsheets) and the draw die's keys and guided retainers (DrawDie.build's)
-    keep their seed settings.
+  - Edit Spreadsheets (checked every time the dialog opens) off: no pierce detail's Excel sheet is opened
+    (Pierce.build's skip_spreadsheets) - they keep their seed settings. The draw die / dead hit / flange up keys
+    and guided retainers never open one: they are placed from preset parts already set (2026-11-03).
 
 The progress window is progress_window.ProgressWindow (ProgressWindow.ps1), a separate PowerShell window (Python in NX cannot show WinForms) that
 follows this run's progress file: Auto Design's own lines (#LOG / #TITLE / #DONE) and every builder step written
@@ -197,7 +198,7 @@ def _run(is_gm: bool, title: str, dialog: "_AutoDesignDialog") -> None:
 
     skip_spreadsheets = AutoDesignSkipSpreadsheets or not dialog.edit_spreadsheets
     if not dialog.edit_spreadsheets:
-        log.write_line("Edit Spreadsheets is off - no part spreadsheet is opened.")
+        log.write_line("Edit Spreadsheets is off - no pierce spreadsheet is opened.")
     elif AutoDesignSkipSpreadsheets:
         log.write_line("DebugSignDotNet build - pierce spreadsheets are skipped.")
 
@@ -299,7 +300,8 @@ def _run(is_gm: bool, title: str, dialog: "_AutoDesignDialog") -> None:
     def draw(bodies: List[NXOpen.Body]) -> None:
         from DrawDie import DrawDie
         DrawDie.build(is_gm, cast(Sequence[NXOpen.TaggedObject], bodies), quiet=True,
-                      skip_spreadsheets=not dialog.edit_spreadsheets)
+                      lower_grid=(dialog.draw_lower_rows, dialog.draw_lower_cols),
+                      upper_grid=(dialog.draw_upper_rows, dialog.draw_upper_cols))
 
     def restrike(bodies: List[NXOpen.Body]) -> None:
         # Asked once for both posts; the builds are then told not to ask again.
@@ -318,22 +320,19 @@ def _run(is_gm: bool, title: str, dialog: "_AutoDesignDialog") -> None:
                                            dialog.flangeup_flange, dialog.flangeup_upper_rows,
                                            dialog.flangeup_upper_cols)
         # No question mid-run: a missing PAD-PROFILE / LWR-PROFILE just skips that boolean (build's own lookup).
-        drawdie._skip_spreadsheets = skip_spreadsheets
-        try:
-            flangeup.build(is_gm, bodies, options)
-        finally:
-            drawdie._skip_spreadsheets = False
+        flangeup.build(is_gm, bodies, options)
 
     def dead_hit(bodies: List[NXOpen.Body]) -> None:
         from DeadStrike import build_in_station
         start_operation(AutoDesignDeadHit + " LAD02")
-        build_in_station(is_gm, bodies, "lad02", False, dialog.deadhit_rows, dialog.deadhit_cols, _log_line)
+        build_in_station(is_gm, bodies, "lad02", False, dialog.deadhit_lower_rows, dialog.deadhit_lower_cols,
+                         _log_line)
         # The lower form's sizing and subtract switch the bodies' components to LWR-3D and back, so the upper
         # re-resolves them rather than reusing the lower's.
         start_operation(AutoDesignDeadHit + " UAD02")
-        # The upper is the Draw Die's upper half (cavity steels + mounting plate), on the same Rows (x) x Cols (y).
-        build_in_station(is_gm, group(AutoDesignDeadHit), "uad02", True, dialog.deadhit_rows, dialog.deadhit_cols,
-                         _log_line, skip_spreadsheets=not dialog.edit_spreadsheets, quiet=True)
+        # The upper is the Draw Die's upper half (cavity steels + mounting plate), on its own Rows (x) x Cols (y).
+        build_in_station(is_gm, group(AutoDesignDeadHit), "uad02", True, dialog.deadhit_upper_rows,
+                         dialog.deadhit_upper_cols, _log_line, quiet=True)
 
     start = datetime.datetime.now()
     log.follow()
@@ -586,8 +585,8 @@ def _restrike_posts(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: st
 class _AutoDesignDialog(Dialog):
     """
     AutoDesign.dlx: Select all / Select solids, the body picker (shown only for Select solids), Normal / Heavy, and
-    a checkbox per program labelled with its body count in the assembly (only the checked ones run), with DRAW's
-    columns / steels per row, DEADHIT's rows / cols and FLANGEUP's flange side and steel rows / cols.
+    a checkbox per program labelled with its body count in the assembly (only the checked ones run), with DRAW's and
+    DEADHIT's lower and upper rows / cols and FLANGEUP's flange side and steel rows / cols.
     """
 
     dlx_name = "AutoDesign.dlx"
@@ -601,10 +600,14 @@ class _AutoDesignDialog(Dialog):
         self.select_all = True
         self.bodies: List[NXOpen.Body] = []
         self.material = "S7"
-        self.draw_columns = 2
-        self.draw_steels_per_row = 4
-        self.deadhit_rows = 2
-        self.deadhit_cols = 1
+        self.draw_lower_rows = 2
+        self.draw_lower_cols = 4
+        self.draw_upper_rows = 2
+        self.draw_upper_cols = 4
+        self.deadhit_lower_rows = 2
+        self.deadhit_lower_cols = 1
+        self.deadhit_upper_rows = 2
+        self.deadhit_upper_cols = 1
         self.flangeup_flange = "Both Sides"
         self.flangeup_lower_rows = 2
         self.flangeup_upper_rows = 2
@@ -658,10 +661,14 @@ class _AutoDesignDialog(Dialog):
             return False
 
         self.material = ConstructionMaterials.get(str(self.block("construction").ValueAsString), "S7")
-        self.draw_columns = int(self.block("draw_columns").Value)
-        self.draw_steels_per_row = int(self.block("draw_steels").Value)
-        self.deadhit_rows = int(self.block("deadhit_rows").Value)
-        self.deadhit_cols = int(self.block("deadhit_cols").Value)
+        self.draw_lower_rows = int(self.block("draw_lower_rows").Value)
+        self.draw_lower_cols = int(self.block("draw_lower_cols").Value)
+        self.draw_upper_rows = int(self.block("draw_upper_rows").Value)
+        self.draw_upper_cols = int(self.block("draw_upper_cols").Value)
+        self.deadhit_lower_rows = int(self.block("deadhit_lower_rows").Value)
+        self.deadhit_lower_cols = int(self.block("deadhit_lower_cols").Value)
+        self.deadhit_upper_rows = int(self.block("deadhit_upper_rows").Value)
+        self.deadhit_upper_cols = int(self.block("deadhit_upper_cols").Value)
         self.flangeup_flange = str(self.block("flangeup_flange").ValueAsString)
         self.flangeup_lower_rows = int(self.block("flangeup_lower_rows").Value)
         self.flangeup_upper_rows = int(self.block("flangeup_upper_rows").Value)

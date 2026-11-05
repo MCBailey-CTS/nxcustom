@@ -29,7 +29,7 @@ station = "01" for the Blank Station (is3d False) and "02" for the Secondary Tri
      upside down (flipZ re-base), chamfered, color 136, 4140 PH, 4x 12mm-shcs-030-2x, dowels + jacks, 2 extra SHCS;
      3D subtracts UPR-3D, and its top is at least 1" over the highest point of the component's UPR-3D bodies;
   5. lower trim steel lts into lad{station} - slug box +2.5", Z -50 mm (2D) / 1.875" under the LWR-3D bodies' lowest
-     point (3D) up to the slug's underside (3D: +3"), chamfered, color 11, FILL IN, 4x 12mm-shcs-050-2x, dowels +
+     point (3D) up to the slug's underside (3D: +3"), chamfered, color 11, FILL IN, 4x 12mm-shcs-040-2x, dowels +
      jacks, 2 extra SHCS; LWR-PROFILE subtracted, and 3D also LWR-3D;
   6. the window named WINDOW gets PAD-PROFILE subtracted; the backing plate gets CLR_HOLE for the retainer's SHCS and
      the punch's non-8mm SHCS;
@@ -131,6 +131,7 @@ _shcs8mm020Path = "G:\\0Library\\Fasteners\\Metric\\SocketHeadCapScrews-2X\\008-
 _shcs8mm065Path = "G:\\0Library\\Fasteners\\Metric\\SocketHeadCapScrews-2X\\008-2x\\8mm-shcs-065-2x.prt"
 _shcs10mm020Path = "G:\\0Library\\Fasteners\\Metric\\SocketHeadCapScrews-2X\\010-2x\\10mm-shcs-020-2x.prt"
 _shcs12mm030Path = "G:\\0Library\\Fasteners\\Metric\\SocketHeadCapScrews-2X\\012-2x\\12mm-shcs-030-2x.prt"
+_shcs12mm040Path = "G:\\0Library\\Fasteners\\Metric\\SocketHeadCapScrews-2X\\012-2x\\12mm-shcs-040-2x.prt"
 _dwl12mm025Path = "G:\\0Library\\Fasteners\\Metric\\Dowels\\12mm-dwl-025.prt"
 _unikixPinsPath = "G:\\0Library\\Unikix\\Smart Unikix Pins.prt"
 
@@ -1183,7 +1184,7 @@ def _create_lower_trim_steel(current: NXOpen.Part, box: nx.Box3d, owning_comp: N
     _color_face(42, _VectorZN)
     _color_face(42, _VectorZ)
     _stamp_detail(component_lower_trim_steel.value, "Lower Blank Steel", "LOWER BLANK STEEL", "FILL IN", current)
-    _subtract_fasteners_from_block(_add_corner_fasteners(lts_min, lts_max, _VectorZ, lts_min.Z, _defaultShcsPath,
+    _subtract_fasteners_from_block(_add_corner_fasteners(lts_min, lts_max, _VectorZ, lts_min.Z, _shcs12mm040Path,
                                                          .625))
     lts_center_y = (lts_min.Y + lts_max.Y) / 2
     lts_dwl_orientation = drawdie._z_matrix(_VectorZ)
@@ -1192,9 +1193,9 @@ def _create_lower_trim_steel(current: NXOpen.Part, box: nx.Box3d, owning_comp: N
 
     if add_extra_shcs:
         # Two extra SHCS at the dowel locations, one shifted +1" in Y, the other -1".
-        _drop_and_subtract(_defaultShcsPath, NXOpen.Point3d(lts_min.X + .625, lts_center_y + 1, lts_min.Z),
+        _drop_and_subtract(_shcs12mm040Path, NXOpen.Point3d(lts_min.X + .625, lts_center_y + 1, lts_min.Z),
                            lts_dwl_orientation, "CBORE")
-        _drop_and_subtract(_defaultShcsPath, NXOpen.Point3d(lts_max.X - .625, lts_center_y - 1, lts_min.Z),
+        _drop_and_subtract(_shcs12mm040Path, NXOpen.Point3d(lts_max.X - .625, lts_center_y - 1, lts_min.Z),
                            lts_dwl_orientation, "CBORE")
     _create_body_reference_set()
     nx.create_auto_size_udo(nx.work_part())

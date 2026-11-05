@@ -37,7 +37,7 @@ included. "Top face" (the hoist rings) is the face opposite it.
 
 The dialog (FlangeUp.dlx, tools\\make-dlx.py): the Customer radio (None / TSG / GM; TSG uses the CTS keys and guided
 keepers, as Draw Die does), the part's solid bodies, the op (ops with both a ladNN and a uadNN), Lower with its Rows
-(y) and the flange side, Upper with Rows (x) / Cols (y), and Edit Spreadsheets. OK stays greyed out until TSG or GM is
+(y) and the flange side, and Upper with Rows (x) / Cols (y). OK stays greyed out until TSG or GM is
 checked, a body is picked and a side is checked. LWR-3D / UPR-3D must be on the picked bodies' components for the
 side being built; a missing PAD-PROFILE or LWR-PROFILE asks one Question box (Yes builds without that boolean).
 
@@ -152,13 +152,14 @@ PadJackInsetY = 2.00
 PadBottomingInset = 2.00
 RetainerOffMountingFace = 1 / 25.4
 
-# Smart GM Guided Retainer settings (DrawDie's sheet cells): (model radio, stroke mm, travel mm, description).
-LowerRetainer = (1, 105.0, 75.0, "GRS.50.HD.J.1050.FH.AC Guided Retainer")
-UpperRetainer = (2, 95.0, 60.0, "GRS.65.HD.J.0950.FH.AC Guided Retainer")
+# Smart GM Guided Retainer presets (already set, no spreadsheet opened): the spec pictures GRS.50.HD 105 / 75 on the
+# lower pad and GRS.65.HD 95 / 60 on the upper.
+LowerRetainerPath = drawdie._gmGuidedRetainer50Path
+UpperRetainerPath = drawdie._gmGuidedRetainer65Path
 
-# Smart GM Key sizes (DrawDie's Main!I3 values).
-RiserKeySize = drawdie.RiserKeySize      # 25mm - 100mm, J-996444
-SteelKeySize = drawdie.CavityKeySize     # 25mm - 80mm, J-996443
+# Smart GM Key presets ({width}-{length} mm, DrawDie._key_path).
+RiserKeySize = drawdie.RiserKeySize      # 25-100, J-996444
+SteelKeySize = drawdie.CavityKeySize     # 25-80, J-996443
 
 # The reference sets the details subtract / intersect, matched ignoring case, spaces, hyphens and underscores.
 Lower3d = "LWR-3D"
@@ -224,11 +225,7 @@ class FlangeUp(object):
             nx.mark_cancelled("the missing reference set question")
             return
 
-        drawdie._skip_spreadsheets = not dialog.edit_spreadsheets
-        try:
-            build(is_gm_customer(dialog.customer_choice), dialog.bodies, options, refsets)
-        finally:
-            drawdie._skip_spreadsheets = False
+        build(is_gm_customer(dialog.customer_choice), dialog.bodies, options, refsets)
 
 
 class FlangeUpOptions(object):
@@ -400,7 +397,7 @@ def _build_lower_pad(job: DrawDieJob, refsets: Dict[str, Optional[str]]) -> Tupl
     min_point = drawdie._centered_min(box, xlength, ywidth, box.MaxZ - height)
 
     new_part = _build_pad(job, min_point, xlength, ywidth, height, "flange-up-lower-pad", "CAST LOWER HOLDING PAD",
-                          LowerPadBottomingBlocks, LowerPadHoistRingInset, LowerPadRetainerInset, LowerRetainer,
+                          LowerPadBottomingBlocks, LowerPadHoistRingInset, LowerPadRetainerInset, LowerRetainerPath,
                           refsets.get(Lower3d))
 
     pad_profile = refsets.get(PadProfile)
@@ -421,14 +418,14 @@ def _build_upper_pad(job: DrawDieJob, refsets: Dict[str, Optional[str]]) -> nx.B
     min_point = drawdie._centered_min(box, xlength, ywidth, box.MinZ)
 
     _build_pad(job, min_point, xlength, ywidth, height, "flange-up-upper-pad", "CAST UPPER HOLDING PAD",
-               UpperPadBottomingBlocks, UpperPadHoistRingInset, UpperPadRetainerInset, UpperRetainer,
+               UpperPadBottomingBlocks, UpperPadHoistRingInset, UpperPadRetainerInset, UpperRetainerPath,
                refsets.get(Upper3d))
     return drawdie._box_from(min_point, xlength, ywidth, height)
 
 
 def _build_pad(job: DrawDieJob, min_point: NXOpen.Point3d, xlength: float, ywidth: float, height: float,
                name: str, title: str, bottoming_blocks: int, hoist_ring_inset: float, retainer_inset: float,
-               retainer: Tuple[int, float, float, str], subtract_refset: Optional[str]) -> NXOpen.Part:
+               retainer_path: str, subtract_refset: Optional[str]) -> NXOpen.Part:
     """
     The block, its children and cast text, then BODY / subtract / ancestor reference sets. The mounting face (lower:
     Z 0, upper: Z height) is yellow and holds the jack screws, bottoming blocks, locators and guided retainers; the
@@ -497,14 +494,13 @@ def _build_pad(job: DrawDieJob, min_point: NXOpen.Point3d, xlength: float, ywidt
           lambda: drawdie._keep_out_of_reference_set(body_refset, placed_rings + placed_locators))
 
     def guided_retainers() -> None:
-        path = drawdie._gmGuidedRetainerPath if job.is_gm else drawdie._ctsSmartSlGuidedKeeper
+        path = retainer_path if job.is_gm else drawdie._ctsSmartSlGuidedKeeper
         # Pointing out of the mounting face, 1 mm off it: upside down under a lower pad (as the binder's).
         z = height + RetainerOffMountingFace if job.is_upper else -RetainerOffMountingFace
         placed = drawdie._place_draw_die_children(
             "pad guided retainer", path,
             [(NXOpen.Point3d(p.X, p.Y, z), out_of) for p in drawdie._inset_corners(xlength, ywidth, retainer_inset)],
             layer=99, subtract_refset=None, body_refset=body_refset)
-        _set_guided_retainer(placed, job, retainer)
         drawdie._save_as_draw_die_part(placed, job, "{}-guided-retainer".format(name))
 
     _step("{} guided retainers".format(title), guided_retainers)
@@ -652,9 +648,9 @@ def _build_riser(job: DrawDieJob, pad_box: nx.Box3d, pad_part: NXOpen.Part) -> n
 
     # Keys on the bottom centrelines, the left / right ones moved 2" along Y to miss the middle SHCS.
     def riser_keys() -> None:
-        keys = drawdie._place_draw_die_edge_keys(job, xlength, ywidth, RiserHeight, (0.0, RiserKeyShiftY))
+        keys = drawdie._place_draw_die_edge_keys(job, xlength, ywidth, RiserHeight, RiserKeySize,
+                                                 (0.0, RiserKeyShiftY))
         body_refset.AddObjectsToReferenceSet(keys)
-        drawdie._set_draw_die_key_size(keys, job, RiserKeySize)
         drawdie._save_as_draw_die_part(keys, job, "flange-up-riser-key")
 
     _step("riser keys", riser_keys)
@@ -717,7 +713,6 @@ def _build_lower_steels(job: DrawDieJob, options: FlangeUpOptions, refsets: Dict
                 nx.print_exception(ex)
             index += 1
 
-    drawdie._set_draw_die_key_size(keys, job, SteelKeySize)
     drawdie._save_as_draw_die_part(keys, job, "flange-up-lower-steel-key")
 
 
@@ -756,7 +751,7 @@ def _build_one_lower_steel(job: DrawDieJob, block_min: NXOpen.Point3d, column: i
 
     # One key on the bottom, running along X (a lower key's identity orientation), moved along Y by the row.
     def key() -> None:
-        path = drawdie._gmKeyPath if job.is_gm else drawdie._ctsSmartKeyMetric
+        path = drawdie._key_path(job, SteelKeySize)
         placed = nx.add_component(nx.display_part(), path, "BODY", None,
                                   NXOpen.Point3d(width / 2, length / 2 + shift, 0.0), nx.identity_matrix(), 99)
         body_refset.AddObjectsToReferenceSet([placed])
@@ -800,7 +795,6 @@ def _build_upper_steels(job: DrawDieJob, options: FlangeUpOptions, refsets: Dict
                 nx.print_exception(ex)
             index += 1
 
-    drawdie._set_draw_die_key_size(keys, job, SteelKeySize)
     drawdie._save_as_draw_die_part(keys, job, "flange-up-upper-steel-key")
 
 
@@ -833,7 +827,7 @@ def _build_one_upper_steel(job: DrawDieJob, block_min: NXOpen.Point3d, column: i
     # Two keys along Y (front / back, the upper key matrix) and one along X (right, that matrix turned 90 degrees),
     # where Draw Die's upper edge keys go.
     def steel_keys() -> None:
-        path = drawdie._gmKeyPath if job.is_gm else drawdie._ctsSmartKeyMetric
+        path = drawdie._key_path(job, SteelKeySize)
         nudge = 0.0748 if job.is_gm else 0.0
         along_y = drawdie._compute_upper_key_orientation()
         along_x = nx.matrix_from_axes(nx.axis_y(along_y), nx.negate(nx.axis_x(along_y)))
@@ -922,29 +916,6 @@ def _boolean_components(job: DrawDieJob, new_part: NXOpen.Part, refset: str,
         nx.set_work_part(job.station)
 
 
-def _set_guided_retainer(placed: Sequence[NXOpen.Assemblies.Component], job: DrawDieJob,
-                         settings: Tuple[int, float, float, str]) -> bool:
-    """DrawDie._set_draw_die_guided_retainer with this pad's model / stroke / travel (the spec's pictures)."""
-    if not placed:
-        return False
-    if not job.is_gm:
-        nx.warn("Flange Up: CTS guided keeper sheet not mapped - {} left at its seed settings.".format(
-            placed[0].DisplayName))
-        return False
-
-    model, stroke, travel, description = settings
-    return drawdie._apply_draw_die_sheet(
-        placed[0], "guided retainer ({})".format(description),
-        numbers=[(drawdie._retainerModelCell, model),
-                 (drawdie._retainerStrokeCell, stroke),
-                 (drawdie._retainerTravelCell, travel)],
-        expression_rows=drawdie._retainerExpressionRows, attribute_rows=drawdie._retainerAttributeRows,
-        checks=[(("Main", 10, 10), "-1"),
-                (("Main", 7, 10), "1"),
-                (("Main", 15, 12), "1"),
-                (("Exp-Attr", 3, 6), description)])
-
-
 def _f3(value: float) -> str:
     return drawdie._f3(value)
 
@@ -954,8 +925,8 @@ def _f3(value: float) -> str:
 # ---------------------------------------------------------------------------------------------------
 
 class _FlangeUpDialog(Dialog):
-    """FlangeUp.dlx: Customer, the bodies, the op, Lower (Rows (y), flange side), Upper (Rows (x), Cols (y)),
-    Edit Spreadsheets."""
+    """FlangeUp.dlx: Customer, the bodies, the op, Lower (Rows (y), flange side), Upper (Rows (x), Cols (y)).
+    GM keys and guided retainers are placed from DrawDie's preset parts, so no spreadsheet is opened."""
 
     dlx_name = "FlangeUp.dlx"
 
@@ -973,7 +944,6 @@ class _FlangeUpDialog(Dialog):
         self.flange = FlangeBoth
         self.upper_rows = 2
         self.upper_cols = 1
-        self.edit_spreadsheets = True
 
     def initialize(self) -> None:
         mask = NXOpen.Selection.MaskTriple(NXOpen.UF.UFConstants.UF_solid_type, 0, _SolidBodyDetail)
@@ -986,10 +956,9 @@ class _FlangeUpDialog(Dialog):
         match = drawdie._OpStationPattern.search(nx.work_part().Leaf.lower())
         self.block("station").ValueAsString = (match.group(2) if match is not None and match.group(2) in self.numbers
                                                else self.numbers[0])
-        # Not remembered: both sides and the spreadsheets every time, as Dead Strike / Draw Die.
+        # Not remembered: both sides every time, as Dead Strike.
         self.block("lower").Value = True
         self.block("upper").Value = True
-        self.block("edit_spreadsheets").Value = True
         self._enable_sides()
 
     def update(self, block: NXOpen.BlockStyler.UIBlock) -> None:
@@ -1027,7 +996,6 @@ class _FlangeUpDialog(Dialog):
         self.flange = str(self.block("flange").ValueAsString)
         self.upper_rows = int(self.block("upper_rows").Value)
         self.upper_cols = int(self.block("upper_cols").Value)
-        self.edit_spreadsheets = bool(self.block("edit_spreadsheets").Value)
         return True
 
     def _picked_bodies(self) -> List[NXOpen.Body]:

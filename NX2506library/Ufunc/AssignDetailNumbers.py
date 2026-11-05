@@ -1,5 +1,5 @@
 """
-The component-assign-name UFunc: a standalone Python UFunc (no C# class, 2026-10-29); its menu button runs this
+The assign-detail-numbers UFunc: a standalone Python UFunc (no C# class, 2026-10-29); its menu button runs this
 file's main(). From the "Assign Detail Number Program" spec (Assign Detail Number Program 1.docx): give the
 components of a design their detail numbers for ordering, by Save As.
 
@@ -51,7 +51,7 @@ import NXOpen.BlockStyler  # noqa: E402
 import tsg_nx as nx  # noqa: E402
 from tsg_dialog import CustomerGm, CustomerTsg, Dialog, title_with_version  # noqa: E402
 
-ufunc_name = "component-assign-name"
+ufunc_name = "assign-detail-numbers"
 
 # NX will not create a dialog from inside another dialog's callback.
 _ErrorCannotLaunchDialog = 3520048
@@ -77,7 +77,7 @@ ReservedNumbers = range(1, 15)
 # Leaves never renamed (the strip, layouts, simulation, presses).
 _SkipWords = ("strip", "layout", "sim", "press")
 
-# The dialog's range rows (ComponentAssignName.dlx: range_00 .. range_19).
+# The dialog's range rows (AssignDetailNumbers.dlx: range_00 .. range_19).
 MaxStations = 20
 
 _RangePattern = re.compile(r"^\s*(\d+)\s*(?:-|to|TO|To)\s*(\d+)\s*$")
@@ -136,7 +136,7 @@ def scan(display: NXOpen.Part) -> _Job:
     """The stations under the -000 and the parts under each that need a detail number (see the module docstring)."""
     match = re.match(r"^(?P<job>\d+)-(?P<op>\d+)-000$", display.Leaf)
     if match is None:
-        raise RuntimeError("Component Assign Name must be run from the -000 ({job}-{op}-000), not " + display.Leaf)
+        raise RuntimeError("Assign Detail Numbers must be run from the -000 ({job}-{op}-000), not " + display.Leaf)
     prefix = "{}-{}-".format(match.group("job"), match.group("op"))
     job = _Job(os.path.dirname(display.FullPath), prefix)
     station_pattern = re.compile(r"^" + re.escape(prefix) + r"(?P<station>[a-z]+\d*)$", re.IGNORECASE)
@@ -242,17 +242,17 @@ def rename(assigned: List[Tuple[NXOpen.BasePart, str, _Station]]) -> int:
             for component in occurrences.get(part.Tag, []):
                 if component.Name.strip().upper() == old_leaf.upper():
                     component.SetName(new_leaf.upper())
-            nx.print_("Component Assign Name: {} -> {} ({})".format(old_leaf, new_leaf, station.name))
+            nx.print_("Assign Detail Numbers: {} -> {} ({})".format(old_leaf, new_leaf, station.name))
             done += 1
         except Exception as ex:
-            nx.print_exception(ex, "Component Assign Name: Save As of {} failed".format(old_leaf))
+            nx.print_exception(ex, "Assign Detail Numbers: Save As of {} failed".format(old_leaf))
     return done
 
 
 class _AssignDialog(Dialog):
-    """ComponentAssignName.dlx: the Customer radio and one range row per station found."""
+    """AssignDetailNumbers.dlx: the Customer radio and one range row per station found."""
 
-    dlx_name = "ComponentAssignName.dlx"
+    dlx_name = "AssignDetailNumbers.dlx"
 
     def __init__(self, title: str, job: _Job) -> None:
         self.title = title
@@ -329,7 +329,7 @@ def _save_ranges(job: _Job, texts: Dict[str, str]) -> None:
 def execute() -> None:
     display = nx.display_part()
     if display is None or not re.match(r"^\d+-\d+-000$", display.Leaf):
-        nx.show_error("Component Assign Name must be run from the -000 ({job}-{op}-000).")
+        nx.show_error("Assign Detail Numbers must be run from the -000 ({job}-{op}-000).")
         return
 
     job = scan(display)
@@ -337,10 +337,10 @@ def execute() -> None:
         nx.show_error("Every component in {}'s folder already has a detail number - nothing to do.".format(display.Leaf))
         return
     if len(job.stations) > MaxStations:
-        nx.warn("Component Assign Name: {} stations found; only the first {} fit the dialog - the rest are skipped."
+        nx.warn("Assign Detail Numbers: {} stations found; only the first {} fit the dialog - the rest are skipped."
                 .format(len(job.stations), MaxStations))
 
-    title = title_with_version("Component Assign Name")
+    title = title_with_version("Assign Detail Numbers")
     try:
         dialog = _AssignDialog(title, job)
         if not dialog.run():
@@ -358,7 +358,7 @@ def execute() -> None:
     assigned, skipped = plan(job, dialog.ranges)
 
     for part, why in skipped:
-        nx.print_("Component Assign Name: skipped {} - {}".format(part.Leaf, why))
+        nx.print_("Assign Detail Numbers: skipped {} - {}".format(part.Leaf, why))
     if not assigned:
         nx.show_error("No part could be given a number - see the listing window.")
         return
@@ -374,12 +374,12 @@ def execute() -> None:
         return
 
     done = rename(assigned)
-    nx.print_("Component Assign Name: {} of {} part(s) renamed, {} skipped. Save the assembly to keep the new names."
+    nx.print_("Assign Detail Numbers: {} of {} part(s) renamed, {} skipped. Save the assembly to keep the new names."
               .format(done, len(assigned), len(skipped)))
 
 
 def main() -> None:
-    """The component-assign-name UFunc - its menu button runs this file. An escaping exception is printed."""
+    """The assign-detail-numbers UFunc - its menu button runs this file. An escaping exception is printed."""
     import usage_db
 
     with usage_db.run(ufunc_name):

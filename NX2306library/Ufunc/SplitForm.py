@@ -3,8 +3,9 @@ Python port of the split-form UFunc (Merlin.StaticGmSplitForm / Merlin.BuildGmSp
 src\\UFuncs\\Merlin.cs, regions "Static Entry Points - GM Component / Split / Form Pad" and "Builders - Form Pad,
 Component & Split").
 
-The split-form UFunc is this file: its NX menu button runs main(), which opens SplitFormDialog.py (Upper /
-Lower, Rows, Cols, one solid body), which calls SplitForm.execute_with. There is no C# UFunc around it (the
+The split-form UFunc is this file: its NX menu button runs main(), which opens SplitFormDialog.py (a Build in radio of
+the assembly's stations, Rows, Cols, one solid body), which makes the picked station the work part and calls
+SplitForm.execute_with. There is no C# UFunc around it (the
 MerlinUFuncs\\GmSplitForm.cs wrapper was deleted 2026-10-22; in git at 07dcca8), so main() records the run in
 tblUFuncsExe itself through usage_db.py. The AutoSize UDO class is registered at NX startup. execute() still asks with
 menus - the station from the work part (uad/upd/ush/usp or lad/lsh/lsp), the bodies, then a split count (2/3/4/5). The box, +.375" on every
@@ -139,8 +140,9 @@ class SplitForm(object):
                      bodies: Sequence[NXOpen.TaggedObject], plate: bool = False, backside: bool = False,
                      size_off_bodies: bool = False) -> None:
         """
-        The split-form UFunc's entry, after its SplitFormDialog: the assembly (upper / lower), the rows x cols
-        grid, the body and the Backing Plate / SHCS From Backside boxes come from the dialog. backside only counts
+        The split-form UFunc's entry, after its SplitFormDialog, which has made the picked station the work part:
+        upper / lower (from the station's name), the rows x cols grid, the body and the Backing Plate / SHCS From
+        Backside boxes come from the dialog. backside only counts
         with plate. size_off_bodies sizes the blocks off the bodies rather than UPR-3D / LWR-3D (dead strike).
         """
         picked = [cast(NXOpen.Body, b) for b in bodies if b is not None]

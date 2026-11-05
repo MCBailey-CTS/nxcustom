@@ -53,7 +53,7 @@ _SelReject = 0
 CustomerNone, CustomerTsg, CustomerGm = "None", "TSG", "GM"
 Customers = [CustomerNone, CustomerTsg, CustomerGm]
 
-# {job}-{op}-{station}: the TSG sub plates and the GM die sets (ComponentAssignName's GM station table).
+# {job}-{op}-{station}: the TSG sub plates and the GM die sets (AssignDetailNumbers' GM station table).
 _TsgStation = re.compile(r"^\d+-\d+-(lsp|usp)", re.IGNORECASE)
 _GmStation = re.compile(r"^\d+-\d+-(lad|uad|upd|lftr|las|uas|acum)", re.IGNORECASE)
 

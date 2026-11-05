@@ -174,7 +174,7 @@ class AddFasteners(object):
 
             if block is None:
                 nx.set_work_component(component)
-                component.SetTranslucency(75)
+                _translucency(component, 75)
                 disp.WCS.SetOriginAndMatrix(nx.component_origin(component), nx.component_orientation(component))
                 nx.print_("Part does not have a dynamic block. You will need to move the csys manually.")
                 return 1
@@ -186,7 +186,7 @@ class AddFasteners(object):
             occ_csys = cast(NXOpen.CartesianCoordinateSystem, component.FindOccurrence(csys))
             disp.WCS.SetCoordinateSystemCartesianAtCsys(occ_csys)
             nx.set_work_component(component)
-            component.SetTranslucency(75)
+            _translucency(component, 75)
             _delete([occ_csys, csys])
             return 1
 

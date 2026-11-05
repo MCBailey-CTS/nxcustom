@@ -142,6 +142,12 @@ BEGIN_GROUP MISC
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\Nine99.py
 
+    BUTTON ASSIGN_DETAIL_NUMBERS
+        LABEL Assign Detail Numbers
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\AssignDetailNumbers.py
+
 END_GROUP
 
 BEGIN_GROUP GM
