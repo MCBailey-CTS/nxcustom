@@ -23,7 +23,8 @@ station = "01" for the Blank Station (is3d False) and "02" for the Secondary Tri
   2. retainer Retainer1 into uad{station} - 1.25" below the backing plate's bottom, chamfered, color 200, 4140,
      4x 12mm-shcs-050-2x (CBORE), dowels + jack screws .5" in from X, jacks .25" lower; UPR-PROFILE subtracted;
   3. punch Punch1 into uad{station} - 3.625" (2D) / 7" (3D) below the backing plate, color 60, FILL IN, 2 Unikix pins
-     (SUB_TOOL), 2x 10mm-shcs-020-2x (SHORT-TAP), 1x 8mm-shcs-065-2x from the bottom on layer 98 kept out of BODY;
+     (SUB_TOOL; the library part until every slug is built, then the run's pins are Save As'd to
+     unikix-pins-{n}.prt), 2x 10mm-shcs-020-2x (SHORT-TAP), 1x 8mm-shcs-065-2x from the bottom on layer 98 kept out of BODY;
      UPR-PROFILE INTERSECTED;
   4. window Window1 into upd{station} - slug box +6", 25 mm thick on top of the slug (3D: grown 4" in -Z), built
      upside down (flipZ re-base), chamfered, color 136, 4140 PH, 4x 12mm-shcs-030-2x, dowels + jacks, 2 extra SHCS;
@@ -134,6 +135,8 @@ _shcs12mm030Path = "G:\\0Library\\Fasteners\\Metric\\SocketHeadCapScrews-2X\\012
 _shcs12mm040Path = "G:\\0Library\\Fasteners\\Metric\\SocketHeadCapScrews-2X\\012-2x\\12mm-shcs-040-2x.prt"
 _dwl12mm025Path = "G:\\0Library\\Fasteners\\Metric\\Dowels\\12mm-dwl-025.prt"
 _unikixPinsPath = "G:\\0Library\\Unikix\\Smart Unikix Pins.prt"
+# What the run's pins are Save As'd to, beside the -000: {_unikixPinsName}-{n}.prt.
+_unikixPinsName = "unikix-pins"
 
 # ChamferVerticalEdges' default ".25in".
 TrimDetailChamfer = .25
@@ -146,7 +149,6 @@ TrimDetailDowelInsetPosY = 1.75
 TrimDetailJackInsetPosY = 2.50
 TrimDetailJackInsetNegY = 2.25
 TrimDetailTsgJackInsetY = 1.75
-TrimDetailTsgJackShiftX = .625 - .1875
 RetainerFastenerInsetX = .5
 RetainerJackZOffset = -.25
 # Secondary Trim Station window: minimum thickness above the part's highest point (inches).
@@ -292,6 +294,8 @@ def build_blank_stations(is3d: bool, bodies1: Sequence[NXOpen.Body], material: s
 
     # The punch and lower trim steel of every slug, for the MATERIAL pass after the loop.
     trim_steels: List[NXOpen.Assemblies.Component] = []
+    # Every slug's Unikix pins, for the one Save As after the loop.
+    unikix_pins: List[NXOpen.Assemblies.Component] = []
 
     drawdie._set_wcs_to_absolute(nx.display_part())
     body_data: List[Tuple[nx.Box3d, NXOpen.Assemblies.Component]] = []
@@ -315,7 +319,7 @@ def build_blank_stations(is3d: bool, bodies1: Sequence[NXOpen.Body], material: s
         for i in range(len(body_data)):
             try:
                 _build_one_slug(i, len(bodies1), is3d, body_data[i][0], body_data[i][1], stations, trim_steels,
-                                upper_box=z_boxes[i][0], lower_box=z_boxes[i][1], temp=temp)
+                                unikix_pins, upper_box=z_boxes[i][0], lower_box=z_boxes[i][1], temp=temp)
             except Exception as ex:
                 nx.print_exception(ex)
 
@@ -335,10 +339,30 @@ def build_blank_stations(is3d: bool, bodies1: Sequence[NXOpen.Body], material: s
         except Exception as ex:
             nx.print_exception(ex)
 
+    _save_as_unikix_pins(unikix_pins, os.path.dirname(starting_display.FullPath))
+
     # The stages leave the work part pointed at whichever detail component they last built; put the session back on
     # the -000 with the work part matching the display part.
     nx.set_display_part(starting_display)
     nx.set_work_part(nx.display_part())
+
+
+def _save_as_unikix_pins(pins: Sequence[NXOpen.Assemblies.Component], directory: str) -> None:
+    """
+    Save As the library Smart Unikix Pins the run placed to the next free unikix-pins-{n}.prt, once all its stations are
+    built: every pin of the run shares the one prototype, so they all take the one number. The library part is no
+    longer loaded after this, so the next run (Auto Design's Secondary Trim after its Blank) opens it again and gets
+    its own number. Any older pin in the session still on the library part moves to this number with them.
+    """
+    if not pins:
+        return
+    try:
+        status = cast(NXOpen.Part, nx.prototype(pins[0])).SaveAs(merlin._next_part_path(directory, _unikixPinsName))
+        if status is not None:
+            status.Dispose()
+    except Exception as ex:
+        nx.print_("Blank Station: could not Save As the Unikix pins.")
+        nx.print_exception(ex)
 
 
 def try_find_blank_stations(is3d: bool) -> Optional[_Stations]:
@@ -417,6 +441,7 @@ def _measure_3d_refset_boxes(
 
 def _build_one_slug(i: int, count: int, is3d: bool, box: nx.Box3d, owning_comp: NXOpen.Assemblies.Component,
                     stations: _Stations, trim_steels: List[NXOpen.Assemblies.Component],
+                    unikix_pins: List[NXOpen.Assemblies.Component],
                     upper_box: Optional[nx.Box3d] = None, lower_box: Optional[nx.Box3d] = None,
                     temp: Optional[_TempGeometry] = None) -> None:
     """
@@ -530,7 +555,8 @@ def _build_one_slug(i: int, count: int, is3d: bool, box: nx.Box3d, owning_comp: 
 
     # Punch
     try:
-        _create_punch(current, owning_comp, min_bp, max_bp, stations.part_uad, 7.0 if is3d else 3.625, punch)
+        _create_punch(current, owning_comp, min_bp, max_bp, stations.part_uad, 7.0 if is3d else 3.625, punch,
+                      unikix_pins)
         if punch.value is not None:
             trim_steels.append(punch.value)
 
@@ -841,10 +867,10 @@ def _create_retainer(current: NXOpen.Part, owning_comp: NXOpen.Assemblies.Compon
 
 def _create_punch(current: NXOpen.Part, owning_comp: NXOpen.Assemblies.Component, min_bp: NXOpen.Point3d,
                   max_bp: NXOpen.Point3d, station_uad: NXOpen.Part, punch_depth: float,
-                  component_punch: _Out) -> None:
+                  component_punch: _Out, unikix_pins: List[NXOpen.Assemblies.Component]) -> None:
     """
     Merlin.CreatePunch - the WB trim punch into station_uad, punch_depth below the backing plate's bottom (3D 7",
-    2D 3.625"), Unikix pins and SHCS, then UPR-PROFILE INTERSECTED.
+    2D 3.625"), Unikix pins (added to unikix_pins, still the library part) and SHCS, then UPR-PROFILE INTERSECTED.
     """
     nx.set_display_part(station_uad)
     block_punch = nx.create_block(nx.add_z(min_bp, -punch_depth), nx.add_z(max_bp, -.24))
@@ -866,7 +892,8 @@ def _create_punch(current: NXOpen.Part, owning_comp: NXOpen.Assemblies.Component
     unikix_orientation = drawdie._z_matrix(_VectorZ)
     for pin_origin in (NXOpen.Point3d(punch_center_x, punch_center_y - .5, punch_top_z),
                        NXOpen.Point3d(punch_center_x, punch_center_y + .5, punch_top_z)):
-        _drop_and_subtract(_unikixPinsPath, pin_origin, unikix_orientation, "SUB_TOOL", "Empty", layer=99)
+        unikix_pins.append(
+            _drop_and_subtract(_unikixPinsPath, pin_origin, unikix_orientation, "SUB_TOOL", "Empty", layer=99))
     # .01" down toward the block's centre from .25 above the pin plane.
     punch_shcs_z = punch_top_z + .25 - .01
     for shcs_origin in (NXOpen.Point3d(punch_center_x, punch_center_y - 1, punch_shcs_z),
@@ -1403,8 +1430,8 @@ def _add_dowels_and_jack_screws(min_point: NXOpen.Point3d, max_point: NXOpen.Poi
                                 inset_x: float = TrimDetailFastenerInsetX, jack_z_offset: float = 0.0,
                                 flipped_frame: bool = False) -> None:
     """
-    Merlin.AddDowelsAndJackScrews - 2 dowels, 2x 12mm-jck-screw (CBORE) and 2x 12mm-jck-screw-tsg (CBORE_BLIND), laid
-    out as seen in the -000 and mirrored into the part's frame (upper_frame: through the block centre; flipped_frame:
+    Merlin.AddDowelsAndJackScrews - 2 dowels, 2x 12mm-jck-screw (CBORE) and 2x 12mm-jck-screw-tsg (CBORE_BLIND, on a
+    1" grid from each other), laid out as seen in the -000 and mirrored into the part's frame (upper_frame: through the block centre; flipped_frame:
     Y only). Each one dropped and subtracted on its own, so one failure does not cost the rest.
     """
     length = max_point.X - min_point.X
@@ -1417,16 +1444,12 @@ def _add_dowels_and_jack_screws(min_point: NXOpen.Point3d, max_point: NXOpen.Poi
             return NXOpen.Point3d(max_point.X - physical.X, max_point.Y - physical.Y, z + physical.Z)
         return NXOpen.Point3d(min_point.X + physical.X, min_point.Y + physical.Y, z + physical.Z)
 
-    default_inset = abs(inset_x - TrimDetailFastenerInsetX) < 1e-9
-
-    tsg_first = NXOpen.Point3d(length - inset_x, TrimDetailTsgJackInsetY, jack_z_offset)
-    tsg_target = NXOpen.Point3d(inset_x, width - TrimDetailTsgJackInsetY, jack_z_offset)
-    # Snapped in the physical frame, so the 1" grid and the -X shift mean the same thing on every detail.
-    tsg_snapped = drawdie._snap_to_inch_grid_from(tsg_first, tsg_target)
-    if default_inset:
-        tsg_second = NXOpen.Point3d(tsg_snapped.X - TrimDetailTsgJackShiftX, tsg_snapped.Y, tsg_snapped.Z)
-    else:
-        tsg_second = NXOpen.Point3d(inset_x, tsg_snapped.Y, tsg_snapped.Z)
+    # The two TSG jacks are whole inches apart in X and Y. In X they are balanced about the centre, so each moves in
+    # from inset_x by under .5" and stays clear of the profile; in Y the first stays put and the second comes back.
+    tsg_second_x, tsg_first_x = drawdie._balanced(length / 2, 2, length - 2 * inset_x)
+    tsg_first = NXOpen.Point3d(tsg_first_x, TrimDetailTsgJackInsetY, jack_z_offset)
+    tsg_second = drawdie._snap_to_inch_grid_from(
+        tsg_first, NXOpen.Point3d(tsg_second_x, width - TrimDetailTsgJackInsetY, jack_z_offset))
 
     placements = (
         (dowel_path, NXOpen.Point3d(inset_x, TrimDetailDowelInsetNegY, 0.0), dowel_refset),

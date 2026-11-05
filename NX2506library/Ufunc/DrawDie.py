@@ -191,6 +191,7 @@ PostKeySize = "25-50"                   # Jolico J-996457
 CavityKeySize = "25-80"                 # Jolico J-996443
 RiserKeySize = "25-100"                 # Jolico J-996444
 PlateKeySize = "25-100"                 # Jolico J-996444
+PlateKeyLength = 100 / 25.4             # its length, for setting its ends flush with the plate's edges
 
 # Smart GM Guided Retainer presets: GRS.50.HD (the binder's: Plate Adapter Cap, 105 mm stroke, 75 mm travel) and
 # GRS.65.HD.
@@ -880,7 +881,8 @@ def _build_draw_die_cavity(job: DrawDieJob) -> nx.Box3d:
                                 jack_inset=CavityJackInset,
                                 key_save_name="draw-die-cavity-key",
                                 key_size=CavityKeySize,
-                                keys_both_ways=True)
+                                keys_both_ways=True,
+                                centre_x_key=True)
 
     return _box_from(min_point, xlength, ywidth, height)
 
@@ -959,7 +961,8 @@ def _build_draw_die_mounting_plate(job: DrawDieJob, cavity: nx.Box3d) -> nx.Box3
     _draw_die_step("mounting plate hoist rings", hoist_rings)
 
     def plate_keys() -> None:
-        keys = _place_draw_die_edge_keys(job, xlength, ywidth, thickness, PlateKeySize)
+        keys = _place_draw_die_edge_keys(job, xlength, ywidth, thickness, PlateKeySize,
+                                         flush_length=PlateKeyLength if job.is_gm else None)
         body_refset.AddObjectsToReferenceSet(keys)
         _save_as_draw_die_part(keys, job, "draw-die-mounting-plate-key")
 
@@ -993,13 +996,14 @@ def _form_steel_boxes(size: Tuple[NXOpen.Point3d, float, float, float], columns:
 def _build_draw_die_form_steels(job: DrawDieJob, min_point: NXOpen.Point3d, xlength: float, ywidth: float,
                                 height: float, name: str, subtract_refset: Optional[str], shcs_path: str,
                                 shcs_inset: float, jack_inset: float, key_save_name: str,
-                                key_size: str, keys_both_ways: bool = False) -> None:
+                                key_size: str, keys_both_ways: bool = False, centre_x_key: bool = False) -> None:
     """
     Merlin.BuildDrawDieFormSteels - job.form_steel_columns along X by job.form_steel_rows along Y (2 x 4 by
     default), .004" apart,
     each a different random color with its joint faces and mounting face yellow. Per block: 4 backside SHCS
     (SHORT-TAP), 2 TSG jack screws (CBORE_BLIND) - the second snapped to whole inches from the first - and 2 keys
-    (4 with keys_both_ways), the key_size preset. The keys are Save As'd once, after every block, so all the blocks
+    (4 with keys_both_ways, 3 with centre_x_key too: one X key, at the block's centre), the key_size preset. The keys
+    are Save As'd once, after every block, so all the blocks
     share one job copy.
     """
     columns, rows = max(1, job.form_steel_columns), max(1, job.form_steel_rows)
@@ -1020,7 +1024,7 @@ def _build_draw_die_form_steels(job: DrawDieJob, min_point: NXOpen.Point3d, xlen
             try:
                 _build_one_form_steel(job, min_point, column, row, index, column_width, row_length, height, name,
                                       colors[index % len(colors)], subtract_refset, shcs_path, shcs_inset,
-                                      jack_inset, keys_both_ways, key_size, keys)
+                                      jack_inset, keys_both_ways, key_size, keys, centre_x_key)
             except Exception as ex:
                 nx.print_("Draw Die: {} block {} of {} failed.".format(name, index + 1, columns * rows))
                 nx.print_exception(ex)
@@ -1032,7 +1036,8 @@ def _build_draw_die_form_steels(job: DrawDieJob, min_point: NXOpen.Point3d, xlen
 def _build_one_form_steel(job: DrawDieJob, min_point: NXOpen.Point3d, column: int, row: int, index: int,
                           column_width: float, row_length: float, height: float, name: str, color: int,
                           subtract_refset: Optional[str], shcs_path: str, shcs_inset: float, jack_inset: float,
-                          keys_both_ways: bool, key_size: str, keys: List[NXOpen.Assemblies.Component]) -> None:
+                          keys_both_ways: bool, key_size: str, keys: List[NXOpen.Assemblies.Component],
+                          centre_x_key: bool = False) -> None:
     """The body of BuildDrawDieFormSteels' per-block loop."""
     block_min = NXOpen.Point3d(min_point.X + column * (column_width + merlin.SplitGap),
                                min_point.Y + row * (row_length + merlin.SplitGap),
@@ -1086,7 +1091,7 @@ def _build_one_form_steel(job: DrawDieJob, min_point: NXOpen.Point3d, column: in
 
     def block_keys() -> None:
         # Off centre by this block's grid position, so no two steels key into the same place (KeyShiftStep).
-        placed = (_place_draw_die_edge_keys(job, column_width, row_length, height, key_size, shift)
+        placed = (_place_draw_die_edge_keys(job, column_width, row_length, height, key_size, shift, centre_x_key)
                   if keys_both_ways
                   else _place_draw_die_front_back_keys(job, column_width, row_length, height, key_size,
                                                        KeyShiftStep * (row * job.form_steel_columns + column)))
@@ -1347,20 +1352,31 @@ _UpperXKeyEdgeInset = 2.4498 - 0.0748
 
 
 def _place_draw_die_edge_keys(job: DrawDieJob, xlength: float, ywidth: float, height: float, key_size: str,
-                              key_shift: Tuple[float, float] = (0.0, 0.0)) -> List[NXOpen.Assemblies.Component]:
+                              key_shift: Tuple[float, float] = (0.0, 0.0), centre_x_key: bool = False,
+                              flush_length: Optional[float] = None) -> List[NXOpen.Assemblies.Component]:
     """
     Merlin.PlaceDrawDieEdgeKeys - four keys on the mounting face, one in from each edge on the centrelines, through
-    PlaceEdgeItems (which assumes an 8" block for the upper, hence the Z shift). Saves and restores the WCS.
+    PlaceEdgeItems (which assumes an 8" block for the upper, hence the Z shift). centre_x_key makes the right / left
+    pair one key at the block's centre. flush_length, a key's length, puts every key's outer end on its edge; the
+    usual insets are for a shorter key, so a 100 mm one stuck out .39" to .47". Saves and restores the WCS.
     """
+    x_edge_inset = _UpperXKeyEdgeInset if job.is_upper else 2.4498
+    nudge = 0.0748 if job.is_gm else 0.0
+    if flush_length is not None:
+        # _place_edge_items puts them 1.5 + nudge in from Y and x_edge_inset - .875 in from X.
+        nudge = flush_length / 2 - 1.5
+        x_edge_inset = flush_length / 2 + (1.5 - .625)
+
     wcs = nx.display_part().WCS
     current_wcs = wcs.CoordinateSystem.Orientation.Element
 
     try:
         return _place_edge_items(_key_path(job, key_size), NXOpen.Point3d(0.0, 0.0, 0.0),
                                  xlength, ywidth, job.is_upper,
-                                 front_back_nudge=0.0748 if job.is_gm else 0.0,
-                                 x_edge_inset=_UpperXKeyEdgeInset if job.is_upper else 2.4498,
-                                 extra_z=height - 8 if job.is_upper else 0.0, layer=99, key_shift=key_shift)
+                                 front_back_nudge=nudge,
+                                 x_edge_inset=x_edge_inset,
+                                 extra_z=height - 8 if job.is_upper else 0.0, layer=99, key_shift=key_shift,
+                                 centre_x_key=centre_x_key)
     finally:
         wcs.SetOriginAndMatrix(NXOpen.Point3d(0.0, 0.0, 0.0), current_wcs)
 
@@ -1626,7 +1642,7 @@ def _stamp_fastener_subtract(fastener: NXOpen.Assemblies.Component, subtract_ref
 
 def _place_edge_items(path: str, origin: NXOpen.Point3d, xlength: float, y_extent: float, is_upper: bool,
                       front_back_nudge: float, x_edge_inset: float, extra_z: float = 0.0,
-                      layer: int = 99, key_shift: Tuple[float, float] = (0.0, 0.0)
+                      layer: int = 99, key_shift: Tuple[float, float] = (0.0, 0.0), centre_x_key: bool = False
                       ) -> List[NXOpen.Assemblies.Component]:
     """
     Merlin.PlaceEdgeItems - X-centered front (-Y) and back (+Y) at inset 1.5 (+/- front_back_nudge), Y-centered
@@ -1634,7 +1650,8 @@ def _place_edge_items(path: str, origin: NXOpen.Point3d, xlength: float, y_exten
     rotates the WCS 90 degrees about Z, and orients front/back with the upper-key matrix and right/left with the
     rotated WCS; lower uses the side-key matrix front/back and identity right/left. Returns [front, back, right,
     left]. The caller saves and restores the WCS. key_shift (x, y) moves front/back along X and right/left along Y
-    (key_shift_for - KeyShiftStep).
+    (key_shift_for - KeyShiftStep). centre_x_key leaves left out and puts right at X centre, keeping its Y shift so
+    no two blocks' keys match; it returns [front, back, right].
     """
     shift_x, shift_y = key_shift
     z_top = 8.0 if is_upper else 0.0
@@ -1662,6 +1679,10 @@ def _place_edge_items(path: str, origin: NXOpen.Point3d, xlength: float, y_exten
     # +Y edge (back): X-centered near MaxY
     back = nx.add_component(display, path, "BODY", None,
                             at(xlength / 2 + shift_x, y_extent - 1.5 - front_back_nudge), fb_orient, layer)
+    if centre_x_key:
+        return [front, back, nx.add_component(display, path, "BODY", None, at(xlength / 2, y_extent / 2 + shift_y),
+                                              lr_orient, layer)]
+
     # +X edge (right): Y-centered near MaxX
     right = nx.add_component(display, path, "BODY", None,
                              at(-x_edge_inset + xlength + (1.5 - .625), y_extent / 2 + shift_y), lr_orient, layer)

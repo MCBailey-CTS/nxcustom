@@ -288,7 +288,7 @@ def _add_cast_in_inserts(bounding: nx.Box3d, is_gm: bool) -> None:
 def _add_guided_retainers(bounding: nx.Box3d, is_gm: bool) -> None:
     """
     Merlin.AddGuidedRetainers - four 90 mm in from the corners plus one in the centre, then the first one's
-    prototype Save As'd next to the display part as [cts-]cast-trim-pad-guided-retainer-{token}.prt.
+    prototype Save As'd next to the display part as [cts-]cast-trim-pad-guided-retainer-{n}.prt.
     """
     path = _gmGuidedRetainerPath if is_gm else _ctsSmartSlGuidedKeeper
     x, y, _height = _distances(bounding)
@@ -300,8 +300,8 @@ def _add_guided_retainers(bounding: nx.Box3d, is_gm: bool) -> None:
               for dx, dy in ((inset, inset), (x - inset, inset), (x - inset, y - inset), (inset, y - inset),
                              (x / 2, y / 2))]
 
-    nx.prototype(placed[0]).SaveAs("{}\\{}cast-trim-pad-guided-retainer-{}.prt".format(
-        os.path.dirname(nx.display_part().FullPath), "" if is_gm else "cts-", merlin._random_file_token()))
+    nx.prototype(placed[0]).SaveAs(merlin._next_part_path(
+        os.path.dirname(nx.display_part().FullPath), "{}cast-trim-pad-guided-retainer".format("" if is_gm else "cts-")))
 
 
 def _import_cast_text(part: NXOpen.Part, path: str, xlength: float, ywidth: float,

@@ -7,7 +7,7 @@ The Perfect dialog (Perfect.dlx, tools\\make-dlx.py, 2026-10-29): the Customer r
 opening; GM builds with the GM parts, TSG uses the CTS parts) and the solid bodies (any in assembly) in one
 form, OK greyed out until TSG or GM is checked and a body is picked. Each body, in its own try/except (printed,
 so one bad body does not drop the rest), is wrapped in a block the size of its exact absolute bounding box, built in
-the work part at the absolute orientation, and the block is promoted to [cts-]perfect-{token}.prt in the work part's folder (Absolute origin,
+the work part at the absolute orientation, and the block is promoted to [cts-]perfect-{n}.prt in the work part's folder (Absolute origin,
 AsSpecified layer 60, originals deleted, no AutoSize UDO at promotion). Then:
   - the part is re-based onto the block (RebaseBlockToPartOrigin, parent = the display part);
   - the new component joins its owning part's BODY reference set; the part's bodies go in its own BODY;
@@ -207,7 +207,7 @@ def _create_new_component_core(name_prefix: str, objects: Sequence[NXOpen.Displa
         file_new = nx.session_.Parts.FileNew()
         file_new.Units = (NXOpen.Part.Units.Millimeters if work.PartUnits == NXOpen.BasePart.Units.Millimeters
                           else NXOpen.Part.Units.Inches)
-        file_new.NewFileName = "{}\\{}-{}.prt".format(directory, name_prefix, merlin._random_file_token())
+        file_new.NewFileName = merlin._next_part_path(directory, name_prefix)
         file_new.UseBlankTemplate = True
         builder.ReferenceSet = NXOpen.Assemblies.CreateNewComponentBuilder.ComponentReferenceSetType.Other
         builder.LayerOption = layer_option

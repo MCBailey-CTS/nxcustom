@@ -108,11 +108,17 @@ SplitFormColor = 140
 # highest (upper) - the draw die cavity's 2.75". Sets the block's Z for the dialog-driven split forms.
 FormSteelMinThickness = 2.75
 
+# How far a dead strike lower's blocks stand over the part's highest point; the bottom and the plate stay put.
+DeadStrikeBlockRise = 10.0
+
 # The local `const double gap = 0.004` each split builder declares.
 SplitFormGap = 0.004
 
 # SHCS From Backside: the corner SHCS's inset, as Merlin.CreateSplitFormWithPlateBackside set it.
 BacksideShcsInset = 1.0
+
+# The backing plate's two side keys sit this far +Y of mid Y, both the same way, so the plate cannot go on backwards.
+PlateSideKeyShiftY = 2.0
 
 # A plate jig jack's least centre distance to a screw: its .375" radius blind counterbore, a 16mm head's .5", and wall.
 PlateJackClearance = 1.0
@@ -434,7 +440,8 @@ def _compute_refset_block_dimensions(label: str, bodies: Sequence[NXOpen.Body],
     point, so its bottom is at least 2.75" under the lowest; an upper's bottom at the part's lowest point, so its top
     is at least 2.75" over the highest. height is the part's Z span (the DESCRIPTION's third number).
 
-    size_off_bodies (dead strike) measures the picked bodies themselves and never the reference set: a strip
+    size_off_bodies (dead strike) raises a lower's top DeadStrikeBlockRise over the part's highest point and
+    measures the picked bodies themselves and never the reference set: a strip
     layout's UPR-3D / LWR-3D can be a tool body - the die surface extruded ~20" and wider than the part - which made
     26" tall blocks, and a footprint wider than the tool body left a thin wall standing round the subtract.
 
@@ -465,7 +472,8 @@ def _compute_refset_block_dimensions(label: str, bodies: Sequence[NXOpen.Body],
             return None
         box = nx.combine_boxes(loose + [nx.reference_set_box(c, refset, label) or picked[c.Tag] for c in owners])
 
-    xlength, ywidth, height, block_origin, block_z = _block_dimensions(box, is_upper, offset)
+    xlength, ywidth, height, block_origin, block_z = _block_dimensions(
+        box, is_upper, offset, DeadStrikeBlockRise if size_off_bodies else 0.0)
     min_z = block_origin.Z
 
     nx.info("{}: {} Z {} .. {} - form steel Z {} .. {} ({}\" {} the part)".format(
@@ -474,12 +482,13 @@ def _compute_refset_block_dimensions(label: str, bodies: Sequence[NXOpen.Body],
     return xlength, ywidth, height, block_origin, block_z
 
 
-def _block_dimensions(box: nx.Box3d, is_upper: bool, offset: float
+def _block_dimensions(box: nx.Box3d, is_upper: bool, offset: float, rise: float = 0.0
                       ) -> Tuple[float, float, float, NXOpen.Point3d, float]:
     """
     (xlength, ywidth, height, block_origin, block_z) off the part's box: each span rounded up to 1/8" plus offset a
     side, centred; block_z the part's Z span + FormSteelMinThickness rounded up to 1/8", a lower's top at the part's
-    highest point, an upper's bottom at its lowest.
+    highest point, an upper's bottom at its lowest. rise then lifts a lower's top that far, its bottom left where it
+    was; an upper ignores it.
     """
     length = box.MaxX - box.MinX
     width = box.MaxY - box.MinY
@@ -489,7 +498,7 @@ def _block_dimensions(box: nx.Box3d, is_upper: bool, offset: float
     block_z = nx.round_to_125(height + FormSteelMinThickness)
     min_z = box.MinZ if is_upper else box.MaxZ - block_z
     block_origin = NXOpen.Point3d(box.MinX - (xlength - length) / 2, box.MinY - (ywidth - width) / 2, min_z)
-    return xlength, ywidth, height, block_origin, block_z
+    return xlength, ywidth, height, block_origin, block_z if is_upper else block_z + rise
 
 
 def _grid_cells(block_origin: NXOpen.Point3d, xlength: float, ywidth: float, rows: int, cols: int
@@ -537,7 +546,8 @@ def preview_boxes(box: nx.Box3d, is_upper: bool, rows: int, cols: int, plate: bo
     uses (the station's): each grid block, then the backing plate (_create_backside_backing_plate's offsets) when
     plate. Empty when the box is too small to split. Auto Design's dialog draws them (DeadStrike.draw_preview).
     """
-    xlength, ywidth, _height, block_origin, block_z = _block_dimensions(box, is_upper, SplitFormOffset)
+    xlength, ywidth, _height, block_origin, block_z = _block_dimensions(box, is_upper, SplitFormOffset,
+                                                                        DeadStrikeBlockRise)
     grid = _grid_cells(block_origin, xlength, ywidth, rows, cols)
     if grid is None:
         return []
@@ -756,15 +766,15 @@ def _plate_jig_jack_origins(left_x: float, right_x: float, shcs_ys: Sequence[flo
     Where the plate's 8 TSG jig jacks go: aimed midway between neighbouring SHCS on the two SHCS lines, as the draw
     die's mounting plate has them, all on a 1" grid from the first. Snapping alone landed one on a screw on about 1
     plate size in 10, so each takes the grid spot nearest its aim that is PlateJackClearance off every screw and
-    jack, between the end SHCS and off the side keys at mid Y. With no such spot it stays snapped, with a warning.
+    jack, between the end SHCS and off the side keys' Y. With no such spot it stays snapped, with a warning.
     """
     aimed = [NXOpen.Point3d(x, (a + b) / 2, z) for x in (left_x, right_x) for a, b in zip(shcs_ys, shcs_ys[1:])]
-    middle_y = (shcs_ys[0] + shcs_ys[-1]) / 2
+    key_y = (shcs_ys[0] + shcs_ys[-1]) / 2 + PlateSideKeyShiftY
     placed: List[NXOpen.Point3d] = []
 
     def clear(spot: NXOpen.Point3d) -> bool:
         return (left_x <= spot.X <= right_x and shcs_ys[0] <= spot.Y <= shcs_ys[-1]
-                and abs(spot.Y - middle_y) >= PlateJackClearance
+                and abs(spot.Y - key_y) >= PlateJackClearance
                 and all(math.hypot(spot.X - x, spot.Y - y) >= PlateJackClearance for x, y in screws)
                 and all(math.hypot(spot.X - p.X, spot.Y - p.Y) >= PlateJackClearance for p in placed))
 
@@ -789,7 +799,8 @@ def _create_backside_backing_plate(is_upper: bool, xlength: float, ywidth: float
     Merlin.CreateBacksideBackingPlate - the sub plate shared by the split-form-with-plate builders: 1.5" thick,
     padded 1.375" in X and 2.75" in Y around the component block, on top of it (block_z up, 8" in the C#) for an
     upper or 1.5" down from it for a lower; a
-    SUBTOOL and BODY; 4 side keys (the first Save As'd as {name_prefix}-key-{n}.prt); a 5x2 grid of CBORE
+    SUBTOOL and BODY; 4 side keys, the two on the X sides PlateSideKeyShiftY off mid Y (the first key Save As'd as
+    {name_prefix}-key-{n}.prt); a 5x2 grid of CBORE
     16mm-shcs-050-2x subtracted from it, with jig_jacks 8 CBORE_BLIND TSG jig jacks between them; 4 corner hoist rings
     (GM-only path). DETAIL NAME SUB PLATE, MATERIAL HRS PLT.
     Leaves the display part on top_level and the plate in owning_part's BODY reference set.
@@ -844,10 +855,11 @@ def _create_backside_backing_plate(is_upper: bool, xlength: float, ywidth: float
                          origin=_add(block_origin, xlength / 2, ywidth + 1.25 + (-0.0748 if is_gm else 0), key_z),
                          orientation=bp_side_key_matrix, layer=99),
         nx.add_component(nx.display_part(), bp_key_path, reference_set="BODY",
-                         origin=_add(block_origin, xlength + 3.875 - 2.4498 - 1.625, ywidth / 2, key_z),
+                         origin=_add(block_origin, xlength + 3.875 - 2.4498 - 1.625,
+                                     ywidth / 2 + PlateSideKeyShiftY, key_z),
                          orientation=bp_side_x_key_matrix, layer=99),
         nx.add_component(nx.display_part(), bp_key_path, reference_set="BODY",
-                         origin=_add(block_origin, -3.875 + 2.4498 + 1.625, ywidth / 2, key_z),
+                         origin=_add(block_origin, -3.875 + 2.4498 + 1.625, ywidth / 2 + PlateSideKeyShiftY, key_z),
                          orientation=bp_side_x_key_matrix, layer=99),
     ]
     bp_body_refset.AddObjectsToReferenceSet(bp_keys)

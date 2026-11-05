@@ -216,8 +216,8 @@ def _build(is_gm: bool, is_upper: bool, bodies: List[NXOpen.Body], refset_name: 
                         for x, y in corners + [(dx / 2, dy / 2)]]
 
     # The last one placed, as the C# loop leaves it - they all share the one prototype anyway.
-    nx.prototype(guided_retainers[-1]).SaveAs("{}\\{}cast-form-pad-guided-retainer-{}.prt".format(
-        os.path.dirname(nx.display_part().FullPath), "" if is_gm else "cts-", merlin._random_file_token()))
+    nx.prototype(guided_retainers[-1]).SaveAs(merlin._next_part_path(
+        os.path.dirname(nx.display_part().FullPath), "{}cast-form-pad-guided-retainer".format("" if is_gm else "cts-")))
 
     insert_orientation = drawdie._z_matrix(_VectorZ if not is_upper else _VectorZN)
     cast_in_insert_path = _gmCastInInsertPath if is_gm else _ctsLiftLugMetric

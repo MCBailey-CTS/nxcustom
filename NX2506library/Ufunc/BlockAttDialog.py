@@ -474,7 +474,8 @@ class _BlockAttDialog(Dialog):
         self.block("custom_component").Show = mode == ModeCustom
         self.block("custom_group").Show = mode == ModeCustom
         self.block("components").Show = mode in (ModeChange, ModeAutoUpdate)
-        self.block("components").Label = "Components (none: the work part)" if mode == ModeAutoUpdate \
+        # A selection block's label is LabelString; setting Label throws 3520034.
+        self.block("components").LabelString = "Components (none: the work part)" if mode == ModeAutoUpdate \
             else "Components"
         self.block("stock_group").Show = mode == ModeBlock
         self.block("burn_group").Show = mode == ModeBlock

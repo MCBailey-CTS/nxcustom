@@ -15,7 +15,7 @@ opposite corner for an upper), and gets:
   - 4 12mm-shcs-050-2x .75" in from the corners (CBORE), linked and subtracted, the bottom face 42;
   - 2 12mm-dwl-050 .625" in from each X end on the Y centreline, CBORE subtracted from the dynamic block;
   - 4 keys around the edges (Merlin.PlaceEdgeItems, .0748 nudge on GM and CTS alike, as the C# passes), the first
-    one's prototype Save As'd as [cts-]component-key-{token}.prt;
+    one's prototype Save As'd as [cts-]component-key-{n}.prt;
   - the AutoSize UDO, BODY in the station, then the UPR-3D / LWR-3D reference set of each picked body's component
     linked and subtracted, and BODY in every loaded ancestor assembly.
 The run is timed (the elapsed TimeSpan is printed) and the display part is regenerated on the new detail before the
@@ -223,8 +223,8 @@ def _create_component(is_upper: bool, top_level: NXOpen.Part, start_work: NXOpen
         keys = drawdie._place_edge_items(path, block_origin, xlength, ywidth, is_upper,
                                          front_back_nudge=.0748, x_edge_inset=2.4498, layer=99)
 
-        nx.prototype(keys[0]).SaveAs("{}\\{}component-key-{}.prt".format(
-            os.path.dirname(nx.display_part().FullPath), "" if is_gm else "cts-", merlin._random_file_token()))
+        nx.prototype(keys[0]).SaveAs(merlin._next_part_path(
+            os.path.dirname(nx.display_part().FullPath), "{}component-key".format("" if is_gm else "cts-")))
         nx.display_part().WCS.SetOriginAndMatrix(NXOpen.Point3d(0.0, 0.0, 0.0), current_wcs)
         body_reference_set.AddObjectsToReferenceSet(keys)
         nx.create_auto_size_udo(nx.work_part())

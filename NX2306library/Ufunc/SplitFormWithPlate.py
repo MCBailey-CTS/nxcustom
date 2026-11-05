@@ -12,7 +12,7 @@ What changed from the separate split-form-with-plate port (in git at 07dcca8):
   - The corner SHCS are placed off the block's box re-read after the re-base rather than off its corner - the same
     points (16mm-shcs-050-2x, .75" in, CBORE, from the mounting face).
   - The blocks are named [cts-]split-form, the plate [cts-]split-form-backing-plate and the key copies
-    [cts-]split-form-key-{token}, as split-form's are (they were [cts-]split-form-with-plate-component / -backing-plate / -component-key).
+    [cts-]split-form-key-{n}, as split-form's are (they were [cts-]split-form-with-plate-component / -backing-plate / -component-key).
 
     Session.Execute("SplitFormWithPlate.py", "SplitFormWithPlate", "execute_with", is_gm, is_upper, rows, cols, bodies)
     Session.Execute("SplitFormWithPlate.py", "SplitFormWithPlate", "execute", is_gm)   # the old menus

@@ -227,7 +227,8 @@ class Nine99Block(object):
 def _unsaved_unikix_pins(top_level: NXOpen.BasePart) -> List[NXOpen.Assemblies.Component]:
     """
     Every component under top_level that is still the library smart part (UnikixPinsLeaf), not a pin saved as its
-    own job part: the Blank Station drops G:\\0Library\\Unikix\\Smart Unikix Pins.prt into each punch as is. Matched
+    own job part: the Blank Station left G:\\0Library\\Unikix\\Smart Unikix Pins.prt in each punch as is until 2026-11-05
+    (it now Save As's them to unikix-pins-{n}.prt), so older jobs have them. Matched
     on the part name, so a copy that kept it counts too; an unloaded one by its display name.
     """
     root = nx.root_component(top_level)

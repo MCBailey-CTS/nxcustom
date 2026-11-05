@@ -6,7 +6,7 @@ The C# wrapper was deleted 2026-10-22 (in git at 1cb53d8): the UFunc's menu butt
 No picks. Writes "Component At Wcs -> {version}" to the NX log file, gates on english info units, sets an undo mark,
 then builds a 4" x 4" x 1.5" block in the work part at the display part's WCS orientation, centred on the WCS origin in
 X and Y (bottom face on the WCS XY plane). The body is colored 168 with its WCS -Z face 42 (a missing face prints and
-carries on), and it is promoted to component-wcs-{token}.prt (CreateCtsComponent defaults: WCS origin, work layer 1,
+carries on), and it is promoted to component-wcs-{n}.prt (CreateCtsComponent defaults: WCS origin, work layer 1,
 originals deleted, AutoSize UDO). Then:
   - the part is re-based onto the block's corner (RebaseBlockToPartOrigin, parent = the starting display part);
   - the new component joins its owning part's BODY reference set; station expressions; the part's bodies in BODY;
@@ -75,7 +75,7 @@ class ComponentAtWcs(object):
 
 
 def component_at_wcs() -> None:
-    """Merlin.ComponentAtWcs - a 4 x 4 x 1.5 block centred on the WCS, promoted to component-wcs-{token}."""
+    """Merlin.ComponentAtWcs - a 4 x 4 x 1.5 block centred on the WCS, promoted to component-wcs-{n}."""
     cast(Any, nx.session_).LogFile.WriteLine("Component At Wcs -> {}".format(nx.assembly_file_version()))
 
     ok, message = drawdie._check_info_units()
