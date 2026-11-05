@@ -15,9 +15,11 @@ DYNAMIC BLOCK, SUBTOOL on hidden layer 15), re-based onto the block (the opposit
   - the mounting face colored 42 (the -Z face is also colored 42 by FindBottomFace);
   - the GM POST CAST TEXT part imported at the centre, on layer 20;
   - 8 20mm-shcs-070-2x through the feet (CBORE subtracted from the post, then BODY), on layer 99;
+  - 8 12mm-jck-screw-tsg, 4 up each foot from the mounting face, between the SHCS on a 1" grid (CBORE_BLIND subtracted
+    from the post, then BODY), on layer 99;
   - 8 GM hoist rings on layer 99, not subtracted and kept out of the post's BODY reference set;
   - 4 keys (lower: PlaceKey; upper: PlaceGmCastPostUpperKeys, which turns the display part's WCS and restores it),
-    the last key's prototype Save As'd as [cts-]cast-post-key-{token}.prt next to the post;
+    the last key's prototype Save As'd as [cts-]cast-post-key-{n}.prt next to the post;
 then the AutoSize UDO is switched off, DETAIL NAME / DESCRIPTION CAST FORM POST, and each picked body's component has
 its UPR-3D / LWR-3D reference set linked in and subtracted from the post. BODY is set up in every loaded ancestor
 assembly. Each body is caught on its own; the station is restored as display and work part after every post, and the
@@ -101,6 +103,9 @@ PostColor = 181
 FootXOffset = 2.25
 FootHeight = 2.0
 FootBlendRadius = .3
+# The SHCS line, out from the post's X faces, and the TSG jig jacks on each foot.
+FootFastenerOffset = 1.125
+JacksPerFoot = 4
 
 _shcs20mm070Path = "G:\\0Library\\Fasteners\\Metric\\SocketHeadCapScrews-2X\\020-2x\\20mm-shcs-070-2x.prt"
 _gmHoistRingPath = "G:\\0Library\\0Customer\\GM\\GM 16MM DIA PLDW Hoist Ring.prt"
@@ -302,6 +307,14 @@ def _build_one_post(is_gm: bool, is_upper: bool, box: nx.Box3d, z_box: nx.Box3d,
                      (xlength + 1.125, ywidth - 1.125),   # +X foot, back corner (+Y): right of MaxX, near MaxY
                      (-1.125, ywidth - 1.125))]           # -X foot, back corner (+Y): left of MinX, near MaxY
 
+    # 8 TSG jig jacks, 4 up each foot from the mounting face: on the SHCS line, balanced about the centre on a 1" grid,
+    # about a quarter of the width apart so they fall between the SHCS.
+    jack_xs = drawdie._balanced(xlength / 2, 2, xlength + 2 * FootFastenerOffset)
+    jack_ys = drawdie._balanced(ywidth / 2, JacksPerFoot, ywidth / JacksPerFoot)
+    fasteners += [nx.add_component(display, drawdie._jck12mmScrewTsgPath, "CBORE_BLIND", None, at(x, y, z_top),
+                                   orientation, 99)
+                  for x in jack_xs for y in jack_ys]
+
     _subtract_and_refset_fasteners(fasteners, bottom_face, body_reference_set)
 
     # 8 GM 16mm hoist rings on layer 99 - not subtracted from the post, and kept out of its BODY reference set.
@@ -338,14 +351,14 @@ def _build_one_post(is_gm: bool, is_upper: bool, box: nx.Box3d, z_box: nx.Box3d,
         ]
 
         body_reference_set.AddObjectsToReferenceSet(keys)
-        nx.prototype(keys[0]).SaveAs("{}\\{}cast-post-key-{}.prt".format(
-            os.path.dirname(nx.display_part().FullPath), prefix, merlin._random_file_token()))
+        nx.prototype(keys[0]).SaveAs(merlin._next_part_path(
+            os.path.dirname(nx.display_part().FullPath), "{}cast-post-key".format(prefix)))
     else:
         current_wcs, key = _place_gm_cast_post_upper_keys(is_upper, xlength, ywidth, block_origin,
                                                           body_reference_set, orientation, is_gm)
         body_reference_set.AddObjectsToReferenceSet([key])
-        nx.prototype(key).SaveAs("{}\\{}cast-post-key-{}.prt".format(
-            os.path.dirname(nx.display_part().FullPath), prefix, merlin._random_file_token()))
+        nx.prototype(key).SaveAs(merlin._next_part_path(
+            os.path.dirname(nx.display_part().FullPath), "{}cast-post-key".format(prefix)))
         nx.display_part().WCS.SetOriginAndMatrix(NXOpen.Point3d(0.0, 0.0, 0.0), current_wcs)
 
     # Cast details are not resized - force the AutoSize UDO off (UDO + AUTO UPDATE attribute).

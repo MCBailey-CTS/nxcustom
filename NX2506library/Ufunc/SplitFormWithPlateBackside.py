@@ -10,7 +10,7 @@ What changed from the separate split-form-with-plate-backside port (in git at 07
     dialog has Cols.
   - The work part is left on the station the run started from; the old port set it to the display part at the end.
   - The blocks are named [cts-]split-form, the plate [cts-]split-form-backing-plate and the key copies
-    [cts-]split-form-key-{token}, as split-form's are (they were [cts-]split-form-with-plate-backside-component / -backing-plate / -component-key).
+    [cts-]split-form-key-{n}, as split-form's are (they were [cts-]split-form-with-plate-backside-component / -backing-plate / -component-key).
 
     Session.Execute("SplitFormWithPlateBackside.py", "SplitFormWithPlateBackside", "execute_with", is_gm, is_upper, rows, cols, bodies)
     Session.Execute("SplitFormWithPlateBackside.py", "SplitFormWithPlateBackside", "execute", is_gm)   # the old menus
@@ -56,9 +56,10 @@ class SplitFormWithPlateBackside(object):
 
     @staticmethod
     def execute_with(is_gm: bool, is_upper: bool, rows: int, cols: int, bodies: Sequence[NXOpen.TaggedObject],
-                     plate: bool = True, backside: bool = _Backside, size_off_bodies: bool = False) -> None:
+                     plate: bool = True, backside: bool = _Backside, size_off_bodies: bool = False,
+                     jig_jacks: bool = False) -> None:
         """SplitForm.execute_with, the plate and SHCS From Backside on unless the caller says otherwise."""
-        split.SplitForm.execute_with(is_gm, is_upper, rows, cols, bodies, plate, backside, size_off_bodies)
+        split.SplitForm.execute_with(is_gm, is_upper, rows, cols, bodies, plate, backside, size_off_bodies, jig_jacks)
 
 
 def main() -> None:

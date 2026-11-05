@@ -13,7 +13,8 @@ radio (None / TSG / GM, None on opening; TSG uses the CTS parts), the part's sol
 ops - the display part's station numbers with both a ladNN and a uadNN, read when it opens (none is an error box
 before it; the work part's number is checked first when it is one) - then Lower and Upper Rows (x) / Cols (y), each
 side's form steels along X by along Y (2026-11-04, 2 x 4 by default). OK stays greyed out until TSG or GM is checked
-and a body is picked. OpBodiesDialog is shared with Pierce.py (Pierce.dlx); _DrawDieDialog adds the grids to it.
+and a body is picked. OpBodiesDialog is shared with Pierce.py (Pierce.dlx); _DrawDieDialog adds the grids to it, and outlines
+each half's form steels with temporary lines while it is open: posts 186, cavity 211, redrawn on every change.
 GM keys and guided retainers are placed from preset library parts (Smart GM Key {width}-{length}.prt, Smart GM
 Guided Retainer 50.prt), already set to the spec's sizes, and no spreadsheet is opened (2026-11-03; the Edit
 Spreadsheets box, which opened each sheet and wrote it, is gone).
@@ -38,7 +39,7 @@ Differences from the C#:
     reads the block's size expressions through UF_MODL_ask_block_parms instead.
 
 The Merlin helpers PointComponent.py already ports (subtool, SubtractComponents, SetReferenceSetInAncestorAssemblies,
-RandomFileToken, the split palette) are imported from it rather than copied.
+NextPartPath, the split palette) are imported from it rather than copied.
 """
 
 from __future__ import annotations
@@ -120,6 +121,14 @@ DrawDieUpperRefset = "UPR-3D"
 FormSteelColumns = 2
 FormSteelRows = 4
 PostMinThickness = 2.50
+
+# The dialog's outlines of the post (lower) and cavity (upper) steels.
+PreviewLowerColor = 186
+PreviewUpperColor = 211
+
+# The 12 edges of a box, as pairs of corner indices (corner bit 0 = +X, bit 1 = +Y, bit 2 = +Z).
+_BoxEdges = [(0, 1), (2, 3), (4, 5), (6, 7), (0, 2), (1, 3), (4, 6), (5, 7), (0, 4), (1, 5), (2, 6), (3, 7)]
+
 CavityMinThickness = 2.75
 
 PostShcsInset = .625
@@ -317,14 +326,18 @@ def static_draw_die(is_gm: bool) -> None:
         return
 
     # Checked before the dialog so a job with no station fails before the user selects anything.
-    numbers = sorted(find_op_stations())
-    if len(numbers) == 0:
+    stations = find_op_stations()
+    if len(stations) == 0:
         nx.show_error("Draw Die could not find an op with both a LADnn and a UADnn under {}.".format(
             nx.display_part().Leaf))
         return
 
-    dialog = _DrawDieDialog(title_with_version("Draw Die"), numbers)
-    if not dialog.run():
+    dialog = _DrawDieDialog(title_with_version("Draw Die"), stations)
+    try:
+        accepted = dialog.run()
+    finally:
+        _erase_preview()
+    if not accepted:
         return
 
     build_draw_die(is_gm_customer(dialog.customer_choice), dialog.bodies, station=dialog.station,
@@ -602,10 +615,10 @@ def _build_draw_die_binder(job: DrawDieJob) -> nx.Box3d:
     up = nx.identity_matrix()
     upside_down = nx.matrix_from_axes(_VectorX, _VectorYN)
 
-    # Jack screws: two rows of four, symmetric about both centrelines, from the bottom.
+    # Jack screws: two rows of four, from the bottom, balanced about both centrelines on a 1" grid.
     def jack_screws() -> None:
-        jack_xs = [BinderJackInsetX, xlength - BinderJackInsetX]
-        jack_ys = _even_stations(BinderJackInsetY, ywidth - BinderJackInsetY, 4)
+        jack_xs = _balanced(xlength / 2, 2, xlength - 2 * BinderJackInsetX)
+        jack_ys = _balanced(ywidth / 2, 4, (ywidth - 2 * BinderJackInsetY) / 3)
         _place_draw_die_children("binder jack screw", _jck12mmScrewTsgPath,
                                  [(NXOpen.Point3d(x, y, 0.0), up) for x in jack_xs for y in jack_ys],
                                  layer=99, subtract_refset="CBORE_BLIND", body_refset=body_refset)
@@ -697,11 +710,7 @@ def _build_draw_die_posts(job: DrawDieJob) -> nx.Box3d:
     (2 along X by 4 along Y by default), .004" apart, at least 2.5" thick under the part's lowest point, LWR-3D
     subtracted. Returns the overall box.
     """
-    box = job.part_box
-    xlength = nx.round_to_125(box.MaxX - box.MinX)
-    ywidth = nx.round_to_125(box.MaxY - box.MinY)
-    height = nx.round_to_125(box.MaxZ - box.MinZ + PostMinThickness)
-    min_point = _centered_min(box, xlength, ywidth, box.MaxZ - height)
+    min_point, xlength, ywidth, height = _post_size(job.part_box)
 
     _build_draw_die_form_steels(job, min_point, xlength, ywidth, height,
                                 name="{}draw-die-post".format(job.prefix),
@@ -714,6 +723,14 @@ def _build_draw_die_posts(job: DrawDieJob) -> nx.Box3d:
                                 keys_both_ways=True)
 
     return _box_from(min_point, xlength, ywidth, height)
+
+
+def _post_size(box: nx.Box3d) -> Tuple[NXOpen.Point3d, float, float, float]:
+    """(min corner, xlength, ywidth, height) of the post form steels under the part's box, in station coordinates."""
+    xlength = nx.round_to_125(box.MaxX - box.MinX)
+    ywidth = nx.round_to_125(box.MaxY - box.MinY)
+    height = nx.round_to_125(box.MaxZ - box.MinZ + PostMinThickness)
+    return _centered_min(box, xlength, ywidth, box.MaxZ - height), xlength, ywidth, height
 
 
 def _build_draw_die_riser(job: DrawDieJob, posts: nx.Box3d) -> nx.Box3d:
@@ -885,24 +902,6 @@ def _mounting_plate_size(cavity: nx.Box3d) -> Tuple[NXOpen.Point3d, float, float
     return min_point, xlength, ywidth, PlateThickness
 
 
-def upper_preview_boxes(part_box: nx.Box3d) -> List[Tuple[NXOpen.Point3d, float, float, float]]:
-    """
-    The (origin, x, y, z) boxes the upper half builds over part_box (in UAD02's coordinates): the FormSteelColumns x
-    FormSteelRows cavity steels, then the mounting plate last. Empty when the box is too small to split.
-    """
-    min_point, xlength, ywidth, height = _cavity_size(part_box)
-    column_width = (xlength - (FormSteelColumns - 1) * merlin.SplitGap) / FormSteelColumns
-    row_length = (ywidth - (FormSteelRows - 1) * merlin.SplitGap) / FormSteelRows
-    if column_width <= 0 or row_length <= 0:
-        return []
-    boxes = [(NXOpen.Point3d(min_point.X + column * (column_width + merlin.SplitGap),
-                             min_point.Y + row * (row_length + merlin.SplitGap), min_point.Z),
-              column_width, row_length, height)
-             for column in range(FormSteelColumns) for row in range(FormSteelRows)]
-    boxes.append(_mounting_plate_size(_box_from(min_point, xlength, ywidth, height)))
-    return boxes
-
-
 def _build_draw_die_mounting_plate(job: DrawDieJob, cavity: nx.Box3d) -> nx.Box3d:
     """
     Merlin.BuildDrawDieMountingPlate - on top of the cavity steels: 1.75" per side wider and 2.50" per end longer,
@@ -971,6 +970,23 @@ def _build_draw_die_mounting_plate(job: DrawDieJob, cavity: nx.Box3d) -> nx.Box3
 # ---------------------------------------------------------------------------------------------------
 # Shared builders
 # ---------------------------------------------------------------------------------------------------
+
+def _form_steel_boxes(size: Tuple[NXOpen.Point3d, float, float, float], columns: int, rows: int
+                      ) -> List[Tuple[NXOpen.Point3d, float, float, float]]:
+    """
+    The (origin, x, y, z) box of every form steel of a size (_post_size / _cavity_size) split columns along X by rows
+    along Y, as _build_draw_die_form_steels lays them out. Empty when it is too small to split.
+    """
+    min_point, xlength, ywidth, height = size
+    column_width = (xlength - (columns - 1) * merlin.SplitGap) / columns
+    row_length = (ywidth - (rows - 1) * merlin.SplitGap) / rows
+    if column_width <= 0 or row_length <= 0:
+        return []
+    return [(NXOpen.Point3d(min_point.X + column * (column_width + merlin.SplitGap),
+                            min_point.Y + row * (row_length + merlin.SplitGap), min_point.Z),
+             column_width, row_length, height)
+            for column in range(columns) for row in range(rows)]
+
 
 def _build_draw_die_form_steels(job: DrawDieJob, min_point: NXOpen.Point3d, xlength: float, ywidth: float,
                                 height: float, name: str, subtract_refset: Optional[str], shcs_path: str,
@@ -1269,7 +1285,7 @@ def _keep_out_of_reference_set(refset: NXOpen.ReferenceSet,
 def _save_as_draw_die_part(placed: Sequence[NXOpen.Assemblies.Component], job: DrawDieJob, name: str) -> None:
     """
     Merlin.SaveAsDrawDiePart - Save As's the library part behind placed into the station's folder as
-    [cts-]{name}-{token}.prt, so its settings can be changed without touching the library.
+    [cts-]{name}-{n}.prt, so its settings can be changed without touching the library.
     """
     if not placed:
         nx.warn("Draw Die: nothing placed for {} - no Save As.".format(name))
@@ -1277,7 +1293,7 @@ def _save_as_draw_die_part(placed: Sequence[NXOpen.Assemblies.Component], job: D
 
     try:
         status = cast(NXOpen.Part, nx.prototype(placed[0])).SaveAs(
-            "{}\\{}{}-{}.prt".format(job.dir, job.prefix, name, merlin._random_file_token()))
+            merlin._next_part_path(job.dir, "{}{}".format(job.prefix, name)))
         if status is not None:
             status.Dispose()
     except Exception as ex:
@@ -1417,7 +1433,7 @@ def _create_new_component_core(name_prefix: str, objects: Sequence[NXOpen.Displa
                                auto_size_udo: bool = True) -> NXOpen.Assemblies.Component:
     """
     Merlin.CreateNewComponentCore (through CreateCtsComponent) - promotes objects into a new blank part
-    {name_prefix}-{token}.prt next to the display part, stamps CSPC / GM Tool Number "X" on it and (optionally)
+    {name_prefix}-{n}.prt next to the display part, stamps CSPC / GM Tool Number "X" on it and (optionally)
     adds the AutoSize UDO. PointComponent._create_cts_component is the same with the WCS / Work defaults fixed.
     """
     work = nx.work_part()
@@ -1426,8 +1442,7 @@ def _create_new_component_core(name_prefix: str, objects: Sequence[NXOpen.Displa
         file_new = nx.session_.Parts.FileNew()
         file_new.Units = (NXOpen.Part.Units.Millimeters if work.PartUnits == NXOpen.BasePart.Units.Millimeters
                           else NXOpen.Part.Units.Inches)
-        file_new.NewFileName = "{}\\{}-{}.prt".format(
-            os.path.dirname(nx.display_part().FullPath), name_prefix, merlin._random_file_token())
+        file_new.NewFileName = merlin._next_part_path(os.path.dirname(nx.display_part().FullPath), name_prefix)
         file_new.UseBlankTemplate = True
         builder.ReferenceSet = NXOpen.Assemblies.CreateNewComponentBuilder.ComponentReferenceSetType.Other
         builder.LayerOption = layer_option
@@ -1785,6 +1800,13 @@ def _snap_to_inch_grid_from(anchor: NXOpen.Point3d, target: NXOpen.Point3d) -> N
     return NXOpen.Point3d(anchor.X + snap(target.X - anchor.X), anchor.Y + snap(target.Y - anchor.Y), target.Z)
 
 
+def _balanced(center: float, count: int, target_spacing: float) -> List[float]:
+    """count values balanced about center, a whole number of inches apart (at least 1"): target_spacing rounded
+    down."""
+    spacing = max(1.0, float(math.floor(round(target_spacing, 6))))
+    return [center + (i - (count - 1) / 2) * spacing for i in range(count)]
+
+
 def _inset_corners(xlength: float, ywidth: float, inset: float) -> List[NXOpen.Point3d]:
     """Merlin.InsetCorners - the four points inset in from each side of an X 0..L, Y 0..W plate (Z 0)."""
     return [NXOpen.Point3d(inset, inset, 0.0),
@@ -1892,21 +1914,116 @@ class OpBodiesDialog(Dialog):
 class _DrawDieDialog(OpBodiesDialog):
     """
     DrawDie.dlx: OpBodiesDialog's blocks, then Lower / Upper Rows (x) / Cols (y) - each half's form steels along X by
-    along Y, as Dead Strike's Rows / Cols. The upper can have a different number of steels than the lower.
+    along Y, as Dead Strike's Rows / Cols. The upper can have a different number of steels than the lower. While it is
+    open, each half's steels are outlined with temporary lines over the picked bodies, redrawn on every change.
     """
 
-    def __init__(self, title: str, numbers: Sequence[str]) -> None:
-        super().__init__("DrawDie.dlx", title, numbers, "Select the part's solid bodies.")
+    def __init__(self, title: str, stations: Dict[str, Dict[str, NXOpen.Assemblies.Component]]) -> None:
+        super().__init__("DrawDie.dlx", title, sorted(stations), "Select the part's solid bodies.")
+        self.stations = stations
         # Captured in ok(): the blocks are gone once Launch returns.
         self.lower_grid = (FormSteelColumns, FormSteelRows)
         self.upper_grid = (FormSteelColumns, FormSteelRows)
 
+    def shown(self) -> None:
+        super().shown()
+        self._preview()
+
+    def update(self, block: NXOpen.BlockStyler.UIBlock) -> None:
+        # Any change - bodies, op, Rows / Cols - redraws the outlines.
+        self._preview()
+
     def ok(self) -> bool:
         if not super().ok():
             return False
-        self.lower_grid = (int(self.block("lower_rows").Value), int(self.block("lower_cols").Value))
-        self.upper_grid = (int(self.block("upper_rows").Value), int(self.block("upper_cols").Value))
+        self.lower_grid, self.upper_grid = self._grids()
         return True
+
+    def _grids(self) -> Tuple[Tuple[int, int], Tuple[int, int]]:
+        return ((int(self.block("lower_rows").Value), int(self.block("lower_cols").Value)),
+                (int(self.block("upper_rows").Value), int(self.block("upper_cols").Value)))
+
+    def _preview(self) -> None:
+        """The outlines of what OK would build; a failure goes to the syslog and leaves the dialog working."""
+        try:
+            lower_grid, upper_grid = self._grids()
+            draw_preview(self._picked_bodies(), self.stations[str(self.block("station").ValueAsString)],
+                         lower_grid, upper_grid)
+        except Exception as ex:
+            nx.syslog("Draw Die: the preview failed: {}".format(ex))
+
+
+# ---------------------------------------------------------------------------------------------------
+# Preview: where the form steels will go, as temporary lines
+# ---------------------------------------------------------------------------------------------------
+
+def _to_display(station: NXOpen.Assemblies.Component, p: NXOpen.Point3d) -> List[float]:
+    """A point in the station's part, in the display part's coordinates (the orientation's rows are its axes)."""
+    position, o = station.GetPosition()
+    return [position.X + p.X * o.Xx + p.Y * o.Yx + p.Z * o.Zx,
+            position.Y + p.X * o.Xy + p.Y * o.Yy + p.Z * o.Zy,
+            position.Z + p.X * o.Xz + p.Y * o.Yz + p.Z * o.Zz]
+
+
+def _box_in_station(station: NXOpen.Assemblies.Component, box: nx.Box3d) -> nx.Box3d:
+    """
+    A display-part box in the station's part coordinates - the box round its 8 corners mapped in, as
+    _map_box_to_station maps it, without making the station the work part, which a dialog must not do.
+    """
+    position, o = station.GetPosition()
+    rows = [(o.Xx, o.Xy, o.Xz), (o.Yx, o.Yy, o.Yz), (o.Zx, o.Zy, o.Zz)]
+    corners = []
+    for x in (box.MinX, box.MaxX):
+        for y in (box.MinY, box.MaxY):
+            for z in (box.MinZ, box.MaxZ):
+                d = (x - position.X, y - position.Y, z - position.Z)
+                corners.append([r[0] * d[0] + r[1] * d[1] + r[2] * d[2] for r in rows])
+    return nx.Box3d(min(c[0] for c in corners), min(c[1] for c in corners), min(c[2] for c in corners),
+                    max(c[0] for c in corners), max(c[1] for c in corners), max(c[2] for c in corners))
+
+
+def _draw_box(station: NXOpen.Assemblies.Component, origin: NXOpen.Point3d, x: float, y: float, z: float,
+              color: int) -> None:
+    """One box's 12 edges as temporary lines; they go on the next regenerate."""
+    # The Python binding's names (NXOpen_UF.pyd): NXOpen.UF.Obj.DispProps and NXOpen.UF.Disp.ViewType - not the
+    # .NET UFObj / DispViewType, which do not exist here. Neither is in the stubs.
+    uf: Any = NXOpen.UF
+    attrib = uf.Obj.DispProps()
+    attrib.Color = color
+    attrib.LineWidth = uf.UFConstants.UF_OBJ_WIDTH_THICK
+    attrib.Font = uf.UFConstants.UF_OBJ_FONT_SOLID
+    attrib.HighlightStatus = False
+    attrib.Layer = 1
+    attrib.BlankStatus = uf.UFConstants.UF_OBJ_NOT_BLANKED
+    disp: Any = nx.ufsession_.Disp
+    # Only read for UF_DISP_USE_VIEW_TAG; USE_ACTIVE_PLUS draws in every active view.
+    view_tag = nx.display_part().Views.WorkView.Tag
+    corners = [_to_display(station, NXOpen.Point3d(origin.X + (x if i & 1 else 0.0), origin.Y + (y if i & 2 else 0.0),
+                                                   origin.Z + (z if i & 4 else 0.0)))
+               for i in range(8)]
+    for a, b in _BoxEdges:
+        disp.DisplayTemporaryLine(view_tag, uf.Disp.ViewType.USE_ACTIVE_PLUS, corners[a], corners[b], attrib)
+
+
+def draw_preview(bodies: Sequence[NXOpen.Body], stations: Dict[str, NXOpen.Assemblies.Component],
+                 lower_grid: Tuple[int, int], upper_grid: Tuple[int, int]) -> None:
+    """
+    Clears the last preview, then outlines the post steels under bodies in the op's LADnn and the cavity steels over
+    them in its UADnn, sized and split as the build does it (the grids are along X, along Y).
+    """
+    _erase_preview()
+    if not bodies:
+        return
+    box = nx.combine_boxes([nx.body_box(b) for b in bodies])
+    for station, size_of, grid, color in ((stations["lad"], _post_size, lower_grid, PreviewLowerColor),
+                                          (stations["uad"], _cavity_size, upper_grid, PreviewUpperColor)):
+        for origin, x, y, z in _form_steel_boxes(size_of(_box_in_station(station, box)), grid[0], grid[1]):
+            _draw_box(station, origin, x, y, z, color)
+
+
+def _erase_preview() -> None:
+    """Temporary lines go on a regenerate."""
+    nx.ufsession_.Disp.RegenerateDisplay()
 
 
 def main() -> None:

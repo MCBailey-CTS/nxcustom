@@ -8,7 +8,7 @@ PythonLibrary.Execute. Everything after the dialog runs in this module:
 
   - divide the picked rectangle into component_count blocks along the WCS split axis, .004" apart
   - color each block (168 single, or a random draw from the split palette) and the gap/bottom faces 42
-  - promote each block to its own point-component-{token}.prt and re-base the part onto the block
+  - promote each block to its own point-component-{n}.prt and re-base the part onto the block
   - BODY / SUBTOOL reference sets, DYNAMIC BLOCK, station expressions, attributes, AutoSize UDO
   - BODY as the used reference set (and a BODY member) in every loaded ancestor assembly
   - optionally link and subtract a component's reference set from every block
@@ -257,8 +257,26 @@ def _build_one_block(block: NXOpen.Features.Block, index: int, block_count: int,
 # ---------------------------------------------------------------------------------------------------
 
 def _random_file_token() -> str:
-    """Merlin.RandomFileToken - Random.NextDouble().ToString() (15 significant digits) minus the "0."."""
+    """
+    Merlin.RandomFileToken - Random.NextDouble().ToString() (15 significant digits) minus the "0.". Only for the posted
+    copies still on it (CastFormPad, CastTrimPad, Component, Perfect, Pierce, SplitForm): delete it once they are posted.
+    """
     return "{:.15g}".format(random.random()).replace("0.", "")
+
+
+def _next_part_path(directory: str, name: str) -> str:
+    """
+    Merlin.NextPartPath - {directory}\\{name}-{n}.prt with the lowest n from 1 that is free: no such file on disk and
+    no part with that leaf in the session (NX cannot hold two parts with one leaf, whatever their folders).
+    """
+    leaves = {part.Leaf.lower() for part in nx.session_.Parts}
+    n = 1
+    while True:
+        leaf = "{}-{}".format(name, n)
+        path = "{}\\{}.prt".format(directory, leaf)
+        if leaf.lower() not in leaves and not os.path.exists(path):
+            return path
+        n += 1
 
 
 def _create_cts_component(block: NXOpen.Features.Block, name: str) -> NXOpen.Assemblies.Component:
@@ -272,8 +290,7 @@ def _create_cts_component(block: NXOpen.Features.Block, name: str) -> NXOpen.Ass
         file_new = nx.session_.Parts.FileNew()
         file_new.Units = (NXOpen.Part.Units.Millimeters if work.PartUnits == NXOpen.BasePart.Units.Millimeters
                           else NXOpen.Part.Units.Inches)
-        file_new.NewFileName = "{}\\{}-{}.prt".format(
-            os.path.dirname(nx.display_part().FullPath), name, _random_file_token())
+        file_new.NewFileName = _next_part_path(os.path.dirname(nx.display_part().FullPath), name)
         file_new.UseBlankTemplate = True
         builder.ReferenceSet = NXOpen.Assemblies.CreateNewComponentBuilder.ComponentReferenceSetType.Other
         builder.LayerOption = NXOpen.Assemblies.CreateNewComponentBuilder.ComponentLayerOptionType.Work

@@ -23,7 +23,7 @@ Each block, in turn:
   - 4 keys around its edges (Merlin.PlaceSplitKeys) on layer 99, added to BODY;
   - the AutoSize UDO, BODY in the station, the UPR-3D / LWR-3D reference set of each picked body's component linked
     and subtracted, DETAIL NAME FORM STEEL / MATERIAL D2, BODY in every loaded ancestor assembly.
-After the loop the library key part is Save As'd as [cts-]split-form-key-{token}.prt (a debug copy, kept).
+After the loop the library key part is Save As'd as [cts-]split-form-key-{n}.prt (a debug copy, kept).
 
 The dialog's two boxes make it the old split-form-with-plate and split-form-with-plate-backside too (combined
 2026-10-22; those UFunc names stay, as legacy entries opening this dialog pre-checked - SplitFormWithPlate.py /
@@ -70,6 +70,7 @@ copied.
 from __future__ import annotations
 
 import datetime
+import math
 import os
 import random
 import sys
@@ -113,6 +114,9 @@ SplitFormGap = 0.004
 # SHCS From Backside: the corner SHCS's inset, as Merlin.CreateSplitFormWithPlateBackside set it.
 BacksideShcsInset = 1.0
 
+# A plate jig jack's least centre distance to a screw: its .375" radius blind counterbore, a 16mm head's .5", and wall.
+PlateJackClearance = 1.0
+
 _gmKeyPath = "G:\\0Library\\0Customer\\GM\\Smart GM Key.prt"
 _ctsSmartKeyMetric = "G:\\0Library\\Keys\\Smart Key Metric.prt"
 _shcs16mm050Path = "G:\\0Library\\Fasteners\\Metric\\SocketHeadCapScrews-2X\\016-2x\\16mm-shcs-050-2x.prt"
@@ -138,17 +142,18 @@ class SplitForm(object):
     @staticmethod
     def execute_with(is_gm: bool, is_upper: bool, rows: int, cols: int,
                      bodies: Sequence[NXOpen.TaggedObject], plate: bool = False, backside: bool = False,
-                     size_off_bodies: bool = False) -> None:
+                     size_off_bodies: bool = False, jig_jacks: bool = False) -> None:
         """
         The split-form UFunc's entry, after its SplitFormDialog, which has made the picked station the work part:
         upper / lower (from the station's name), the rows x cols grid, the body and the Backing Plate / SHCS From
         Backside boxes come from the dialog. backside only counts
         with plate. size_off_bodies sizes the blocks off the bodies rather than UPR-3D / LWR-3D (dead strike).
+        jig_jacks adds TSG jig jacks: 2 per block and 8 on the plate (dead strike).
         """
         picked = [cast(NXOpen.Body, b) for b in bodies if b is not None]
         if _begin_from_dialog("Split Form", picked):
             build_gm_split_form(is_gm, is_upper, picked, rows, _form_steel_refset(is_upper), cols, bool(plate),
-                                bool(plate) and bool(backside), bool(size_off_bodies))
+                                bool(plate) and bool(backside), bool(size_off_bodies), bool(jig_jacks))
 
 
 def static_gm_split_form(is_gm: bool) -> None:
@@ -167,11 +172,11 @@ def static_gm_split_form(is_gm: bool) -> None:
 
 def build_gm_split_form(is_gm: bool, is_upper: bool, bodies: Sequence[NXOpen.Body], splits: int,
                         reference_set: str, columns: int = 1, plate: bool = False, backside: bool = False,
-                        size_off_bodies: bool = False) -> None:
+                        size_off_bodies: bool = False, jig_jacks: bool = False) -> None:
     """
     Merlin.BuildGmSplitForm - a columns x splits split form over bodies, subtracting reference_set, optionally on a
-    backing plate (plate) screwed from the plate's side (backside). Builds into the work part's station, as the entry
-    point does.
+    backing plate (plate) screwed from the plate's side (backside), with TSG jig jacks (jig_jacks). Builds into the
+    work part's station, as the entry point does.
     """
     start = datetime.datetime.now()
     top_level = nx.display_part()
@@ -180,7 +185,7 @@ def build_gm_split_form(is_gm: bool, is_upper: bool, bodies: Sequence[NXOpen.Bod
 
     with nx.suppress_display():
         _create_split_form(is_upper, top_level, starting_work, list(bodies), SplitFormOffset, splits, reference_set,
-                           is_gm, columns, plate, backside, size_off_bodies)
+                           is_gm, columns, plate, backside, size_off_bodies, jig_jacks)
 
     nx.info("complete -> {}".format(drawdie._time_span(datetime.datetime.now() - start)))
 
@@ -188,7 +193,7 @@ def build_gm_split_form(is_gm: bool, is_upper: bool, bodies: Sequence[NXOpen.Bod
 def _create_split_form(is_upper: bool, top_level: NXOpen.Part, start_work: NXOpen.Part,
                        selected_bodies: List[NXOpen.Body], offset: float, splits: int, reference_sets: str,
                        is_gm: bool, columns: int = 1, plate: bool = False, backside: bool = False,
-                       size_off_bodies: bool = False) -> None:
+                       size_off_bodies: bool = False, jig_jacks: bool = False) -> None:
     """
     Merlin.CreateSplitForm, changed (2026-10-21): splits rows along Y by columns along X, sized and set in Z off
     UPR-3D / LWR-3D (_compute_refset_block_dimensions), each block a different random split color.
@@ -226,7 +231,8 @@ def _create_split_form(is_upper: bool, top_level: NXOpen.Part, start_work: NXOpe
 
         if plate:
             _create_backside_backing_plate(is_upper, xlength, ywidth, block_origin, nx.display_part(), top_level,
-                                           "{}split-form-backing-plate".format(prefix), is_gm, block_z)
+                                           "{}split-form-backing-plate".format(prefix), is_gm, block_z, jig_jacks,
+                                           columns, splits, inset=BacksideShcsInset if backside else .750)
 
         # Into the block from its mounting face (CBORE, head in the block), or with the backside plate out of it into
         # the plate (SHORT-TAP, head in the plate).
@@ -269,6 +275,9 @@ def _create_split_form(is_upper: bool, top_level: NXOpen.Part, start_work: NXOpe
                                               orientation=fastener_orientation, layer=99)
                              for o in fastener_origins]
 
+                if jig_jacks:
+                    fasteners += _add_block_jig_jacks(box, fastener_z, is_upper)
+
                 _subtract_and_refset_fasteners(fasteners, bottom_face, body_reference_set)
                 current_wcs = nx.display_part().WCS.CoordinateSystem.Orientation.Element
                 # The fasteners above measure from `box`, re-read off the body, so they self-correct. The keys are
@@ -281,8 +290,8 @@ def _create_split_form(is_upper: bool, top_level: NXOpen.Part, start_work: NXOpe
                 nx.display_part().WCS.SetOriginAndMatrix(NXOpen.Point3d(0.0, 0.0, 0.0), current_wcs)
                 body_reference_set.AddObjectsToReferenceSet(keys)
                 if plate:
-                    nx.prototype(keys[0]).SaveAs("{}\\{}split-form-key-{}.prt".format(
-                        os.path.dirname(nx.display_part().FullPath), prefix, merlin._random_file_token()))
+                    nx.prototype(keys[0]).SaveAs(merlin._next_part_path(
+                        os.path.dirname(nx.display_part().FullPath), "{}split-form-key".format(prefix)))
                 nx.create_auto_size_udo(nx.work_part())
                 nx.work_part().Layers.WorkLayer = 1
                 nx.set_display_part(top_level)
@@ -304,8 +313,8 @@ def _create_split_form(is_upper: bool, top_level: NXOpen.Part, start_work: NXOpe
 
         # With a plate each block's first key was Save As'd in the loop.
         if not plate:
-            nx.find_or_open(_gmKeyPath if is_gm else _ctsSmartKeyMetric).SaveAs("{}\\{}split-form-key-{}.prt".format(
-                os.path.dirname(nx.display_part().FullPath), prefix, merlin._random_file_token()))
+            nx.find_or_open(_gmKeyPath if is_gm else _ctsSmartKeyMetric).SaveAs(merlin._next_part_path(
+                os.path.dirname(nx.display_part().FullPath), "{}split-form-key".format(prefix)))
     except Exception as ex:
         nx.print_exception(ex)
     finally:
@@ -526,7 +535,7 @@ def preview_boxes(box: nx.Box3d, is_upper: bool, rows: int, cols: int, plate: bo
     """
     The (origin, x, y, z) boxes a size_off_bodies split form over a part box builds, in the coordinates the build
     uses (the station's): each grid block, then the backing plate (_create_backside_backing_plate's offsets) when
-    plate. Empty when the box is too small to split. Dead Strike's dialog draws them.
+    plate. Empty when the box is too small to split. Auto Design's dialog draws them (DeadStrike.draw_preview).
     """
     xlength, ywidth, _height, block_origin, block_z = _block_dimensions(box, is_upper, SplitFormOffset)
     grid = _grid_cells(block_origin, xlength, ywidth, rows, cols)
@@ -711,15 +720,78 @@ def _add_corner_fasteners(block_min: NXOpen.Point3d, block_max: NXOpen.Point3d, 
             for pt in points]
 
 
+def _add_block_jig_jacks(box: nx.Box3d, z: float, is_upper: bool) -> List[NXOpen.Assemblies.Component]:
+    """
+    2 TSG jig jacks in a block, on CBORE_BLIND from its mounting face at z, as the draw die's form steels have them:
+    on opposite corners, DrawDie.CavityJackInset in, the second snapped to whole inches from the first.
+    """
+    inset = drawdie.CavityJackInset
+    first = NXOpen.Point3d(box.MaxX - inset, box.MinY + inset, z)
+    second = drawdie._snap_to_inch_grid_from(first, NXOpen.Point3d(box.MinX + inset, box.MaxY - inset, z))
+    orientation = drawdie._z_matrix(_VectorZN if is_upper else _VectorZ)
+    return [nx.add_component(nx.display_part(), drawdie._jck12mmScrewTsgPath, reference_set="CBORE_BLIND", origin=o,
+                             orientation=orientation, layer=99)
+            for o in (first, second)]
+
+
+def _block_screw_spots(origin: NXOpen.Point3d, xlength: float, ywidth: float, columns: int, splits: int,
+                       inset: float) -> List[Tuple[float, float]]:
+    """Where each block's 4 corner SHCS come out on the plate, the min corner's key shift included."""
+    width, length = xlength / columns, ywidth / splits
+    spots: List[Tuple[float, float]] = []
+    for column in range(columns):
+        for row in range(splits):
+            left, front = origin.X + column * width, origin.Y + row * length
+            shift = drawdie.key_shift_for(column, row, columns)
+            spots += [(left + inset + shift[0], front + inset + shift[1]),
+                      (left + width - inset, front + inset),
+                      (left + width - inset, front + length - inset),
+                      (left + inset, front + length - inset)]
+    return spots
+
+
+def _plate_jig_jack_origins(left_x: float, right_x: float, shcs_ys: Sequence[float], z: float,
+                            screws: Sequence[Tuple[float, float]]) -> List[NXOpen.Point3d]:
+    """
+    Where the plate's 8 TSG jig jacks go: aimed midway between neighbouring SHCS on the two SHCS lines, as the draw
+    die's mounting plate has them, all on a 1" grid from the first. Snapping alone landed one on a screw on about 1
+    plate size in 10, so each takes the grid spot nearest its aim that is PlateJackClearance off every screw and
+    jack, between the end SHCS and off the side keys at mid Y. With no such spot it stays snapped, with a warning.
+    """
+    aimed = [NXOpen.Point3d(x, (a + b) / 2, z) for x in (left_x, right_x) for a, b in zip(shcs_ys, shcs_ys[1:])]
+    middle_y = (shcs_ys[0] + shcs_ys[-1]) / 2
+    placed: List[NXOpen.Point3d] = []
+
+    def clear(spot: NXOpen.Point3d) -> bool:
+        return (left_x <= spot.X <= right_x and shcs_ys[0] <= spot.Y <= shcs_ys[-1]
+                and abs(spot.Y - middle_y) >= PlateJackClearance
+                and all(math.hypot(spot.X - x, spot.Y - y) >= PlateJackClearance for x, y in screws)
+                and all(math.hypot(spot.X - p.X, spot.Y - p.Y) >= PlateJackClearance for p in placed))
+
+    for point in aimed:
+        snapped = drawdie._snap_to_inch_grid_from(aimed[0], point)
+        spots = [NXOpen.Point3d(snapped.X + dx, snapped.Y + dy, z) for dx in (-1, 0, 1) for dy in range(-3, 4)]
+        spots.sort(key=lambda s: math.hypot(s.X - point.X, s.Y - point.Y))
+        spot = next((s for s in spots if clear(s)), None)
+        if spot is None:
+            nx.warn("Split Form: no clear spot for a plate jig jack near ({:.3f}, {:.3f}) - check it.".format(
+                snapped.X, snapped.Y))
+            spot = snapped
+        placed.append(spot)
+    return placed
+
+
 def _create_backside_backing_plate(is_upper: bool, xlength: float, ywidth: float, block_origin: NXOpen.Point3d,
                                    owning_part: NXOpen.Part, top_level: NXOpen.Part, name_prefix: str,
-                                   is_gm: bool, block_z: float = SplitFormHeight) -> None:
+                                   is_gm: bool, block_z: float = SplitFormHeight, jig_jacks: bool = False,
+                                   columns: int = 1, splits: int = 1, inset: float = BacksideShcsInset) -> None:
     """
     Merlin.CreateBacksideBackingPlate - the sub plate shared by the split-form-with-plate builders: 1.5" thick,
     padded 1.375" in X and 2.75" in Y around the component block, on top of it (block_z up, 8" in the C#) for an
     upper or 1.5" down from it for a lower; a
-    SUBTOOL and BODY; 4 side keys (the first Save As'd as {name_prefix}-key-{token}.prt); a 5x2 grid of CBORE
-    16mm-shcs-050-2x subtracted from it; 4 corner hoist rings (GM-only path). DETAIL NAME SUB PLATE, MATERIAL HRS PLT.
+    SUBTOOL and BODY; 4 side keys (the first Save As'd as {name_prefix}-key-{n}.prt); a 5x2 grid of CBORE
+    16mm-shcs-050-2x subtracted from it, with jig_jacks 8 CBORE_BLIND TSG jig jacks between them; 4 corner hoist rings
+    (GM-only path). DETAIL NAME SUB PLATE, MATERIAL HRS PLT.
     Leaves the display part on top_level and the plate in owning_part's BODY reference set.
     """
     block1 = _create_block(_add(block_origin, -1.375, -2.75, block_z if is_upper else -1.5), nx.identity_matrix(),
@@ -779,8 +851,8 @@ def _create_backside_backing_plate(is_upper: bool, xlength: float, ywidth: float
                          orientation=bp_side_x_key_matrix, layer=99),
     ]
     bp_body_refset.AddObjectsToReferenceSet(bp_keys)
-    nx.prototype(bp_keys[0]).SaveAs("{}\\{}-key-{}.prt".format(
-        os.path.dirname(nx.display_part().FullPath), name_prefix, merlin._random_file_token()))
+    nx.prototype(bp_keys[0]).SaveAs(merlin._next_part_path(
+        os.path.dirname(nx.display_part().FullPath), "{}-key".format(name_prefix)))
     nx.display_part().Layers.WorkLayer = 1
 
     bp_shcs_path = _shcs16mm050Path
@@ -798,6 +870,14 @@ def _create_backside_backing_plate(is_upper: bool, xlength: float, ywidth: float
                                         origin=_add(NXOpen.Point3d(block_origin.X + xlength - .625, y, bp_shcs_z),
                                                     1 + .25, 0, 0),
                                         orientation=bp_shcs_orientation, layer=99))
+    if jig_jacks:
+        left_x = block_origin.X - .625
+        right_x = block_origin.X + xlength - .625 + 1.25
+        screws = [(x, y) for x in (left_x, right_x) for y in bp_shcs_ys]
+        screws += _block_screw_spots(block_origin, xlength, ywidth, columns, splits, inset)
+        bp_shcs += [nx.add_component(nx.display_part(), drawdie._jck12mmScrewTsgPath, reference_set="CBORE_BLIND",
+                                     origin=origin, orientation=bp_shcs_orientation, layer=99)
+                    for origin in _plate_jig_jack_origins(left_x, right_x, bp_shcs_ys, bp_shcs_z, screws)]
     _subtract_and_refset_fasteners(bp_shcs, bp_bottom_face, bp_body_refset)
 
     bp_min = _add(block_origin, -1.375, -2.75, 0)

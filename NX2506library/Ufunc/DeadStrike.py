@@ -3,7 +3,8 @@ The dead-strike UFunc: a standalone Python UFunc (no C# class); its menu button 
 
 The dead strike tooling Auto Design builds for its DEADHIT program, on bodies picked by hand. Run from the -000.
   - Lower: a GM Split Form with backing plate and SHCS from the backside (SplitFormWithPlateBackside.execute_with)
-    over the picked bodies in LAD02, subtracting each body's component's LWR-3D.
+    over the picked bodies in LAD02, subtracting each body's component's LWR-3D, with TSG jig jacks (2026-11-05): 2 in
+    each block and 8 in the backing plate, as the upper's steels and mounting plate have them.
   - Upper (since 2026-10-29): the Draw Die's upper half (DrawDie.build_upper) with the cavity steels overhanging the
     part 3/8" a side (DeadStrikeCavityOverhang) instead of the draw die's 1" - the cavity steels and the mounting
     plate in UAD02, subtracting UPR-3D.
@@ -155,7 +156,7 @@ def build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: s
         # The split form's rows run along Y and its cols along X, so Dead Strike's Rows (x) go in as its cols.
         SplitFormWithPlateBackside.execute_with(is_gm, is_upper, cols, rows,
                                                   cast(Sequence[NXOpen.TaggedObject], list(bodies)),
-                                                  size_off_bodies=True)
+                                                  size_off_bodies=True, jig_jacks=True)
         say("Finished the dead strike split form in {}.".format(station.DisplayName))
     except Exception as ex:
         say("The dead strike split form in {} failed: {}".format(station.DisplayName, ex))
@@ -164,6 +165,34 @@ def build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: s
     finally:
         nx.set_display_part(top_level)
         nx.set_work_part(top_level)
+
+
+def draw_preview(bodies: Sequence[NXOpen.Body], lower_grid: Tuple[int, int], upper_grid: Tuple[int, int]) -> None:
+    """
+    Clears the last preview, then outlines with temporary lines the blocks build_in_station would make over bodies,
+    where it makes them. lower_grid / upper_grid are Rows (x), Cols (y). The lower's split form goes in LowerStation
+    at the bodies' display-part coordinates, as a split form's blocks do (SplitForm.preview_boxes; its rows run along
+    Y, so Dead Strike's Rows go in as its cols); the upper's cavity steels are mapped into UpperStation, as the draw
+    die maps them, 3/8" past the part a side. Backing and mounting plates are not drawn. Auto Design's dialog runs it.
+    """
+    import SplitForm as split
+
+    drawdie._erase_preview()
+    if not bodies:
+        return
+    box = nx.combine_boxes([nx.body_box(b) for b in bodies])
+    top_level = nx.display_part()
+
+    station = _find_station(top_level, LowerStation)
+    if station is not None:
+        for origin, x, y, z in split.preview_boxes(box, False, lower_grid[1], lower_grid[0], plate=False):
+            drawdie._draw_box(station, origin, x, y, z, drawdie.PreviewLowerColor)
+
+    station = _find_station(top_level, UpperStation)
+    if station is not None:
+        size = drawdie._cavity_size(drawdie._box_in_station(station, box), drawdie.DeadStrikeCavityOverhang)
+        for origin, x, y, z in drawdie._form_steel_boxes(size, upper_grid[0], upper_grid[1]):
+            drawdie._draw_box(station, origin, x, y, z, drawdie.PreviewUpperColor)
 
 
 def _find_station(top_level: NXOpen.Part, station_name: str) -> Optional[NXOpen.Assemblies.Component]:
