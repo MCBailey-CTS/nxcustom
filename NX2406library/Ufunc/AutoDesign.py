@@ -10,7 +10,7 @@ asking for them, in this order:
   - TRIM     - GM 2nd Trim Station, -02 stations (BlankStation.build, is3d True)
   - PRC      - GM Pierce into LAD02 (buttons) and UAD02 (punches, retainers) (Pierce.build, station "02", no
                station menu; pierce only, no secondary pass)
-  - DRAW     - Draw Die into LAD02 and UAD02 (DrawDie.build), each side on the dialog's own blocks along X x Y
+  - DRAW     - Draw Die into LAD02 and UAD02 (DrawDie.build), each side on the dialog's own Rows (x) x Cols (y)
   - RESTRIKE - GM Cast Post, once in LAD02 (LWR-3D) and once in UAD02 (UPR-3D) (CastPost.build)
   - DEADHIT  - GM Split Form with backing plate and SHCS from the backside in LAD02 (LWR-3D), then the Draw Die's
                upper half in UAD02 (cavity steels 3/8" past the part a side and mounting plate, UPR-3D), each side on
@@ -26,7 +26,7 @@ The dialog (AutoDesign.dlx, tools\\make-dlx.py) asks for all the strip's solids 
 Normal (S7 trim steels) or Heavy (D2) - which only the blank and 2nd trim stations use; below that, each program's
 body count in the assembly (a read-out of what Select all would find), with DRAW's and DEADHIT's Lower and Upper
 Rows (x) / Cols (y) (2026-11-04: the upper can have a different number of steels than the lower) and FLANGEUP's flange
-side and steel rows / cols.
+side, lower steel Cols (y) and upper steel Rows (x) / Cols (y).
 
 Kept from the C#:
   - The bodies are grouped as (owning component, prototype body), not occurrences, and re-resolved
@@ -297,7 +297,7 @@ def _run(is_gm: bool, title: str, dialog: "_AutoDesignDialog") -> None:
 
     def blank(bodies: List[NXOpen.Body]) -> None:
         from BlankStation import BlankStation
-        BlankStation.build(False, material, bodies, quiet=True)
+        BlankStation.build(False, material, bodies, quiet=True, is_gm=is_gm)
 
     def trim(bodies: List[NXOpen.Body]) -> None:
         from BlankStation import BlankStation
@@ -327,7 +327,7 @@ def _run(is_gm: bool, title: str, dialog: "_AutoDesignDialog") -> None:
         _restrike_posts(is_gm, group(AutoDesignRestrike), "uad02", is_upper=True)
 
     def flange_up(bodies: List[NXOpen.Body]) -> None:
-        options = flangeup.FlangeUpOptions(drawdie.DefaultStation, True, True, dialog.flangeup_lower_rows,
+        options = flangeup.FlangeUpOptions(drawdie.DefaultStation, True, True, dialog.flangeup_lower_cols,
                                            dialog.flangeup_flange, dialog.flangeup_upper_rows,
                                            dialog.flangeup_upper_cols)
         # No question mid-run: a missing PAD-PROFILE / LWR-PROFILE just skips that boolean (build's own lookup).
@@ -574,7 +574,7 @@ def _restrike_posts(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: st
 
     if station is None:
         _log_line("Could not find {} - no restrike post built there.".format(station_name.upper()))
-        nx.print_("Auto Design: could not find {} under {} - no restrike post built there.".format(
+        nx.error("Auto Design: could not find {} under {} - no restrike post built there.".format(
             station_name.upper(), top_level.Leaf))
         return
 
@@ -628,7 +628,7 @@ class _AutoDesignDialog(Dialog):
         self.deadhit_upper_rows = 2
         self.deadhit_upper_cols = 1
         self.flangeup_flange = "Both Sides"
-        self.flangeup_lower_rows = 2
+        self.flangeup_lower_cols = 2
         self.flangeup_upper_rows = 2
         self.flangeup_upper_cols = 1
         self.edit_spreadsheets = False
@@ -695,7 +695,7 @@ class _AutoDesignDialog(Dialog):
         stations = self._preview_stations(AutoDesignFlangeUp) if bodies else {}
         if stations:
             options = flangeup.FlangeUpOptions(drawdie.DefaultStation, True, True,
-                                               int(self.block("flangeup_lower_rows").Value),
+                                               int(self.block("flangeup_lower_cols").Value),
                                                str(self.block("flangeup_flange").ValueAsString),
                                                int(self.block("flangeup_upper_rows").Value),
                                                int(self.block("flangeup_upper_cols").Value))
@@ -711,7 +711,7 @@ class _AutoDesignDialog(Dialog):
         return self._op_stations
 
     def _grid(self, name: str) -> Tuple[int, int]:
-        """A half's blocks along X, along Y."""
+        """A half's Rows (x) (blocks along X), Cols (y) (along Y)."""
         return int(self.block(name + "_rows").Value), int(self.block(name + "_cols").Value)
 
     def _preview_bodies(self, program: str) -> List[NXOpen.Body]:
@@ -751,7 +751,7 @@ class _AutoDesignDialog(Dialog):
         self.deadhit_upper_rows = int(self.block("deadhit_upper_rows").Value)
         self.deadhit_upper_cols = int(self.block("deadhit_upper_cols").Value)
         self.flangeup_flange = str(self.block("flangeup_flange").ValueAsString)
-        self.flangeup_lower_rows = int(self.block("flangeup_lower_rows").Value)
+        self.flangeup_lower_cols = int(self.block("flangeup_lower_cols").Value)
         self.flangeup_upper_rows = int(self.block("flangeup_upper_rows").Value)
         self.flangeup_upper_cols = int(self.block("flangeup_upper_cols").Value)
         self.edit_spreadsheets = bool(self.block("edit_spreadsheets").Value)
@@ -779,9 +779,7 @@ class _AutoDesignDialog(Dialog):
 
 def main() -> None:
     """The auto-design UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
-
-    with usage_db.run(ufunc_name):
+    with nx.merlin_run(ufunc_name):
         try:
             AutoDesign.execute(True)
         except Exception as ex:

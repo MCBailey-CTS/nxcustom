@@ -63,9 +63,10 @@ _user_id = 0
 # The most recently started run: where an exception goes (NULL when none is open).
 _current = 0
 
-# What the innermost run() block's END banner reports: the dialog it was cancelled at, and the exceptions logged.
+# What the innermost run() block's END banner reports: the dialog it was cancelled at, and the errors counted
+# (log_exception's and count_error's).
 _cancelled_at: Optional[str] = None
-_exceptions = 0
+_errors = 0
 
 _BannerRule = "/" * 62
 
@@ -75,7 +76,7 @@ def run(ufunc_name: str) -> Iterator[int]:
     """
     Begin / End around the block; yields the tblUFuncsExe id (0 when it could not be written). Also writes the
     START / END banners to the NX syslog - written whether or not the database is reachable - and the END line says
-    how the run ended: DONE (with the count of exceptions logged along the way), CANCELLED at the confirm or dialog
+    how the run ended: DONE (with the count of errors logged along the way), CANCELLED at the confirm or dialog
     that was declined (mark_cancelled), or FAILED when an exception escaped the block.
     """
     current = start_run(ufunc_name)
@@ -105,10 +106,10 @@ def start_run(ufunc_name: str) -> Run:
     run() without the with block, for a run that outlives the call that starts it - a modeless dialog's, which ends
     when the dialog closes. Pair it with finish_run.
     """
-    global _cancelled_at, _exceptions
+    global _cancelled_at, _errors
 
-    outer = (_cancelled_at, _exceptions, _current)
-    _cancelled_at, _exceptions = None, 0
+    outer = (_cancelled_at, _errors, _current)
+    _cancelled_at, _errors = None, 0
     name = ufunc_name.strip().lower()
     run_id = begin(ufunc_name)
     _start_banner(name, run_id)
@@ -120,7 +121,7 @@ def finish_run(current: Run, escaped: Optional[BaseException] = None) -> None:
     Closes a start_run run (once): date_closed, the END banner, and back to the run it interrupted - including the
     one exceptions are filed under, which matters when other UFuncs ran while a modeless dialog was up.
     """
-    global _cancelled_at, _exceptions, _current
+    global _cancelled_at, _errors, _current
 
     if current.finished:
         return
@@ -131,10 +132,10 @@ def finish_run(current: Run, escaped: Optional[BaseException] = None) -> None:
     elif _cancelled_at is not None:
         outcome = "CANCELLED at {}".format(_cancelled_at)
     else:
-        outcome = "DONE" + (", {} exception(s) logged".format(_exceptions) if _exceptions else "")
+        outcome = "DONE" + (", {} error(s) logged".format(_errors) if _errors else "")
     _log("<<< {} END  run {}  {}  elapsed {}".format(current.name, current.run_id, outcome, _elapsed(current.started)))
     _log(_BannerRule)
-    _cancelled_at, _exceptions, outer_current = current.outer
+    _cancelled_at, _errors, outer_current = current.outer
     if outer_current > 0:
         _current = outer_current
 
@@ -149,9 +150,15 @@ def resume(current: Run) -> None:
         _current = current.run_id
 
 
-def exceptions_logged() -> int:
-    """The exceptions log_exception has counted in the innermost run() block so far."""
-    return _exceptions
+def errors_logged() -> int:
+    """The errors log_exception and count_error have counted in the innermost run() block so far."""
+    return _errors
+
+
+def count_error() -> None:
+    """Counts a failure with no exception behind it (nx.error), so no tblExceptions row."""
+    global _errors
+    _errors += 1
 
 
 def mark_cancelled(where: str) -> None:
@@ -212,8 +219,8 @@ def log_exception(ex: BaseException, user_message: Optional[str] = None) -> None
     UFuncUsage.LogException - inserts a tblExceptions row for ex, filed under the most recently started run (NULL
     when none is open). nx_error_code is the NXException code, NULL for any other type.
     """
-    global _exceptions
-    _exceptions += 1
+    global _errors
+    _errors += 1
 
     def body(cursor: Any) -> int:
         cursor.execute(

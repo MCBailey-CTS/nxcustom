@@ -110,6 +110,8 @@ class Dialog(object):
         if type(self).filter is not Dialog.filter:
             self.dialog.AddFilterHandler(self._filter_cb)
         self._filter_failed = False
+        if type(self).focus is not Dialog.focus:
+            self.dialog.AddFocusNotifyHandler(self._focus_cb)
         # show(): set while the dialog is modeless; called once with the response when it closes.
         self._on_close: Optional[Callable[[str], None]] = None
         self._closed = False
@@ -132,6 +134,9 @@ class Dialog(object):
     def enable_ok(self) -> bool:
         """Whether OK can be pressed (NX greys it out otherwise)."""
         return True
+
+    def focus(self, block: NXOpen.BlockStyler.UIBlock, gained: bool) -> None:
+        """A block gained or lost focus. Only a dialog that overrides this gets the callback."""
 
     def filter(self, block: NXOpen.BlockStyler.UIBlock, obj: NXOpen.TaggedObject) -> bool:
         """
@@ -311,6 +316,12 @@ class Dialog(object):
         except Exception as ex:
             nx.print_exception(ex)
         return 0
+
+    def _focus_cb(self, block: NXOpen.BlockStyler.UIBlock, focus: bool) -> None:
+        try:
+            self.focus(block, bool(focus))
+        except Exception as ex:
+            nx.print_exception(ex)
 
     def _ok_cb(self) -> int:
         try:

@@ -25,10 +25,9 @@ from NitroPlate import NitroPlateLower  # noqa: E402
 
 def main() -> None:
     """The nitro-plate-lower UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
     from tsg_dialog import ask_is_gm
 
-    with usage_db.run("nitro-plate-lower"):
+    with nx.merlin_run("nitro-plate-lower"):
         try:
             # The Customer dialog stands in for the "Are you sure" box: GM builds with the GM parts, TSG throws.
             is_gm = ask_is_gm("Nitro Plate Lower")

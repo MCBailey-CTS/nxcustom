@@ -117,7 +117,7 @@ def _build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: 
         station = next((c for c in nx.descendants(root) if station_name in c.DisplayName.lower()), None)
 
     if station is None:
-        nx.print_("Restrike: could not find {} under {} - no post built there.".format(
+        nx.error("Restrike: could not find {} under {} - no post built there.".format(
             station_name.upper(), top_level.Leaf))
         return
 
@@ -173,9 +173,7 @@ def _confirm_reference_sets(bodies: Sequence[NXOpen.Body]) -> bool:
 
 def main() -> None:
     """The restrike UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
-
-    with usage_db.run(ufunc_name):
+    with nx.merlin_run(ufunc_name):
         try:
             # The Restrike dialog asks for the customer.
             Restrike.execute(True)

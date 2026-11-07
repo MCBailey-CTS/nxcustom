@@ -40,7 +40,7 @@ from __future__ import annotations
 import datetime
 import os
 import sys
-from typing import List, Sequence, cast
+from typing import List, Optional, Sequence, cast
 
 # Session.Execute does not put the script's folder on sys.path, so the shared modules would not import.
 _here = os.path.dirname(os.path.abspath(__file__))
@@ -131,12 +131,15 @@ def build_gm_component(is_gm: bool, is_upper: bool, bodies: Sequence[NXOpen.Body
     """
     top_level = nx.display_part()
     starting_work = nx.work_part()
+    # Captured before the station is displayed: the bodies are measured in the assembly and mapped into the station.
+    frame = nx.WorkFrame()
+    frame.warn_if_turned("Component")
     nx.set_display_part(nx.work_part())
 
     with nx.suppress_display():
         start = datetime.datetime.now()
         try:
-            _create_component(is_upper, top_level, starting_work, list(bodies), [reference_set], is_gm)
+            _create_component(is_upper, top_level, starting_work, list(bodies), [reference_set], is_gm, frame)
         finally:
             # Session.__UsingTimer prints the elapsed TimeSpan (disposed before the display is unsuppressed).
             nx.print_(drawdie._time_span(datetime.datetime.now() - start))
@@ -144,7 +147,8 @@ def build_gm_component(is_gm: bool, is_upper: bool, bodies: Sequence[NXOpen.Body
 
 @nx.traced("Component")
 def _create_component(is_upper: bool, top_level: NXOpen.Part, start_work: NXOpen.Part,
-                      selected_bodies: List[NXOpen.Body], reference_sets: Sequence[str], is_gm: bool) -> None:
+                      selected_bodies: List[NXOpen.Body], reference_sets: Sequence[str], is_gm: bool,
+                      frame: Optional[nx.WorkFrame] = None) -> None:
     """Merlin.CreateComponent"""
     try:
         if len(selected_bodies) == 0:
@@ -152,7 +156,8 @@ def _create_component(is_upper: bool, top_level: NXOpen.Part, start_work: NXOpen
             return
 
         nx.display_part().Layers.WorkLayer = 1
-        xlength, ywidth, height, block_origin = split._compute_block_dimensions(selected_bodies, split.SplitFormOffset)
+        xlength, ywidth, height, block_origin = split._compute_block_dimensions(selected_bodies, split.SplitFormOffset,
+                                                                                  frame)
 
         block = split._create_block(block_origin, nx.identity_matrix(), xlength, ywidth, ComponentHeight)
 
@@ -261,9 +266,7 @@ def _create_component(is_upper: bool, top_level: NXOpen.Part, start_work: NXOpen
 
 def main() -> None:
     """The component UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
-
-    with usage_db.run("component"):
+    with nx.merlin_run("component"):
         try:
             # The Component dialog (customer + solid bodies) stands in for the "Are you sure" box.
             Component.execute(True)

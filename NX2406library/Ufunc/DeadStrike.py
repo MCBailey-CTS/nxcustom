@@ -157,7 +157,7 @@ def build_in_station(is_gm: bool, bodies: Sequence[NXOpen.Body], station_name: s
 
     if station is None:
         say("Could not find {} - no dead strike split form built there.".format(station_name.upper()))
-        nx.print_("Dead Strike: could not find {} under {} - no split form built there.".format(
+        nx.error("Dead Strike: could not find {} under {} - no split form built there.".format(
             station_name.upper(), top_level.Leaf))
         return
 
@@ -186,8 +186,8 @@ def draw_preview(bodies: Sequence[NXOpen.Body], lower_grid: Tuple[int, int], upp
     """
     Outlines with preview lines the blocks build_in_station would make over bodies,
     where it makes them. lower_grid / upper_grid are Rows (x), Cols (y). The lower's split form goes in LowerStation
-    at the bodies' display-part coordinates, as a split form's blocks do (SplitForm.preview_boxes; its rows run along
-    Y, so Dead Strike's Rows go in as its cols); the upper's cavity steels are mapped into UpperStation, as the draw
+    over the bodies mapped into it, as a split form's blocks are since 2026-11-07 (SplitForm.preview_boxes; its rows
+    run along Y, so Dead Strike's Rows go in as its cols); the upper's cavity steels are mapped into UpperStation, as the draw
     die maps them, 3/8" past the part a side. Backing and mounting plates are not drawn. lower / upper leave a side
     out. The Dead Strike and Auto Design dialogs run it, after erasing the last preview themselves.
     """
@@ -200,7 +200,8 @@ def draw_preview(bodies: Sequence[NXOpen.Body], lower_grid: Tuple[int, int], upp
 
     station = _find_station(top_level, LowerStation) if lower else None
     if station is not None:
-        boxes = split.preview_boxes(box, False, lower_grid[1], lower_grid[0], plate=False)
+        boxes = split.preview_boxes(drawdie._box_in_station(station, box), False, lower_grid[1], lower_grid[0],
+                                    plate=False)
         for origin, x, y, z in boxes:
             drawdie._draw_box(station, origin, x, y, z, drawdie.PreviewLowerColor)
         nx.syslog("Dead Strike preview: lower {} along X by {} along Y - {} box(es) drawn in {}.".format(
@@ -338,9 +339,7 @@ class _DeadStrikeDialog(Dialog):
 
 def main() -> None:
     """The dead-strike UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
-
-    with usage_db.run(ufunc_name):
+    with nx.merlin_run(ufunc_name):
         try:
             DeadStrike.execute(True)
         except Exception as ex:

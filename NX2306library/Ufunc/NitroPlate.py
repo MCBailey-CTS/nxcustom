@@ -513,7 +513,7 @@ def _grow_nitro_subtool(subtool: NXOpen.Body, top_offset: float, side_offset: fl
     if top_offset > 0:
         top = [face for face in faces if is_planar_with_normal(face, up)]
         if len(top) == 0:
-            nx.print_("SUBTOOL has no {} face - not offset.".format("+Z" if up.Z > 0 else "-Z"))
+            nx.error("SUBTOOL has no {} face - not offset.".format("+Z" if up.Z > 0 else "-Z"))
         else:
             _offset_face(top_offset, top)
 
@@ -523,7 +523,7 @@ def _grow_nitro_subtool(subtool: NXOpen.Body, top_offset: float, side_offset: fl
                  and not nx.vectors_equal(nx.face_normal(face), _VectorZ)
                  and not nx.vectors_equal(nx.face_normal(face), _VectorZN)]
         if len(sides) == 0:
-            nx.print_("SUBTOOL has no side faces - sides not offset.")
+            nx.error("SUBTOOL has no side faces - sides not offset.")
         else:
             _offset_face(side_offset, sides)
 
@@ -533,7 +533,7 @@ def _grow_nitro_subtool(subtool: NXOpen.Body, top_offset: float, side_offset: fl
     # Re-read after the offsets: the bottom face's edges have moved out with the side faces.
     bottom = nx.planar_face_with_normal_or_null(subtool, down)
     if bottom is None:
-        nx.print_("SUBTOOL has no {} face - not colored.".format("+Z" if down.Z > 0 else "-Z"))
+        nx.error("SUBTOOL has no {} face - not colored.".format("+Z" if down.Z > 0 else "-Z"))
         return
 
     nx.set_color(bottom, 42)
@@ -549,7 +549,7 @@ def _extrude_nitro_subtool_bottom_edges(subtool: NXOpen.Body, up: NXOpen.Vector3
     down = nx.negate(up)
     bottom = nx.planar_face_with_normal_or_null(subtool, down)
     if bottom is None:
-        nx.print_("SUBTOOL has no {} face - edges not extruded.".format("+Z" if down.Z > 0 else "-Z"))
+        nx.error("SUBTOOL has no {} face - edges not extruded.".format("+Z" if down.Z > 0 else "-Z"))
         return
 
     part = cast(NXOpen.Part, subtool.OwningPart)
@@ -703,7 +703,7 @@ def _move_nitro_control_panel_to_corner(control_panel: NXOpen.Assemblies.Compone
     bodies = nx.solid_body_members(control_panel)
 
     if len(bodies) == 0:
-        nx.print_("{} has no solid bodies to measure - left at the part origin.".format(control_panel.DisplayName))
+        nx.error("{} has no solid bodies to measure - left at the part origin.".format(control_panel.DisplayName))
         return
 
     min_point, max_point = _exact_bounding_box(bodies)
@@ -835,10 +835,9 @@ def _f4(value: float) -> str:
 
 def main() -> None:
     """The nitro-plate-upper UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
     from tsg_dialog import ask_is_gm
 
-    with usage_db.run("nitro-plate-upper"):
+    with nx.merlin_run("nitro-plate-upper"):
         try:
             # The Customer dialog stands in for the "Are you sure" box: GM builds with the GM parts, TSG throws.
             is_gm = ask_is_gm("Nitro Plate Upper")

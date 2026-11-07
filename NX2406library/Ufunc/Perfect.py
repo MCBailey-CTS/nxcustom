@@ -238,9 +238,7 @@ def _create_new_component_core(name_prefix: str, objects: Sequence[NXOpen.Displa
 
 def main() -> None:
     """The perfect UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
-
-    with usage_db.run("perfect"):
+    with nx.merlin_run("perfect"):
         try:
             # The Perfect dialog (customer + bodies) stands in for the "Are you sure" box.
             Perfect.execute(True)

@@ -25,9 +25,7 @@ from Pierce import FullPierce  # noqa: E402
 
 def main() -> None:
     """The full-pierce UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
-
-    with usage_db.run("full-pierce"):
+    with nx.merlin_run("full-pierce"):
         try:
             # The Pierce dialog asks for the customer (and stands in for the "Are you sure" box).
             FullPierce.execute(True)

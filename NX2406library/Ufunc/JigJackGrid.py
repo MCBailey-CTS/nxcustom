@@ -379,9 +379,7 @@ class JigJackGrid(object):
 
 def main() -> None:
     """The jig-jack-grid UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
-
-    with usage_db.run(ufunc_name):
+    with nx.merlin_run(ufunc_name):
         try:
             if nx.confirm_execute(ufunc_name):
                 JigJackGrid.execute()

@@ -24,9 +24,11 @@ so one bad face does not drop the rest):
   - with the target's part displayed and made the work part, a curve is copied off every edge of the linked face, so
     the curves are in the part's own coordinates (Boss found that taking them from the assembly offsets them by the
     component's position a second time);
-  - the linked face stays in the target's part (2026-10-29; it used to be deleted), and so do the edge curves;
+  - the linked face is deleted once its edges are copied (2026-11-07; it was kept from 2026-10-29), so no sheet body
+    is left in the target's part; the edge curves are deleted once they are offset (2026-11-07), unless the offset
+    is 0 and they are the profile;
   - the curves are offset outward by the offset (a non-associative Offset Curve - plain curves, no feature,
-    2026-10-29 - the edge curves kept; a negative offset goes inward, 0 skips it). Which side the builder offsets to
+    2026-10-29 - the edge curves then deleted; a negative offset goes inward, 0 skips it). Which side the builder offsets to
     follows the loop's direction, so the result is measured and deleted and redone reversed if its box came out
     smaller;
   - each 45-degree corner of the offset profile (a line at 45 degrees to the lines either side of it - a chamfer) is
@@ -38,8 +40,8 @@ so one bad face does not drop the rest):
     colored as Wall color says. A profile that does not reach the body (NX error 670030) is noted in the listing
     window, its extrude deleted, and not logged to tblExceptions. The offset, radius and extrude lengths are
     converted to the target part's units. The display is not suppressed (2026-10-29).
-The starting display and work parts are restored in a finally. The edge and offset curves stay in the part as plain
-curves; the extrude stays a feature behind the subtract.
+The starting display and work parts are restored in a finally. The offset curves (the edge curves with a 0 offset) stay in the
+part as plain curves; the extrude stays a feature behind the subtract.
 
 Two ways in:
   - File -> Execute -> NX Open on this file runs main().
@@ -146,7 +148,7 @@ def build(target: NXOpen.Body, tool_faces: Sequence[NXOpen.Face], offset: float,
           color: Optional[int] = None) -> int:
     """
     Per tool face: links it into the target's owning part without its holes, copies the linked face's edges to curves
-    there (the link is kept), offsets the curves outward by offset (millimetres with offset_in_mm, else inches),
+    there (the link is then deleted), offsets the curves outward by offset (millimetres with offset_in_mm, else inches),
     extrudes them ExtrudeInches up and down the face's normal and subtracts that from the target body, the faces the
     subtract made colored color (unless None). A profile that misses the body (NX error 670030) is noted, its extrude
     deleted, and not logged as an exception. Returns how many faces were subtracted.
@@ -167,6 +169,10 @@ def build(target: NXOpen.Body, tool_faces: Sequence[NXOpen.Face], offset: float,
             try:
                 curves, normal = _profile_curves(face, starting_display, target_component, target_part)
                 profile = _offset_outward(curves, part_offset)
+                # The offset is not associative, so the edge curves it was made from are left over: deleted
+                # (2026-11-07). With a 0 offset they are the profile itself and stay.
+                if {c.Tag for c in profile}.isdisjoint(c.Tag for c in curves):
+                    _snap_delete(cast(List[NXOpen.NXObject], curves))
                 profile = _round_chamfers(profile, CornerRadiusMm * per_inch / 25.4)
                 extrude = _snap_extrude(profile, normal, ExtrudeInches * per_inch, start=-ExtrudeInches * per_inch)
                 faces_before = {f.Tag for f in owner.GetFaces()}
@@ -216,7 +222,7 @@ def _profile_curves(face: NXOpen.Face, assembly: NXOpen.Part,
                     target_component: Optional[NXOpen.Assemblies.Component],
                     target_part: NXOpen.Part) -> Tuple[List[NXOpen.Curve], NXOpen.Vector3d]:
     """
-    One tool face: linked into target_part without holes, its edges copied to curves there, the link kept. Returns
+    One tool face: linked into target_part without holes, its edges copied to curves there, the link deleted. Returns
     the curves and the linked face's normal. Leaves target_part displayed and the work part.
     """
     # The face is an occurrence picked in the assembly, so the link is made from there.
@@ -230,12 +236,16 @@ def _profile_curves(face: NXOpen.Face, assembly: NXOpen.Part,
     # In the target's part, in its own coordinates.
     nx.set_display_part(target_part)
     nx.set_work_part(target_part)
-    # The link stays in the target's part (2026-10-29; it used to be deleted once the curves were copied).
-    faces = list(linked.GetFaces())
-    if len(faces) == 0:
-        raise RuntimeError("The linked tool face has no face")
-    normal = _normal_vector(faces[0])
-    curves = [nx.edge_to_curve(edge) for edge in linked.GetEdges()]
+    try:
+        faces = list(linked.GetFaces())
+        if len(faces) == 0:
+            raise RuntimeError("The linked tool face has no face")
+        normal = _normal_vector(faces[0])
+        curves = [nx.edge_to_curve(edge) for edge in linked.GetEdges()]
+    finally:
+        # The linked face is only a stand-in for the curves, which are plain copies (UF_MODL_create_curve_from_edge),
+        # so its sheet body would be left over in the part: deleted (2026-11-07; kept from 2026-10-29 until then).
+        _snap_delete([linked])
 
     return curves, normal
 
@@ -584,9 +594,7 @@ class _ToolsDialog(Dialog):
 
 def main() -> None:
     """The profile-subtract UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
-
-    with usage_db.run(ufunc_name):
+    with nx.merlin_run(ufunc_name):
         try:
             # No confirm: the dialog is the choice to run.
             ProfileSubtract.execute()

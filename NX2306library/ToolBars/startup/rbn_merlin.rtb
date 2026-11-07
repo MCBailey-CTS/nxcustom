@@ -154,6 +154,18 @@ BEGIN_GROUP MISC
         BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CheckJigJacks.bmp
         ACTION ${NXCUSTOM_LIB}\ufunc\JigJackGrid.py
 
+    BUTTON MIRROR_MERLIN
+        LABEL Mirror
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\MirrorComponents.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\MirrorMerlin.py
+
+    BUTTON SELECT_BLOCK_SET
+        LABEL Select Set
+        RIBBON_STYLE SMALL_IMAGE_AND_TEXT
+        BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CycleComponents.bmp
+        ACTION ${NXCUSTOM_LIB}\ufunc\SelectBlockSet.py
+
 END_GROUP
 
 BEGIN_GROUP GM

@@ -100,21 +100,17 @@ class SplitFormDialog(object):
         # The dialog stands in for the station detection, the split-count menus and the body pick.
         target = getattr(importlib.import_module(module), class_name)
 
-        # The listing window gets only errors (progress and timings go to the syslog); the outcome and the time it
-        # took go in a message box.
+        # The listing window gets only errors (progress and timings go to the syslog); the time it took goes in a
+        # message box. With errors, nx.merlin_run's box says so instead.
         import usage_db
-        errors_before = usage_db.exceptions_logged()
+        errors_before = usage_db.errors_logged()
         started = time.time()
         with nx.quiet_listing():
             target.execute_with(is_gm, is_upper, dialog.rows, dialog.cols, [dialog.body], dialog.plate,
                                 dialog.backside)
-        elapsed = _elapsed_text(time.time() - started)
-        errors = usage_db.exceptions_logged() - errors_before
-        if errors:
-            nx.message_box(title, NXOpen.NXMessageBox.DialogType.Warning,
-                           "Complete in {} with {} error(s) - see the Information window.".format(elapsed, errors))
-        else:
-            nx.message_box(title, NXOpen.NXMessageBox.DialogType.Information, "Complete in {}.".format(elapsed))
+        if usage_db.errors_logged() == errors_before:
+            nx.message_box(title, NXOpen.NXMessageBox.DialogType.Information,
+                           "Complete in {}.".format(_elapsed_text(time.time() - started)))
 
 
 def _elapsed_text(seconds: float) -> str:

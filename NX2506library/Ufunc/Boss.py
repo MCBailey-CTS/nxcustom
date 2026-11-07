@@ -12,20 +12,20 @@ the work component. Then, per tool face (each in its own try/except, printed, so
     coordinates. Built from the assembly, the curves came out offset by the component's position a second time
     (abs - 2 x origin), and the C#'s work part (target_face.OwningPart - the assembly) made the extrude's section
     interpart (674354 "Creating an interpart section is not allowed");
-  - a datum axis is made at the linked face's first edge start point along its normal, and its owning part's leaf
-    is printed;
   - a curve is copied off every edge of the linked face, checked to lie on those edges (it raises when they are more
     than .001 apart);
   - the curves are extruded from the tool face up to the target face (Until Extended, toward the target whichever
-    way the tool face's normal points - the C#'s commented-out "Until Selected"), and the extrude's parameters removed;
-  - the side faces of the resulting body (the last unsuppressed feature in the work part) - every face that is not
-    planar, or planar but not normal to +/-Z - are offset "10mm";
+    way the tool face's normal points - the C#'s commented-out "Until Selected");
+  - the extrude's side faces - every face that is not planar, or planar but not normal to +/-Z - are offset "10mm",
+    then the extrude's parameters are removed, offset included (2026-11-07: it used to be done before the offset,
+    leaving the Offset Face a feature on the boss), so a plain body is united into the block;
   - the body takes the target face's color, its end at the tool face (the extrude's start cap) goes 42;
-  - it is united into the target face's prototype body; the linked face and the curves are deleted.
+  - it is united into the target face's prototype body; the linked face and the curves are deleted, in a finally, so
+    a failed build leaves nothing behind either (2026-11-07).
 The target component is unblanked and the starting display and work parts restored in a finally.
 
-This is the C#'s work-in-progress state, ported as it stands: the datum axis is left in the part, target_z / tool_z
-are read and never used. The extrude now ends on the target face (the C#'s commented-out
+This was the C#'s work-in-progress state: target_z / tool_z are read and never used. The C#'s datum axis (made at
+the linked face's first edge, its part's leaf printed, then left in the part) is no longer made (2026-11-07). The extrude now ends on the target face (the C#'s commented-out
 Merlin.CreateExtrudeUntilSelected, as Until Extended) instead of the C#'s fixed 10.
 
 Two ways in:
@@ -39,14 +39,14 @@ Differences from the C#:
     ((70, 2, 21) - solid type, face subtype, planar face) instead of Snap.UI.Selection. Response handling is kept:
     the target pick only counts on ObjectSelected; the tool pick returns nothing on Cancel or an empty OK, and raises
     on any other response (the C#'s ArgumentOutOfRangeException), which the outer handler prints.
-  - Snap.Create.DatumAxis / Extrude / OffsetFace / Unite, Feature.Orphan and NXObject.Delete are re-implemented with
+  - Snap.Create.Extrude / OffsetFace / Unite, Feature.Orphan and NXObject.Delete are re-implemented with
     the NXOpen builders SNAP itself uses (decompiled from Snap.dll). Unite uses tsg_nx.create_boolean (tool-body
     collector) where SNAP uses the obsolete BooleanBuilder.Tools. SNAP's history-mode check before each feature is not
     ported. AddToSection is the seven-argument overload with chainWithinFeature False.
   - build_gm_boss blanks the target's component itself as well (idempotent), so it works when C# does the picks.
 
 The Merlin helpers DrawDie.py already ports are imported rather than copied. Several NXOpen members used here are not
-in python\\stubs (ExtrudeBuilder.DistanceTolerance/Offset/Draft, DatumAxisBuilder, ExtractFaceBuilder.DeleteHoles /
+in python\\stubs (ExtrudeBuilder.DistanceTolerance/Offset/Draft, ExtractFaceBuilder.DeleteHoles /
 ObjectToExtract, ScRuleFactory.CreateRuleFaceTangent, PartPreferences.Modeling); they are reached through Any.
 """
 
@@ -193,68 +193,67 @@ def _build_one_boss(target_face: NXOpen.Face, face: NXOpen.Face, target_color: i
         nx.set_display_part(assembly)
     nx.set_work_component(target_face.OwningComponent)
     extracted_face = _extract_face_without_holes(face)
+    curves: List[NXOpen.Curve] = []
 
-    # From here on in the target's part, in its own coordinates.
-    nx.set_display_part(target_part)
-    nx.set_work_part(target_part)
-    linked_faces = list(extracted_face.GetFaces())
-    if len(linked_faces) == 0:
-        raise RuntimeError("The linked tool face has no face")
-    linked_face = linked_faces[0]
-    v = _normal_vector(linked_face)
+    try:
+        # From here on in the target's part, in its own coordinates.
+        nx.set_display_part(target_part)
+        nx.set_work_part(target_part)
+        linked_faces = list(extracted_face.GetFaces())
+        if len(linked_faces) == 0:
+            raise RuntimeError("The linked tool face has no face")
+        linked_face = linked_faces[0]
+        v = _normal_vector(linked_face)
 
-    g = _create_datum_axis(nx.edge_start_point(linked_face.GetEdges()[0]), v)
+        curves = [nx.edge_to_curve(edge) for edge in extracted_face.GetEdges()]
 
-    # Snap's NXOpenDisplayableObject of a datum-axis feature is its first entity, the DatumAxis.
-    nx.print_(g.GetEntities()[0].OwningPart.Leaf)
+        stray = [c for c in curves if c.OwningPart.Tag != target_part.Tag]
+        if stray:
+            raise RuntimeError("{} boss curve(s) are in {}, not the target part {}".format(
+                len(stray), stray[0].OwningPart.Leaf, target_part.Leaf))
+        # The curves must lie on the linked face's edges; a gap means they were mapped through an assembly position.
+        # body_box is UF_MODL_ask_bounding_box_exact, which takes any object's tag.
+        face_box = nx.combine_boxes([nx.body_box(cast(Any, e)) for e in linked_face.GetEdges()])
+        curve_box = nx.combine_boxes([nx.body_box(cast(Any, c)) for c in curves])
+        gap = max(abs(face_box.MinX - curve_box.MinX), abs(face_box.MinY - curve_box.MinY),
+                  abs(face_box.MinZ - curve_box.MinZ))
+        if gap > .001:
+            raise RuntimeError("The boss curves are {:.3f} away from the linked tool face in {}".format(
+                gap, target_part.Leaf))
 
-    curves = [nx.edge_to_curve(edge) for edge in extracted_face.GetEdges()]
+        # Up to the target face: along the tool face's normal or against it, whichever way the target lies.
+        target_point = nx.edge_start_point(target_prototype.GetEdges()[0])
+        tool_point = nx.edge_start_point(linked_face.GetEdges()[0])
+        to_target = (v.X * (target_point.X - tool_point.X) + v.Y * (target_point.Y - tool_point.Y)
+                     + v.Z * (target_point.Z - tool_point.Z))
+        if abs(to_target) < .0001:
+            raise RuntimeError("The tool face is in the target face's plane - nothing to extrude")
+        direction = v if to_target > 0 else nx.negate(v)
 
-    stray = [c for c in curves if c.OwningPart.Tag != target_part.Tag]
-    if stray:
-        raise RuntimeError("{} boss curve(s) are in {}, not the target part {}".format(
-            len(stray), stray[0].OwningPart.Leaf, target_part.Leaf))
-    # The curves must lie on the linked face's edges; a gap means they were mapped through an assembly position.
-    # body_box is UF_MODL_ask_bounding_box_exact, which takes any object's tag.
-    face_box = nx.combine_boxes([nx.body_box(cast(Any, e)) for e in linked_face.GetEdges()])
-    curve_box = nx.combine_boxes([nx.body_box(cast(Any, c)) for c in curves])
-    gap = max(abs(face_box.MinX - curve_box.MinX), abs(face_box.MinY - curve_box.MinY),
-              abs(face_box.MinZ - curve_box.MinZ))
-    if gap > .001:
-        raise RuntimeError("The boss curves are {:.3f} away from the linked tool face in {}".format(
-            gap, target_part.Leaf))
-
-    # Up to the target face: along the tool face's normal or against it, whichever way the target lies.
-    target_point = nx.edge_start_point(target_prototype.GetEdges()[0])
-    tool_point = nx.edge_start_point(linked_face.GetEdges()[0])
-    to_target = (v.X * (target_point.X - tool_point.X) + v.Y * (target_point.Y - tool_point.Y)
-                 + v.Z * (target_point.Z - tool_point.Z))
-    if abs(to_target) < .0001:
-        raise RuntimeError("The tool face is in the target face's plane - nothing to extrude")
-    direction = v if to_target > 0 else nx.negate(v)
-
-    extrude = _snap_extrude(curves, direction, BossExtrudeLength, until=target_prototype)
-
-    _orphan(extrude)
-    brep_feat = [f for f in nx.work_part().Features.GetFeatures() if not f.Suppressed][-1]
-    faces_to_offset = [f for f in brep_feat.GetFaces()
-                       if f.SolidFaceType != NXOpen.Face.FaceType.Planar
-                       or not nx.vectors_equal(nx.face_normal(f), _VectorZ)
-                       and not nx.vectors_equal(nx.face_normal(f), _VectorZN)]
-    _snap_offset_face(BossSideOffset, False, faces_to_offset)
-    nx.set_color(brep_feat.GetBodies()[0], target_color)
-    # The end at the tool face (the extrude's start cap).
-    bottom = [f for f in brep_feat.GetFaces()
-              if f.SolidFaceType == NXOpen.Face.FaceType.Planar
-              and nx.vectors_equal(nx.face_normal(f), nx.negate(direction))]
-    if len(bottom) == 0:
-        raise RuntimeError("Sequence contains no matching element")
-    nx.set_color(bottom[0], BossBottomColor)
-    nx.create_boolean(target_prototype.GetBody(), [brep_feat.GetBodies()[0]],
-                      NXOpen.Features.Feature.BooleanType.Unite)
-    _snap_delete([extracted_face])
-    for curve in curves:
-        _snap_delete([curve])
+        extrude = _snap_extrude(curves, direction, BossExtrudeLength, until=target_prototype)
+        faces_to_offset = [f for f in extrude.GetFaces()
+                           if f.SolidFaceType != NXOpen.Face.FaceType.Planar
+                           or not nx.vectors_equal(nx.face_normal(f), _VectorZ)
+                           and not nx.vectors_equal(nx.face_normal(f), _VectorZN)]
+        _snap_offset_face(BossSideOffset, False, faces_to_offset)
+        # The extrude and its offset made a plain body (2026-11-07: the offset used to stay a feature on it), so the
+        # boss united into the block carries no parameters - and nothing ties it to the curves and link deleted below.
+        _orphan(extrude)
+        brep_feat = [f for f in nx.work_part().Features.GetFeatures() if not f.Suppressed][-1]
+        boss_body = brep_feat.GetBodies()[0]
+        nx.set_color(boss_body, target_color)
+        # The end at the tool face (the extrude's start cap).
+        bottom = [f for f in boss_body.GetFaces()
+                  if f.SolidFaceType == NXOpen.Face.FaceType.Planar
+                  and nx.vectors_equal(nx.face_normal(f), nx.negate(direction))]
+        if len(bottom) == 0:
+            raise RuntimeError("Sequence contains no matching element")
+        nx.set_color(bottom[0], BossBottomColor)
+        nx.create_boolean(target_prototype.GetBody(), [boss_body], NXOpen.Features.Feature.BooleanType.Unite)
+    finally:
+        # The link and the curves are only stand-ins for the profile: deleted however the build went (2026-11-07;
+        # a failed build used to leave them, and the C#'s datum axis, which is no longer made, in the part).
+        _snap_delete(cast(List[NXOpen.NXObject], [extracted_face] + curves))
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -332,22 +331,6 @@ def _extract_face_without_holes(face: NXOpen.Face) -> NXOpen.Features.Feature:
         extract.FaceOption = NXOpen.Features.ExtractFaceBuilder.FaceOptionType.SingleFace
         extract.ObjectToExtract.Add(face)
         extract.DeleteHoles = True
-        return cast(NXOpen.Features.Feature, builder.CommitFeature())
-    finally:
-        builder.Destroy()
-
-
-def _create_datum_axis(origin: NXOpen.Point3d, direction: NXOpen.Vector3d) -> NXOpen.Features.Feature:
-    """Snap.Create.DatumAxis(Position, Vector) - an associative point-and-direction datum axis in the work part."""
-    part = nx.work_part()
-    builder: Any = cast(Any, part.Features).CreateDatumAxisBuilder(None)
-    try:
-        builder.Type = cast(Any, NXOpen.Features).DatumAxisBuilder.Types.PointAndDir
-        vector = part.Directions.CreateDirection(origin, direction, NXOpen.SmartObject.UpdateOption.WithinModeling)
-        builder.IsAssociative = True
-        builder.IsAxisReversed = False
-        builder.Vector = vector
-        builder.Point = part.Points.CreatePoint(origin)
         return cast(NXOpen.Features.Feature, builder.CommitFeature())
     finally:
         builder.Destroy()
@@ -434,10 +417,9 @@ def _snap_delete(objects: Sequence[NXOpen.NXObject]) -> None:
 
 def main() -> None:
     """The boss UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
     from tsg_dialog import ask_is_gm
 
-    with usage_db.run("boss"):
+    with nx.merlin_run("boss"):
         try:
             # The Customer dialog first: GM builds with the GM parts, TSG throws.
             is_gm = ask_is_gm("Cast Boss")

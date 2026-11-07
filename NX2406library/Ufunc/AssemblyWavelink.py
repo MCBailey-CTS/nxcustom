@@ -16,6 +16,11 @@ Since 2026-10-30 the dialog is modeless, like the form was: NX stays usable whil
 (a button runs an operation and stays open). main() returns as soon as it is shown, so the usage run (tblUFuncsExe, the
 syslog banners) is closed when the dialog closes, and GetUnloadOption keeps this file loaded until NX exits
 (UnloadLibrary disposes the dialog). A second launch while it is open just says so.
+
+The picks work like Profile Subtract's (2026-11-06): many targets and one tool, or one target and many tools. Picking
+past that keeps the side just changed to its latest pick, as a single selection would. No body in a strip or layout can
+be a target. The target bodies are blanked when the Tool components selection gets focus, so the tools behind them can
+be picked, and shown again when the Target bodies selection gets focus, an operation runs or the dialog closes.
 """
 
 import os
@@ -353,6 +358,16 @@ def _is_layout(name: str) -> bool:
     return "-layout" in name.lower()
 
 
+def _in_strip_or_layout(body: NXOpen.Body) -> bool:
+    """The body's component or any assembly above it is a strip or layout (its own part, when not an occurrence)."""
+    component: Optional[NXOpen.Assemblies.Component] = body.OwningComponent
+    names = [] if component is not None else [cast(NXOpen.Part, body.OwningPart).Leaf]
+    while component is not None:
+        names.append(component.DisplayName)
+        component = component.Parent
+    return any("strip" in name.lower() or "layout" in name.lower() for name in names)
+
+
 def _is_fastener_extended(name: str) -> bool:
     """
     string._IsFastenerExtended_ - a SHCS, dowel or jack screw (substring tests: the C#'s __IsFastener used the
@@ -382,7 +397,9 @@ class _WavelinkDialog(Dialog):
     """
     AssemblyWavelink.dlx, in place of the WinForms form, its pickers (Static.SelectFastenerTargetsAndTools,
     SelectSubToolTargetAndTools, SelectBooleanTargetsAndTools) and the ReferenceSetDialog:
-      - Target bodies (solid, anywhere in the assembly) and Tool components;
+      - Target bodies (solid, anywhere in the assembly, not in a strip or layout) and Tool components: many targets
+        and one tool, or one target and many tools (_limit_picks). The targets are blanked while the tools are picked
+        (focus);
       - Fasteners and Booleans: the form's 14 buttons, each running on those picks;
       - Reference set (for the booleans): the reference sets every picked tool has;
       - Blank Tool Components (chkBlankTools; Sub-Tool never read it).
@@ -399,6 +416,8 @@ class _WavelinkDialog(Dialog):
         self.title = title
         super().__init__()
         self._reference_sets: List[str] = []
+        # The target bodies blanked for the tool pick, by tag.
+        self._blanked: Dict[int, NXOpen.Body] = {}
         # The usage run execute() opened; the operations file their exceptions under it (other UFuncs may run while
         # the dialog is up).
         self.usage_run: Optional[Any] = None
@@ -423,11 +442,23 @@ class _WavelinkDialog(Dialog):
                 return
         if block == self.block("targets") or block == self.block("tools"):
             self._filter_tools()
+            self._limit_picks(block)
+        # focus() normally got here first.
+        if block == self.block("tools"):
+            self._hide_targets()
         self._refresh()
+
+    def focus(self, block: NXOpen.BlockStyler.UIBlock, gained: bool) -> None:
+        if not gained:
+            return
+        if block == self.block("tools"):
+            self._hide_targets()
+        elif block == self.block("targets"):
+            self.show_targets()
 
     def filter(self, block: NXOpen.BlockStyler.UIBlock, obj: NXOpen.TaggedObject) -> bool:
         if block == self.block("targets"):
-            return isinstance(obj, NXOpen.Body) and obj.IsSolidBody
+            return isinstance(obj, NXOpen.Body) and obj.IsSolidBody and not _in_strip_or_layout(obj)
         if block == self.block("tools"):
             return isinstance(obj, NXOpen.Assemblies.Component) and self._tool_allowed(obj, self._target_owners())
         return True
@@ -456,6 +487,7 @@ class _WavelinkDialog(Dialog):
         undo_name = title_with_version(ufunc_name)
         if operation in _FastenerOperations:
             shcs, dwl, jck = _FastenerOperations[operation]
+            self.show_targets()
             AssemblyWavelink.wave_link_fasteners(undo_name, blank_tools, shcs or "", dwl or "", jck or "", targets,
                                                  tools)
         elif operation == _OperationSubTool:
@@ -463,6 +495,7 @@ class _WavelinkDialog(Dialog):
             if len(targets) > 1:
                 self.message("Sub-Tool takes one target body; {} are picked.".format(len(targets)))
                 return False
+            self.show_targets()
             AssemblyWavelink.wave_link_subtool("{} - WavelinkSubtool".format(undo_name), targets[0], tools)
         else:
             reference_set = self._reference_set()
@@ -472,6 +505,7 @@ class _WavelinkDialog(Dialog):
             if reference_set == _RefsetBody and operation != "Link":
                 self.message("{} cannot go through BODY: pick another reference set.".format(operation))
                 return False
+            self.show_targets()
             AssemblyWavelink.wave_link_boolean(blank_tools, _BooleanOperations[operation], reference_set, targets,
                                                tools)
         return True
@@ -536,6 +570,31 @@ class _WavelinkDialog(Dialog):
         if len(kept) != len(picked):
             self.block("tools").SetSelectedObjects(kept)
 
+    def _limit_picks(self, block: NXOpen.BlockStyler.UIBlock) -> None:
+        """Many targets and one tool, or one target and many tools: past that, block keeps only its latest pick."""
+        targets, tools = self._targets(), self._tools()
+        if len(targets) > 1 and len(tools) > 1:
+            cast(Any, block).SetSelectedObjects((targets if block == self.block("targets") else tools)[-1:])
+
+    def _hide_targets(self) -> None:
+        """Blanks the picked target bodies, so the tools behind them can be picked."""
+        for body in self._targets():
+            if body.Tag not in self._blanked:
+                try:
+                    body.Blank()
+                    self._blanked[body.Tag] = body
+                except Exception as ex:
+                    nx.print_exception(ex)
+
+    def show_targets(self) -> None:
+        """Shows every target body _hide_targets blanked again (no-op when none)."""
+        for body in self._blanked.values():
+            try:
+                body.Unblank()
+            except Exception as ex:
+                nx.print_exception(ex)
+        self._blanked = {}
+
     # ----- reference set -----
 
     def _reference_set(self) -> Optional[str]:
@@ -577,7 +636,14 @@ def execute() -> None:
     try:
         dialog = _WavelinkDialog(title_with_version("Assembly Wavelink"))
         dialog.usage_run = current
-        if not show_modeless(ufunc_name, dialog, lambda response: usage_db.finish_run(current)):
+
+        def closed(response: str) -> None:
+            try:
+                dialog.show_targets()
+            finally:
+                usage_db.finish_run(current)
+
+        if not show_modeless(ufunc_name, dialog, closed):
             usage_db.mark_cancelled("already open")
             usage_db.finish_run(current)
     except NXOpen.NXException as ex:

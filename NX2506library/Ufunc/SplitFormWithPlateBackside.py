@@ -66,9 +66,8 @@ def main() -> None:
     """The split-form-with-plate-backside UFunc - its menu button runs this file. An escaping exception is printed."""
     import SplitFormDialog
     import tsg_nx as nx
-    import usage_db
 
-    with usage_db.run("split-form-with-plate-backside"):
+    with nx.merlin_run("split-form-with-plate-backside"):
         try:
             SplitFormDialog.SplitFormDialog.run("Split Form Backside", "SplitForm", "SplitForm", True, True,
                                                     _Backside)

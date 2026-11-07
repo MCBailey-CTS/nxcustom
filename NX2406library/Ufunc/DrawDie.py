@@ -11,7 +11,7 @@ The form steels are 2 x 4 unless the caller says otherwise; the upper's grid nee
 The draw-die UFunc picks through a Block Styler dialog (DrawDie.dlx, tools\\make-dlx.py, 2026-10-29): the Customer
 radio (None / TSG / GM, None on opening; TSG uses the CTS parts), the part's solid bodies and a radio of the
 ops - the display part's station numbers with both a ladNN and a uadNN, read when it opens (none is an error box
-before it; the work part's number is checked first when it is one) - then Lower and Upper blocks along X / Y, each
+before it; the work part's number is checked first when it is one) - then Lower and Upper Rows (x) / Cols (y), each
 side's form steels along X by along Y (2026-11-04, 2 x 4 by default). OK stays greyed out until TSG or GM is checked
 and a body is picked. OpBodiesDialog is shared with Pierce.py (Pierce.dlx); _DrawDieDialog adds the grids to it, and outlines
 each half's form steels with preview lines while it is open: posts 186, cavity 211, redrawn on every change.
@@ -69,6 +69,7 @@ import NXOpen.Layer  # noqa: E402
 import NXOpen.UF  # noqa: E402
 
 import tsg_nx as nx  # noqa: E402
+import block_set  # noqa: E402
 import PointComponent as merlin  # noqa: E402
 from tsg_dialog import CustomerNone, Dialog, is_gm_customer, title_with_version  # noqa: E402
 
@@ -805,7 +806,7 @@ def _link_lowest_binder_face(job: DrawDieJob, new_part: NXOpen.Part) -> None:
                           if f.SolidFaceType == NXOpen.Face.FaceType.Planar]
 
                 if not planar:
-                    nx.print_("Draw Die: did NOT find the bottom face of {} ({} has no planar solid face).".format(
+                    nx.error("Draw Die: did NOT find the bottom face of {} ({} has no planar solid face).".format(
                         comp.DisplayName, binder_refset))
                     continue
 
@@ -1026,6 +1027,8 @@ def _build_draw_die_form_steels(job: DrawDieJob, min_point: NXOpen.Point3d, xlen
     # Without replacement, so the blocks come out different (the palette repeats past its own length).
     colors = random.sample(merlin.SplitComponentColors, len(merlin.SplitComponentColors))
     keys: List[NXOpen.Assemblies.Component] = []
+    # The steels made, for the MerlinBlockSet record after the loop (block_set.record).
+    members: List[NXOpen.Assemblies.Component] = []
     index = 0
 
     for column in range(columns):
@@ -1033,12 +1036,15 @@ def _build_draw_die_form_steels(job: DrawDieJob, min_point: NXOpen.Point3d, xlen
             try:
                 _build_one_form_steel(job, min_point, column, row, index, column_width, row_length, height, name,
                                       colors[index % len(colors)], subtract_refset, shcs_path, shcs_inset,
-                                      jack_inset, keys_both_ways, key_size, keys, centre_x_key)
+                                      jack_inset, keys_both_ways, key_size, keys, centre_x_key, members)
             except Exception as ex:
                 nx.print_("Draw Die: {} block {} of {} failed.".format(name, index + 1, columns * rows))
                 nx.print_exception(ex)
             index += 1
 
+    # Columns along X are the set's rows (x), rows along Y its cols (y).
+    block_set.record(members, "Draw Die", "{} {}".format("upper" if job.is_upper else "lower", name),
+                     rows=columns, cols=rows)
     _save_as_draw_die_part(keys, job, key_save_name)
 
 
@@ -1047,8 +1053,9 @@ def _build_one_form_steel(job: DrawDieJob, min_point: NXOpen.Point3d, column: in
                           column_width: float, row_length: float, height: float, name: str, color: int,
                           subtract_refset: Optional[str], shcs_path: str, shcs_inset: float, jack_inset: float,
                           keys_both_ways: bool, key_size: str, keys: List[NXOpen.Assemblies.Component],
-                          centre_x_key: bool = False) -> None:
-    """The body of BuildDrawDieFormSteels' per-block loop."""
+                          centre_x_key: bool = False,
+                          members: Optional[List[NXOpen.Assemblies.Component]] = None) -> None:
+    """The body of BuildDrawDieFormSteels' per-block loop. The new steel's component is added to members."""
     block_min = NXOpen.Point3d(min_point.X + column * (column_width + merlin.SplitGap),
                                min_point.Y + row * (row_length + merlin.SplitGap),
                                min_point.Z)
@@ -1071,6 +1078,8 @@ def _build_one_form_steel(job: DrawDieJob, min_point: NXOpen.Point3d, column: in
         detail_name="FORM STEEL",
         fixed_description=False,
         joint_normals=joints)
+    if members is not None:
+        members.append(component)
 
     body_refset = nx.find_or_create_reference_set(new_part, "BODY")
 
@@ -1623,7 +1632,7 @@ def _subtract_refset_from_dynamic_block(target_part: NXOpen.Part, component: NXO
     except NXOpen.NXException as ex:
         if ex.ErrorCode != _ErrorCouldNotSubtract:
             raise
-        nx.print_("Could not subtract {} from {}".format(component.DisplayName, component.OwningPart.Leaf))
+        nx.error("Could not subtract {} from {}".format(component.DisplayName, component.OwningPart.Leaf))
     nx.set_reference_set(component, restore_refset)
 
 
@@ -1652,7 +1661,7 @@ def _subtract_linked_components(get_target: Callable[[], NXOpen.Body],
             nx.subtract(get_target(), link.GetBodies())
         except NXOpen.NXException as ex:
             if ex.ErrorCode == _ErrorCouldNotSubtract:
-                nx.print_("Could not subtract {} from {}".format(link.GetFeatureName(), nx.work_part().Leaf))
+                nx.error("Could not subtract {} from {}".format(link.GetFeatureName(), nx.work_part().Leaf))
             else:
                 nx.print_exception(ex)
 
@@ -1995,7 +2004,7 @@ class OpBodiesDialog(Dialog):
 
 class _DrawDieDialog(OpBodiesDialog):
     """
-    DrawDie.dlx: OpBodiesDialog's blocks, then Lower / Upper blocks along X / Y - each half's form steels along X by
+    DrawDie.dlx: OpBodiesDialog's blocks, then Lower / Upper Rows (x) / Cols (y) - each half's form steels along X by
     along Y, as Dead Strike's Rows / Cols. The upper can have a different number of steels than the lower. While it is
     open, each half's steels are outlined with preview lines over the picked bodies, redrawn on every change.
     """
@@ -2126,9 +2135,7 @@ def _erase_preview() -> None:
 
 def main() -> None:
     """The draw-die UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
-
-    with usage_db.run("draw-die"):
+    with nx.merlin_run("draw-die"):
         try:
             # The Draw Die dialog asks for the customer (and stands in for the "Are you sure" box).
             DrawDie.execute(True)

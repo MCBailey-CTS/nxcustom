@@ -492,7 +492,7 @@ def _classify_slugs(bodies: Iterable[NXOpen.Body], rounds: List[Round], oblongs:
 
         if len(invalid_edges) > 0:
             nx.print_("///////")
-            nx.print_("body {} has invalid edges".format(body.Tag))
+            nx.error("body {} has invalid edges".format(body.Tag))
             for edge in invalid_edges:
                 nx.print_("edge type == {}".format(_enum_name(edge.SolidEdgeType)))
             nx.print_("///////")
@@ -514,7 +514,7 @@ def _classify_slugs(bodies: Iterable[NXOpen.Body], rounds: List[Round], oblongs:
         for edge in top_edges:
             nx.print_("edge type == {}".format(_enum_name(edge.SolidEdgeType)))
 
-        nx.print_("unknown edge length == {}".format(len(top_edges)))
+        nx.error("unknown edge length == {}".format(len(top_edges)))
 
 
 def _rectangle_slug(rectangles: List[Rectangle], top_face: NXOpen.Face, bottom_face: NXOpen.Face,
@@ -1371,7 +1371,7 @@ def _process_secondary_pierce(components: Iterable[Optional[Component]]) -> None
                             nx.get_attribute(work, "w"),
                             nx.get_attribute(work, "r"))
                     else:
-                        nx.print_("Unknown TYPE: {}".format(nx.get_attribute(work, "TYPE")))
+                        nx.error("Unknown TYPE: {}".format(nx.get_attribute(work, "TYPE")))
                         continue
 
                 elif "punch-" in part.Leaf:
@@ -1400,7 +1400,7 @@ def _process_secondary_pierce(components: Iterable[Optional[Component]]) -> None
                             nx.get_attribute(work, "w"),
                             nx.get_attribute(work, "r"))
                     else:
-                        nx.print_("Unknown TYPE: {}".format(nx.get_attribute(work, "TYPE")))
+                        nx.error("Unknown TYPE: {}".format(nx.get_attribute(work, "TYPE")))
                         continue
 
                 elif "retainer-" in part.Leaf:
@@ -1408,7 +1408,7 @@ def _process_secondary_pierce(components: Iterable[Optional[Component]]) -> None
                     _stamp_retainer_attributes(component, nx.get_attribute(nx.work_part(), "diameter"))
 
                 else:
-                    nx.print_("Unknown part -> {}".format(part.Leaf))
+                    nx.error("Unknown part -> {}".format(part.Leaf))
                     continue
             except Exception as ex:
                 nx.print_exception(ex, part.Leaf)
@@ -1664,9 +1664,7 @@ def _enum_name(value: object) -> str:
 
 def main() -> None:
     """The pierce UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
-
-    with usage_db.run("pierce"):
+    with nx.merlin_run("pierce"):
         try:
             # The Pierce dialog asks for the customer (and stands in for the "Are you sure" box).
             Pierce.execute(True)

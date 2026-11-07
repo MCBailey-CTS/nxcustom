@@ -142,7 +142,7 @@ class Nine99Block(object):
                     nx.print_exception(ex)
 
             if not occurrence_bodies:
-                nx.print_("Block999: no layer-1 solid bodies found, nothing to build.")
+                nx.error("Block999: no layer-1 solid bodies found, nothing to build.")
                 return
 
             box = nx.combine_boxes([nx.body_box(body) for body in occurrence_bodies])
@@ -160,7 +160,7 @@ class Nine99Block(object):
             path = _try_next_block999_path()
 
             if path is None:
-                nx.print_("Block999: every detail number from {} down to 1 is already taken next to {}.".format(
+                nx.error("Block999: every detail number from {} down to 1 is already taken next to {}.".format(
                     Block999FirstNumber, nx.display_part().Leaf))
                 return
 
@@ -195,7 +195,7 @@ class Nine99Block(object):
 
             try:
                 for i in range(errors.Length):
-                    nx.print_("Block999: restructure error - {}".format(errors.GetErrorInfo(i).Description))
+                    nx.error("Block999: restructure error - {}".format(errors.GetErrorInfo(i).Description))
             finally:
                 errors.Dispose()
 
@@ -323,7 +323,7 @@ def _subtract_punch_links(punch: NXOpen.Assemblies.Component, block_target: NXOp
                 occ_body = actual_shcs.FindOccurrence(source_feat)
 
                 if not isinstance(occ_body, NXOpen.Body):
-                    nx.print_("Block999: {} - no occurrence of {}'s source body under {}, not subtracted.".format(
+                    nx.error("Block999: {} - no occurrence of {}'s source body under {}, not subtracted.".format(
                         punch.DisplayName, feat.GetFeatureName(), actual_shcs.DisplayName))
                     continue
 
@@ -410,7 +410,7 @@ def _finish_block999(new_component: NXOpen.Assemblies.Component, block_body: NXO
         if top_face is not None:
             nx.set_color(top_face, 42)
         else:
-            nx.print_("Block999: no +Z planar face on the DYNAMIC BLOCK body, top not colored.")
+            nx.error("Block999: no +Z planar face on the DYNAMIC BLOCK body, top not colored.")
 
         # The trim steel and the jacks show in BODY.
         try:
@@ -674,9 +674,7 @@ def _print_block999_commit_diagnostics(path: str, ex: NXOpen.NXException) -> Non
 
 def main() -> None:
     """The nine-99-block UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
-
-    with usage_db.run("nine-99-block"):
+    with nx.merlin_run("nine-99-block"):
         try:
             # No confirm: it starts with the component pick, which the user can cancel.
             Nine99Block.execute()

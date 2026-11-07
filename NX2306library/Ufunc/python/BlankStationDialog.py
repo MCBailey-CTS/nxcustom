@@ -36,10 +36,11 @@ _ErrorCannotLaunchDialog = 3520048
 _SolidBodyDetail = 36
 
 
-def ask(title: str) -> Optional[Tuple[List[NXOpen.Body], str]]:
+def ask(title: str) -> Optional[Tuple[List[NXOpen.Body], str, bool]]:
     """
-    Shows the dialog titled title; (picked slug bodies, "D2" | "S7") once accepted, None otherwise. TSG and GM build
-    the same (the blank station has no CTS branch).
+    Shows the dialog titled title; (picked slug bodies, "D2" | "S7", is_gm) once accepted, None otherwise. TSG and GM
+    build the same, except that GM adds the 15 / 30 mm offset lines round the lower trim steel's LWR-PROFILE cut
+    (BlankStation._create_gm_profile_offsets).
     """
     try:
         dialog = _BlankStationDialog(title)
@@ -57,8 +58,7 @@ def ask(title: str) -> Optional[Tuple[List[NXOpen.Body], str]]:
     if not accepted or not dialog.bodies:
         return None
 
-    is_gm_customer(dialog.customer_choice)
-    return dialog.bodies, dialog.material
+    return dialog.bodies, dialog.material, is_gm_customer(dialog.customer_choice)
 
 
 class _BlankStationDialog(Dialog):
@@ -108,8 +108,8 @@ def main() -> None:
     """File -> Execute -> NX Open: the dialog alone - prints what it would hand the build."""
     result = ask("Blank Station (test)")
     if result is not None:
-        bodies, material = result
-        nx.print_("material={} bodies={}".format(material, [b.JournalIdentifier for b in bodies]))
+        bodies, material, is_gm = result
+        nx.print_("material={} is_gm={} bodies={}".format(material, is_gm, [b.JournalIdentifier for b in bodies]))
 
 
 if __name__ == "__main__":

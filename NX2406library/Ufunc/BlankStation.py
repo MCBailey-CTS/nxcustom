@@ -36,6 +36,8 @@ station = "01" for the Blank Station (is3d False) and "02" for the Secondary Tri
      the punch's non-8mm SHCS;
   7. the retainer gets SHORT-TAP for the backing plate's SHCS;
   8. the taper (a 2 degree drafted extrude off the layout link's top tangent edge) is cut in the lower trim steel;
+     (GM Blank Station only, ahead of the taper: the top edges of the lower trim steel's LWR-PROFILE cut offset
+     outward 15 mm and 30 mm, color 37, phantom, layer 20, in BODY - _create_gm_profile_offsets, 2026-11-07);
   9. the lower trim steel's first extrude is colored 211;
  10. every view of the five new parts is regenerated.
 After every slug, MATERIAL = the picked material (D2 / S7) goes on every punch and lower trim steel, and the session
@@ -169,6 +171,12 @@ RetainerAboveWindow3d = 20 / 25.4
 UpperZRefset = "UPR-3D"
 LowerZRefset = "LWR-3D"
 
+# GM Blank Station: the offset lines round the top of the lower trim steel's LWR-PROFILE cut (mm, outward), their
+# color, layer (they are phantom and in BODY too).
+GmProfileOffsetsMm = (15.0, 30.0)
+GmProfileOffsetColor = 37
+GmProfileOffsetLayer = 20
+
 _ErrorTaperNoSolidBody = 671468
 _ErrorTaperIncompatibleDirection = 671443
 
@@ -191,16 +199,18 @@ SecondaryTrimStationTitle = "Secondary Trim Station"
 class BlankStation(object):
 
     @staticmethod
-    def build(is3d: bool, material: str, bodies: Sequence[NXOpen.Body], quiet: bool = False) -> None:
+    def build(is3d: bool, material: str, bodies: Sequence[NXOpen.Body], quiet: bool = False,
+              is_gm: bool = False) -> None:
         """
         Session.Execute entry for the blank-station (is3d False) / secondary-trim-station (is3d True) UFuncs:
         Merlin.BuildBlankStations(is3d, bodies, material) with the arguments in the order the C# passes them.
         bodies are the picked slug solid bodies (occurrences, so OwningComponent is the slug component); material is
-        "D2" or "S7". quiet leaves out the "Created reference set" lines (AutoDesign).
+        "D2" or "S7". quiet leaves out the "Created reference set" lines (AutoDesign). is_gm (the dialog's GM
+        customer) adds the Blank Station's GM profile offset lines (_create_gm_profile_offsets).
         """
         try:
             with nx.quiet_listing(quiet):
-                build_blank_stations(bool(is3d), [body for body in bodies], str(material))
+                build_blank_stations(bool(is3d), [body for body in bodies], str(material), bool(is_gm))
         except Exception as ex:
             nx.print_exception(ex)
 
@@ -230,12 +240,12 @@ class BlankStation(object):
             result = ask(title_with_version(SecondaryTrimStationTitle if is3d else BlankStationTitle))
             if result is None:
                 return
-            bodies, material = result
+            bodies, material, is_gm = result
         except Exception as ex:
             nx.print_exception(ex)
             return
 
-        BlankStation.build(bool(is3d), material, bodies)
+        BlankStation.build(bool(is3d), material, bodies, is_gm=is_gm)
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -276,7 +286,7 @@ class _TempGeometry(object):
 
 
 @nx.traced("Blank Station")
-def build_blank_stations(is3d: bool, bodies1: Sequence[NXOpen.Body], material: str) -> None:
+def build_blank_stations(is3d: bool, bodies1: Sequence[NXOpen.Body], material: str, is_gm: bool = False) -> None:
     """
     Merlin.BuildBlankStations - one blank station per slug body, with material (D2 / S7) stamped on every punch and
     lower trim steel. Gates on the units, the -000 and the stations like the dialog front end.
@@ -323,7 +333,8 @@ def build_blank_stations(is3d: bool, bodies1: Sequence[NXOpen.Body], material: s
         for i in range(len(body_data)):
             try:
                 _build_one_slug(i, len(bodies1), is3d, body_data[i][0], body_data[i][1], stations, trim_steels,
-                                unikix_pins, upper_box=z_boxes[i][0], lower_box=z_boxes[i][1], temp=temp)
+                                unikix_pins, upper_box=z_boxes[i][0], lower_box=z_boxes[i][1], temp=temp,
+                                is_gm=is_gm)
             except Exception as ex:
                 nx.print_exception(ex)
 
@@ -452,12 +463,13 @@ def _build_one_slug(i: int, count: int, is3d: bool, box: nx.Box3d, owning_comp: 
                     stations: _Stations, trim_steels: List[NXOpen.Assemblies.Component],
                     unikix_pins: List[NXOpen.Assemblies.Component],
                     upper_box: Optional[nx.Box3d] = None, lower_box: Optional[nx.Box3d] = None,
-                    temp: Optional[_TempGeometry] = None) -> None:
+                    temp: Optional[_TempGeometry] = None, is_gm: bool = False) -> None:
     """
     The body of BuildBlankStations' per-slug loop. A `return` here is the C#'s `continue` of the outer loop (the
     taper and extrude-coloring stages); everything else is per-stage try/except. upper_box / lower_box set the 3D
     window top and lower trim steel bottom (the UPR-3D / LWR-3D bodies); both default to box. temp collects the 3D
-    temp blocks and their links / intersects for the caller to delete.
+    temp blocks and their links / intersects for the caller to delete. is_gm adds the GM profile offset lines on the
+    Blank Station's lower trim steel.
     """
     upper_box = upper_box or box
     lower_box = lower_box or box
@@ -605,12 +617,14 @@ def _build_one_slug(i: int, count: int, is3d: bool, box: nx.Box3d, owning_comp: 
     # Lower trim steel - 2D puts the block bottom at -50 mm and leaves the top at the default (window_min.Z -
     # material_thickness). 3D puts the bottom (the block origin) LowerTrimSteelBelowPart3d under the UPR-3D / LWR-3D
     # intersect's lowest point (lts_min_z, set before the window) and pins the top to +3.
+    profile_features: List[NXOpen.Features.Feature] = []
     try:
         _create_lower_trim_steel(current, box, owning_comp, material_thickness, window_min, stations.part_lad,
                                  lower_trim_steel, is3d,
                                  override_min_z=lts_min_z,
                                  override_max_z=3.0 if is3d else None,
-                                 add_extra_shcs=True)
+                                 add_extra_shcs=True,
+                                 profile_features=profile_features)
         if lower_trim_steel.value is not None:
             trim_steels.append(lower_trim_steel.value)
 
@@ -681,6 +695,18 @@ def _build_one_slug(i: int, count: int, is3d: bool, box: nx.Box3d, owning_comp: 
     except Exception as ex:
         nx.print_exception(ex)
 
+    nx.set_display_part(current)
+
+    # GM Blank Station only: the 15 / 30 mm offset lines round the top of the LWR-PROFILE cut. Ahead of the taper,
+    # whose stage (and the next) can end the slug early; the taper starts 10 mm down, so it leaves the top edges.
+    if is_gm and not is3d and lower_trim_steel.value is not None:
+        nx.prompt("{} of {} -> GM profile offset lines".format(i + 1, count))
+        try:
+            _create_gm_profile_offsets(cast(NXOpen.Part, nx.prototype(lower_trim_steel.value)), profile_features)
+        except Exception as ex:
+            nx.print_exception(ex)
+        nx.set_display_part(current)
+
     # Taper runs for both the 2D and 3D variants.
     try:
         nx.prompt("{} of {} -> taper".format(i + 1, count))
@@ -690,7 +716,7 @@ def _build_one_slug(i: int, count: int, is3d: bool, box: nx.Box3d, owning_comp: 
         tangent_edge = _find_taper_edge(nx.display_part())
 
         if tangent_edge is None:
-            nx.print_("Couldn't find edge for taper in {}".format(nx.display_part().Leaf))
+            nx.error("Couldn't find edge for taper in {}".format(nx.display_part().Leaf))
             nx.set_display_part(current)
             return  # the C# `continue`s the per-slug loop
 
@@ -699,9 +725,9 @@ def _build_one_slug(i: int, count: int, is3d: bool, box: nx.Box3d, owning_comp: 
             taper.SetName("TAPER")
         except NXOpen.NXException as ex:
             if ex.ErrorCode == _ErrorTaperNoSolidBody:
-                nx.print_("Could not find solid body for taper in {}".format(nx.display_part().Leaf))
+                nx.error("Could not find solid body for taper in {}".format(nx.display_part().Leaf))
             elif ex.ErrorCode == _ErrorTaperIncompatibleDirection:
-                nx.print_("Section and direction for taper were incompatible {}".format(nx.display_part().Leaf))
+                nx.error("Section and direction for taper were incompatible {}".format(nx.display_part().Leaf))
             else:
                 raise
     except Exception as ex:
@@ -719,7 +745,7 @@ def _build_one_slug(i: int, count: int, is3d: bool, box: nx.Box3d, owning_comp: 
                 break
 
         if extrude is None:
-            nx.print_("Could not find extrude to color for {}".format(nx.display_part().Leaf))
+            nx.error("Could not find extrude to color for {}".format(nx.display_part().Leaf))
             nx.set_display_part(current)
             return  # the C# `continue`s the per-slug loop
 
@@ -743,6 +769,80 @@ def _build_one_slug(i: int, count: int, is3d: bool, box: nx.Box3d, owning_comp: 
             nx.print_exception(ex)
 
     nx.set_display_part(current)
+
+
+@nx.traced("Blank Station")
+def _create_gm_profile_offsets(part: NXOpen.Part, profile_features: Sequence[NXOpen.Features.Feature]) -> None:
+    """
+    GM Blank Station: in the lower trim steel part, the top edges of the LWR-PROFILE cut (edges of the cut's faces
+    lying flat on the block's top Z, not between two cut faces) are copied to curves and offset outward
+    GmProfileOffsetsMm (15 and 30 mm; non-associative, ProfileSubtract._offset_outward). The offsets are colored
+    GmProfileOffsetColor, phantom, on GmProfileOffsetLayer and added to BODY; the edge copies are deleted. Leaves part
+    displayed and the work part.
+    """
+    from ProfileSubtract import _box_size, _offset_outward
+    from Boss import _snap_delete
+
+    nx.set_display_part(part)
+    nx.set_work_part(part)
+
+    # The cut's faces are reported by its link or its boolean, so take both.
+    cut_faces: Dict[int, NXOpen.Face] = {}
+    for feature in profile_features:
+        try:
+            for face in feature.GetFaces():
+                cut_faces[face.Tag] = face
+        except Exception:
+            pass
+    if not cut_faces:
+        nx.error("{}: no LWR-PROFILE cut, so no GM profile offset lines".format(part.Leaf))
+        return
+
+    top_z = nx.body_box(nx.dynamic_block(part).GetBodies()[0]).MaxZ
+    tolerance = max(nx.distance_tolerance(), 1e-4)
+    edges: Dict[int, NXOpen.Edge] = {}
+    for face in cut_faces.values():
+        for edge in face.GetEdges():
+            if edge.Tag in edges:
+                continue
+            if all(f.Tag in cut_faces for f in edge.GetFaces()):
+                continue
+            edge_box = nx.body_box(cast(Any, edge))
+            if abs(edge_box.MinZ - top_z) < tolerance and abs(edge_box.MaxZ - top_z) < tolerance:
+                edges[edge.Tag] = edge
+    if not edges:
+        nx.error("{}: the LWR-PROFILE cut has no edges on the top face, so no GM profile offset lines".format(
+            part.Leaf))
+        return
+
+    edge_curves = [nx.edge_to_curve(edge) for edge in edges.values()]
+    per_inch = 25.4 if part.PartUnits == NXOpen.BasePart.Units.Millimeters else 1.0
+    offsets: List[NXOpen.Curve] = []
+    try:
+        for distance_mm in GmProfileOffsetsMm:
+            try:
+                offsets.extend(_offset_outward(edge_curves, distance_mm * per_inch / 25.4))
+            except Exception as ex:
+                nx.print_exception(ex)
+    finally:
+        _snap_delete(cast(List[NXOpen.NXObject], edge_curves))
+    if not offsets:
+        return
+
+    for curve in offsets:
+        curve.Color = GmProfileOffsetColor
+        curve.LineFont = NXOpen.DisplayableObject.ObjectFont.Phantom
+        curve.Layer = GmProfileOffsetLayer
+        curve.RedisplayObject()
+
+    body = nx.find_reference_set_or_null(part, "BODY")
+    if body is None:
+        nx.error("{} has no BODY reference set for the GM profile offset lines".format(part.Leaf))
+    else:
+        body.AddObjectsToReferenceSet(list(offsets))
+    nx.info("{}: {} GM profile offset line(s) at {} mm on layer {} (box {:.3f})".format(
+        part.Leaf, len(offsets), " / ".join(nx.cs_double_str(d) for d in GmProfileOffsetsMm), GmProfileOffsetLayer,
+        _box_size(offsets)))
 
 
 def _require(component: Optional[NXOpen.Assemblies.Component]) -> NXOpen.Assemblies.Component:
@@ -966,7 +1066,7 @@ def _create_window(current: NXOpen.Part, window_min: NXOpen.Point3d, window_max:
     # face, which is part -Z in the flipped frame.
     face = nx.planar_face_with_normal_or_null(body, _VectorZN)
     if face is None:
-        nx.print_('Could not find the top planar face to name "top-window" in {}'.format(nx.display_part().Leaf))
+        nx.error('Could not find the top planar face to name "top-window" in {}'.format(nx.display_part().Leaf))
     else:
         face.SetName("top-window")
     _stamp_detail(component_window, "Window1", "WINDOW", "4140 PH", current)
@@ -1015,7 +1115,7 @@ def _intersect_temp_block_with_upper(current: NXOpen.Part, station_lad: NXOpen.P
         # The prototype body in station_lad, so the box is in station_lad's coordinates.
         return nx.combine_boxes(nx.body_box(body) for body in intersect.GetBodies())
     except NXOpen.NXException as ex:
-        nx.print_("Could not intersect {} with the {} of {}: {}".format(
+        nx.error("Could not intersect {} with the {} of {}: {}".format(
             TempLowerTrimSteelName, UpperZRefset, owning_comp.DisplayName, ex))
         return None
     finally:
@@ -1071,7 +1171,7 @@ def _link_upper_and_lower_into_station(current: NXOpen.Part, station_lad: NXOpen
         intersect = nx.create_boolean(upper[0], lower, NXOpen.Features.Feature.BooleanType.Intersect)
         return intersect.GetBodies()[0]
     except NXOpen.NXException as ex:
-        nx.print_("Could not intersect the {} and {} of {}: {}".format(
+        nx.error("Could not intersect the {} and {} of {}: {}".format(
             UpperZRefset, LowerZRefset, owning_comp.DisplayName, ex))
         return None
 
@@ -1155,7 +1255,7 @@ def _build_temp_lower_blocks(current: NXOpen.Part, box: nx.Box3d, owning_comp: N
                 station_box = nx.combine_boxes(nx.body_box(b) for b in bodies)
                 assembly_box = _station_box_in_assembly(current, station_lad, station_box)
             except NXOpen.NXException as ex:
-                nx.print_("Could not intersect {} with the {} / {} result of {}: {}".format(
+                nx.error("Could not intersect {} with the {} / {} result of {}: {}".format(
                     TempLowerTrimSteelName2, UpperZRefset, LowerZRefset, owning_comp.DisplayName, ex))
     finally:
         if original_refset is not None and original_refset != LowerZRefset:
@@ -1207,10 +1307,12 @@ def _create_lower_trim_steel(current: NXOpen.Part, box: nx.Box3d, owning_comp: N
                              material_thickness: float, window_min: NXOpen.Point3d, station_lad: NXOpen.Part,
                              component_lower_trim_steel: _Out, is3d: bool,
                              override_min_z: Optional[float] = None,
-                             override_max_z: Optional[float] = None, add_extra_shcs: bool = False) -> None:
+                             override_max_z: Optional[float] = None, add_extra_shcs: bool = False,
+                             profile_features: Optional[List[NXOpen.Features.Feature]] = None) -> None:
     """
     Merlin.CreateLowerTrimSteel - the lower blank steel into station_lad, corner SHCS and dowels, then LWR-PROFILE
     subtracted. (The Secondary Trim Station's temp blocks are built ahead of it - _build_temp_lower_blocks.)
+    profile_features, when given, gets the features the LWR-PROFILE subtract adds (its link and boolean).
     """
     nx.set_display_part(station_lad)
     lts_cx = (box.MinX + box.MaxX) / 2
@@ -1260,7 +1362,10 @@ def _create_lower_trim_steel(current: NXOpen.Part, box: nx.Box3d, owning_comp: N
     # Switching a component to a reference set it does not publish throws, and this is the last statement in the
     # stage - guard and print.
     if nx.has_reference_set(nx.prototype(owning_comp), "LWR-PROFILE"):
+        before = {f.Tag for f in nx.work_part().Features.GetFeatures()}
         drawdie._subtract_refset_from_dynamic_block(nx.work_part(), owning_comp, "LWR-PROFILE")
+        if profile_features is not None:
+            profile_features.extend(f for f in nx.work_part().Features.GetFeatures() if f.Tag not in before)
     else:
         nx.warn("Component {} does not have reference set LWR-PROFILE, skipping the lower trim steel boolean".format(
             owning_comp.DisplayName))
@@ -1674,10 +1779,11 @@ def _create_taper(work_part: NXOpen.Part, body1: NXOpen.Body, tangent_edge: NXOp
 
 def main() -> None:
     """The blank-station UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
-
-    with usage_db.run("blank-station"):
-        BlankStation.execute(False)
+    with nx.merlin_run("blank-station"):
+        try:
+            BlankStation.execute(False)
+        except Exception as ex:
+            nx.print_exception(ex)
 
 
 if __name__ == "__main__":

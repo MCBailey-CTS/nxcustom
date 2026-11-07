@@ -3,13 +3,14 @@ Python port of the cast-trim-pad UFunc (Merlin.StaticGmCastTrimPad, src\\UFuncs\
 "GM Trim Pad - Builder & Cast Inserts").
 The C# wrapper was deleted 2026-10-22 (in git at 1cb53d8): the UFunc's menu button runs this file's main().
 
-Run from an upper or lower station (uad/upd/ush/usp or lad/lsh/lsp as the work part). When the work part is not one,
-the dialog adds a "Build in" radio of the display assembly's loaded stations ({job}-{op}-{station}[NN], 2026-10-30)
-and the picked one is made the work component (and left so) before the build; with none in the assembly it is the
+Run from an upper station (uad/upd/ush/usp as the work part; upper only since 2026-11-07). When the work part is not
+one, the dialog adds a "Build in" radio of the display assembly's loaded upper stations ({job}-{op}-{station}[NN],
+2026-10-30) and the picked one is made the work component (and left so) before the build; with none in the assembly it is the
 old error box. Select the bodies to pad;
-their combined box, +6" in X and +12" in Y (rounded up to 1/8"), becomes a 75 mm block hanging down from 10 mm above
-their highest point. It is promoted to [cts-]cast-trim-pad, its origin re-based onto the block (translation only),
-its vertical edges chamfered 3.25", and it gets:
+their combined box, +6" in X and +12" in Y (rounded up to 1/8"), becomes a 75 mm block sitting 10 mm above their
+highest point (its bottom there, upper or lower; it used to hang down from there, wrapping the bodies, 2026-11-07). It is promoted to [cts-]cast-trim-pad, its origin re-based onto the block (translation only),
+its vertical edges chamfered 3.25", hollowed into a bath tub (the top face's edges offset 40 mm in, extruded 45 mm
+down and subtracted, its faces colored 13 like the pad, 2026-11-07, never run in NX), and it gets:
   - 5 guided retainers (four 90 mm in from the corners, one in the centre), the first one Save As'd as a job part;
   - 4 cast-in inserts, 255 mm / 55 mm in from the corners, on layer 96;
   - 4 ISO nitros on the box corners, .7874" above the top face (GM-only, as in the C#);
@@ -40,7 +41,7 @@ import datetime
 import os
 import re
 import sys
-from typing import Callable, Dict, List, Optional, Sequence, Tuple, cast
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, cast
 
 # Session.Execute does not put the script's folder on sys.path, so the shared modules would not import.
 _here = os.path.dirname(os.path.abspath(__file__))
@@ -66,13 +67,19 @@ from tsg_dialog import CustomerBodiesDialog, is_gm_customer, title_with_version 
 # Constants (Merlin's, inches unless the name says otherwise)
 # ---------------------------------------------------------------------------------------------------
 
-# Block: the bodies' box plus this much in X / Y (half on each side), 75 mm deep, from 10 mm above their top.
+# Block: the bodies' box plus this much in X / Y (half on each side), 75 mm deep, its bottom 10 mm above their top.
 TrimPadGrowX = 6.0
 TrimPadGrowY = 12.0
 TrimPadHeight = 75.0 / 25.4
 TrimPadAboveTop = 10 / 25.4
 TrimPadColor = 13
 TrimPadChamfer = 3.25
+
+# The bath tub: the top face's edges offset this far in, extruded this far down and subtracted (2026-11-07).
+TrimPadPocketInsetMm = 40.0
+TrimPadPocketDepthMm = 45.0
+# The pocket's extrude starts this far above the top face, so its cap is not coplanar with it.
+_TrimPadPocketStartAboveMm = 5.0
 
 # Cast-in inserts sit in from each corner of the trim pad: 255mm in X, 55mm in Y.
 CastInInsertInsetX = 255 / 25.4
@@ -109,6 +116,9 @@ _UpperTokens = ("uad", "upd", "ush", "usp")
 _LowerTokens = ("lad", "lsh", "lsp")
 _StationLeaf = re.compile(r"^\d+-\d+-(uad|upd|ush|usp|lad|lsh|lsp)\d*$", re.IGNORECASE)
 _StationError = "Must be run from LAD, UAD, UPD, USH, USP, LSP or LSH"
+# The cast trim pad goes in upper stations only (2026-11-07).
+_UpperStationError = ("The cast trim pad goes in an upper station: run it from a UAD, UPD, USH or USP, or from an "
+                      "assembly holding one")
 
 _VectorY = NXOpen.Vector3d(0.0, 1.0, 0.0)
 _VectorXN = NXOpen.Vector3d(-1.0, 0.0, 0.0)
@@ -138,10 +148,12 @@ def static_gm_cast_trim_pad(is_gm: bool) -> None:
         return
 
     try:
+        # Upper stations only (2026-11-07): a lower work part, or none, offers the assembly's upper stations instead.
         is_upper = _station_is_upper(nx.work_part().Leaf)
-        stations = [] if is_upper is not None else _station_components()
-        if is_upper is None and not stations:
-            nx.show_error(_StationError)
+        stations = [] if is_upper else [c for c in _station_components()
+                                         if _station_is_upper(nx.prototype(c).Leaf)]
+        if not is_upper and not stations:
+            nx.show_error(_UpperStationError)
             return
 
         dialog = BuildInDialog(title_with_version("Cast Trim Pad"), [nx.prototype(c).Leaf for c in stations])
@@ -156,7 +168,7 @@ def static_gm_cast_trim_pad(is_gm: bool) -> None:
             station = next(c for c in stations if nx.prototype(c).Leaf == dialog.station)
             nx.set_work_component(station)
             is_upper = _station_is_upper(dialog.station)
-        assert is_upper is not None
+        assert is_upper
 
         # sess.SetWcs() - the display part's WCS back to absolute.
         drawdie._set_wcs_to_absolute(nx.display_part())
@@ -173,14 +185,32 @@ def static_gm_cast_trim_pad(is_gm: bool) -> None:
 
 @nx.traced("Cast Trim Pad")
 def _build_trim_pad(is_gm: bool, is_upper: bool, bodies: List[NXOpen.Body]) -> None:
+    # The bodies are measured in the display part, but the block is built in the work part (the station): map the box
+    # into the station's own coordinates, or a station that is not at the display part's origin gets its pad that far
+    # off (2026-11-07: pads landing at the wrong Z and off to the side when run from the -000).
+    # Then the station is displayed for the build, as Cast Form Pad / Cast Post / Component do: a builder in a work
+    # component under a displayed assembly takes the assembly's coordinates and maps them itself, so the mapped box
+    # was moved by the station's offset twice (2026-11-07, still off after the WorkFrame fix).
+    top_level = nx.display_part()
+    station_occurrence = nx.session_.Parts.WorkComponent
     combined = nx.combine_boxes(nx.body_box(body) for body in bodies)
+    frame = nx.WorkFrame()
+    combined = frame.box(combined)
+    frame.warn_if_turned("Cast Trim Pad")
+    if top_level.Tag != nx.work_part().Tag:
+        nx.set_display_part(nx.work_part())
+        drawdie._set_wcs_to_absolute(nx.display_part())
     xlength = nx.round_to_125(combined.MaxX - combined.MinX + TrimPadGrowX)
     ywidth = nx.round_to_125(combined.MaxY - combined.MinY + TrimPadGrowY)
 
-    # Origin at top of block (MaxZ + 10mm). Block is oriented -Z (height 75mm) so it extends downward.
-    origin = NXOpen.Point3d(combined.MinX - TrimPadGrowX / 2,
+    # Origin at top of block, 75 mm over its bottom, which is 10 mm above the bodies' top (2026-11-07: the pad sits
+    # above the bodies; the top used to be at MaxZ + 10mm). Block is oriented -Z so it extends downward. The -Z matrix
+    # (Vector3d.__ToMatrix3x3) has X = -X and Y = +Y, so the block runs from the origin towards -X: the origin is the
+    # +X corner. It used to be the -X corner (as in the C#), which put the whole pad its length to -X of the bodies
+    # (seen in NX 2026-11-07: bodies X 1.64..50.65, pad X -56.49..-1.36).
+    origin = NXOpen.Point3d(combined.MinX - TrimPadGrowX / 2 + xlength,
                             combined.MinY - TrimPadGrowY / 2,
-                            combined.MaxZ + TrimPadAboveTop)
+                            combined.MaxZ + TrimPadAboveTop + TrimPadHeight)
 
     block = _create_block(origin, drawdie._z_matrix(_VectorZN), xlength, ywidth, TrimPadHeight)
 
@@ -198,7 +228,7 @@ def _build_trim_pad(is_gm: bool, is_upper: bool, bodies: List[NXOpen.Body]) -> N
         original_objects_deleted=True,
         auto_size_udo=True)
 
-    # Origin only, deliberately. This block is built rotated (-Z, so it extends downward from MaxZ + 10mm), and
+    # Origin only, deliberately. This block is built rotated (-Z, so it extends downward from its top), and
     # everything below places off the box's min corner with hard-coded orientation matrices. Axis-aligning the block
     # would make that corner a different physical corner and would spin every one of those matrices through the
     # block rotation. A pure translation leaves all of it intact - `bounding` is re-read below and self-corrects.
@@ -210,6 +240,8 @@ def _build_trim_pad(is_gm: bool, is_upper: bool, bodies: List[NXOpen.Body]) -> N
     new_part.Layers.WorkLayer = merlin.DetailWorkLayer
     _chamfer_vertical_edges(nx.dynamic_block(new_part), TrimPadChamfer)
     solid_body = _single_solid_body_on_layer1(new_part)
+    # After the chamfers, so the pocket follows the chamfered outline and its own walls are not chamfered.
+    _pad_step("pocket", lambda: _cut_pocket(solid_body))
     bounding = nx.body_box(solid_body)
 
     _pad_step("guided retainers", lambda: _add_guided_retainers(bounding, is_gm))
@@ -240,7 +272,12 @@ def _build_trim_pad(is_gm: bool, is_upper: bool, bodies: List[NXOpen.Body]) -> N
     nx.set_display_part(current_display)
     nx.find_or_create_reference_set(current_work, "BODY").AddObjectsToReferenceSet([pad])
 
-    merlin._set_reference_set_in_ancestor_assemblies(nx.first_occurrence_in(new_part, current_display))
+    # Back on the assembly the run started from, with the station the work component again.
+    if top_level.Tag != current_display.Tag:
+        nx.set_display_part(top_level)
+        if station_occurrence is not None:
+            nx.set_work_component(station_occurrence)
+    merlin._set_reference_set_in_ancestor_assemblies(nx.first_occurrence_in(new_part, top_level))
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -456,6 +493,39 @@ def _chamfer_vertical_edges(block: NXOpen.Features.Block, chamfer: float) -> Non
             builder.Destroy()
 
 
+@nx.traced("Cast Trim Pad")
+def _cut_pocket(body: NXOpen.Body) -> None:
+    """
+    The bath tub: the top face's edges copied to curves, offset TrimPadPocketInsetMm inside, extruded
+    TrimPadPocketDepthMm down from the top face and subtracted from body, its faces colored TrimPadColor like the
+    pad. The curves stay on the work layer, behind the extrude.
+    """
+    from Boss import _snap_extrude
+    from ProfileSubtract import _offset_outward
+
+    part = cast(NXOpen.Part, body.OwningPart)
+    per_mm = 1.0 if part.PartUnits == NXOpen.BasePart.Units.Millimeters else 1 / 25.4
+    top_z = nx.body_box(body).MaxZ
+    tops = [face for face in body.GetFaces()
+            if face.SolidFaceType == NXOpen.Face.FaceType.Planar
+            and nx.doubles_equal(nx.body_box(cast(Any, face)).MinZ, top_z)
+            and nx.doubles_equal(nx.body_box(cast(Any, face)).MaxZ, top_z)]
+    if len(tops) != 1:
+        raise RuntimeError("{} has {} flat top faces, expected 1".format(part.Leaf, len(tops)))
+
+    curves = [nx.edge_to_curve(edge) for edge in tops[0].GetEdges()]
+    profile = _offset_outward(curves, -TrimPadPocketInsetMm * per_mm)
+    start = -_TrimPadPocketStartAboveMm * per_mm
+    # Lifted off the top face: start is measured along -Z, so a negative start is above it.
+    extrude = _snap_extrude(profile, _VectorZN, TrimPadPocketDepthMm * per_mm, start=start)
+    faces_before = {face.Tag for face in body.GetFaces()}
+    subtract = nx.subtract(body, list(extrude.GetBodies()))
+    # The pocket's walls and floor come from the extrude and would keep its color: they get the pad's (2026-11-07).
+    new_faces = list(subtract.GetFaces()) or [face for face in body.GetFaces() if face.Tag not in faces_before]
+    for face in new_faces:
+        nx.set_color(face, TrimPadColor)
+
+
 def _is_vertical(edge: NXOpen.Edge) -> bool:
     """Body.__VerticalEdges' test - the edge's two ends at different Z (.001 tolerance)."""
     start, end = edge.GetVertices()
@@ -494,9 +564,7 @@ def _pad_step(label: str, step: Callable[[], None]) -> None:
 
 def main() -> None:
     """The cast-trim-pad UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
-
-    with usage_db.run("cast-trim-pad"):
+    with nx.merlin_run("cast-trim-pad"):
         try:
             # The Cast Trim Pad dialog (customer + bodies) stands in for the "Are you sure" box.
             CastTrimPad.execute(True)

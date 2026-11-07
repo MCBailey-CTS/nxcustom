@@ -14,7 +14,7 @@ import os
 import sys
 import traceback
 from typing import Any, Union
-from typing import Iterable, Iterator, List, NamedTuple, Optional, Sequence, cast
+from typing import Iterable, Iterator, List, NamedTuple, Optional, Sequence, Tuple, cast
 
 import NXOpen
 import NXOpen.Assemblies
@@ -103,6 +103,22 @@ def print_exception(ex: BaseException, user_message: Optional[str] = None) -> No
     try:
         import usage_db
         usage_db.log_exception(ex, user_message)
+    except Exception:
+        pass
+
+
+def error(message: object) -> None:
+    """
+    A failure with no exception behind it: the listing window and the syslog, and it counts towards the run's errors
+    like print_exception, so report_errors tells the user. A line printed beside a print_exception stays on print_
+    (error would count that failure twice), and something left undone on purpose is warn().
+    """
+    print_(message)
+    syslog(message)
+    progress("FAILED: {}".format(message))
+    try:
+        import usage_db
+        usage_db.count_error()
     except Exception:
         pass
 
@@ -254,6 +270,21 @@ def is_jck_screw(name: str) -> bool:
 def is_loaded(component: NXOpen.Assemblies.Component) -> bool:
     """Component.__IsLoaded"""
     return isinstance(component.Prototype, NXOpen.Part)
+
+
+def ensure_loaded_quietly(component: NXOpen.Assemblies.Component) -> bool:
+    """Component.__EnsureLoadedQuietly"""
+    instance = ufsession_.Assem.AskInstOfPartOcc(component.Tag)
+    if not instance:
+        return False
+    result = ufsession_.Assem.AskPartNameOfChild(instance)
+    part_name = result if isinstance(result, str) else result[0]
+    if ufsession_.Part.IsLoaded(part_name) == 1:
+        return True
+    if ufsession_.Cfi.AskFileExist(part_name) != 0:
+        return False
+    part_open, _status = ufsession_.Part.OpenQuiet(part_name)
+    return bool(part_open)
 
 
 def prototype(component: NXOpen.Assemblies.Component) -> NXOpen.BasePart:
@@ -421,12 +452,12 @@ def is_link_broken(extract_face: NXOpen.Features.Feature) -> bool:
 # Selection (TSG_Library.Ui.Selection)
 # ---------------------------------------------------------------------------------------------------
 
-def select_many_components(message: str) -> List[NXOpen.Assemblies.Component]:
-    """Selection.SelectManyComponents(message) - returns [] on cancel."""
+def select_many_components(message: str, title: Optional[str] = None) -> List[NXOpen.Assemblies.Component]:
+    """Selection.SelectManyComponents(message) - returns [] on cancel. title is the window's, message by default."""
     mask = NXOpen.Selection.MaskTriple(NXOpen.UF.UFConstants.UF_component_type, 0, 0)
     response, objects = NXOpen.UI.GetUI().SelectionManager.SelectTaggedObjects(
         message,
-        message,
+        title or message,
         NXOpen.Selection.SelectionScope.AnyInAssembly,
         NXOpen.Selection.SelectionAction.ClearAndEnableSpecific,
         False,
@@ -467,6 +498,54 @@ def combine_boxes(boxes: Iterable[Optional[Box3d]]) -> Box3d:
     present = [b for b in boxes if b is not None]
     return Box3d(min(b.MinX for b in present), min(b.MinY for b in present), min(b.MinZ for b in present),
                  max(b.MaxX for b in present), max(b.MaxY for b in present), max(b.MaxZ for b in present))
+
+
+class WorkFrame(object):
+    """
+    The display part -> work part mapping, captured while the assembly is displayed and the station is the work
+    component (UF_CSYS_map_point ROOT -> WORK, which follows every level of a nested work component), so it can still
+    be used after the builder displays the station. Builders take points in the work part's own coordinates, so a box
+    measured off occurrences in the assembly must go through box() before a block is built from it in a station that
+    is not at the assembly's origin (2026-11-07: Cast Trim Pad and friends landed at the wrong Z and off to the side).
+    With the work part displayed it is the identity.
+    """
+
+    def __init__(self) -> None:
+        def map_point(x: float, y: float, z: float) -> List[float]:
+            # 1 = UF_CSYS_ROOT_COORDS, 2 = UF_CSYS_WORK_COORDS
+            return list(ufsession_.Csys.MapPoint(1, [float(x), float(y), float(z)], 2))
+
+        self.work_leaf = work_part().Leaf
+        self.display_leaf = display_part().Leaf
+        o = map_point(0, 0, 0)
+        self._origin = o
+        # The images of the display part's unit axes, less the origin: the columns of the rotation.
+        self._axes = [[a - b for a, b in zip(map_point(*unit), o)] for unit in ((1, 0, 0), (0, 1, 0), (0, 0, 1))]
+        self.turned = not (abs(self._axes[0][0] - 1) < 1e-6 and abs(self._axes[2][2] - 1) < 1e-6)
+        self.offset = any(abs(c) > 1e-6 for c in o)
+
+    def point(self, x: float, y: float, z: float) -> List[float]:
+        return [self._origin[i] + x * self._axes[0][i] + y * self._axes[1][i] + z * self._axes[2][i]
+                for i in range(3)]
+
+    def box(self, box: Box3d) -> Box3d:
+        """box (display-part coordinates) in the work part's: the box round its 8 corners mapped."""
+        corners = [self.point(x, y, z) for x in (box.MinX, box.MaxX) for y in (box.MinY, box.MaxY)
+                   for z in (box.MinZ, box.MaxZ)]
+        return Box3d(min(c[0] for c in corners), min(c[1] for c in corners), min(c[2] for c in corners),
+                     max(c[0] for c in corners), max(c[1] for c in corners), max(c[2] for c in corners))
+
+    def warn_if_turned(self, label: str) -> None:
+        """The warning Draw Die gives: a min / max box no longer says which side is up in a turned station."""
+        if self.turned:
+            warn("{}: {} is turned in {}. The detail is laid out in its coordinates, so check that it is not upside "
+                 "down.".format(label, self.work_leaf, self.display_leaf))
+
+
+def box_in_work_part(box: Box3d) -> Tuple[Box3d, bool]:
+    """A display-part box in the work part's own coordinates, and whether the work part is turned (WorkFrame)."""
+    frame = WorkFrame()
+    return frame.box(box), frame.turned
 
 
 def round_to_125(distance: float) -> float:
@@ -643,6 +722,39 @@ def confirm_execute(ufunc_name: str) -> bool:
         return True
     mark_cancelled("the confirm")
     return False
+
+
+@contextlib.contextmanager
+def report_errors(title: str) -> Iterator[None]:
+    """
+    Shows an Error box after the block if any errors were counted in it (print_exception, error): how many, and to
+    look at the Information window, since a designer may never look there. Nothing when there were none.
+    """
+    import usage_db
+    before = usage_db.errors_logged()
+    try:
+        yield
+    finally:
+        errors = usage_db.errors_logged() - before
+        if errors:
+            message_box(title, NXOpen.NXMessageBox.DialogType.Error,
+                        "{} {} occurred.\n\nLook at the Information window for the details.".format(
+                            errors, "error" if errors == 1 else "errors"))
+
+
+@contextlib.contextmanager
+def merlin_run(ufunc_name: str) -> Iterator[int]:
+    """
+    usage_db.run for a Merlin UFunc's main(): the run, with report_errors inside it so the box is filed under it, and
+    block_set.recording around the UFunc, so every component the run creates - blocks, keys, fasteners - is recorded
+    in a MerlinBlockSet run record (2026-11-07).
+    """
+    import block_set
+    import usage_db
+    with usage_db.run(ufunc_name) as run_id:
+        with block_set.recording(ufunc_name, run_id):
+            with report_errors(ufunc_rev_name(ufunc_name)):
+                yield run_id
 
 
 def mark_cancelled(where: str) -> None:

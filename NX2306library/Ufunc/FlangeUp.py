@@ -18,7 +18,7 @@ builds into the op picked in the dialog:
          the left / right ones 2" along Y off the centreline to miss the SHCS, and the cast text.
       3. LOWER FLANGE UP STEELS - the part's box + 1" a side in X and + .375" a side in Y, at least 2" under the part,
          split down the X centre; the dialog's "Flange is located where?" keeps both halves, the -X (left) or the +X
-         (right) one, each split into Rows along Y. LWR-PROFILE and LWR-3D subtracted. Per steel: 2 jack screws on
+         (right) one, each split into Cols (y) along Y. LWR-PROFILE and LWR-3D subtracted. Per steel: 2 jack screws on
          the bottom (balanced on a 1" grid), 3 x 16mm-shcs-070-2x in from the outer side face (SHORT-TAP), 1.625" up
          and evenly along the steel, and one key on the bottom running along X (25mm-80mm). Bottom and SHCS face
          yellow.
@@ -36,7 +36,7 @@ top of an upper one - the upper pad's spec is the lower's with the numbers chang
 included. "Top face" (the hoist rings) is the face opposite it.
 
 The dialog (FlangeUp.dlx, tools\\make-dlx.py): the Customer radio (None / TSG / GM; TSG uses the CTS keys and guided
-keepers, as Draw Die does), the part's solid bodies, the op (ops with both a ladNN and a uadNN), Lower with its Rows
+keepers, as Draw Die does), the part's solid bodies, the op (ops with both a ladNN and a uadNN), Lower with its Cols
 (y) and the flange side, and Upper with Rows (x) / Cols (y). OK stays greyed out until TSG or GM is
 checked, a body is picked and a side is checked. LWR-3D / UPR-3D must be on the picked bodies' components for the
 side being built; a missing PAD-PROFILE or LWR-PROFILE asks one Question box (Yes builds without that boolean).
@@ -75,6 +75,7 @@ import NXOpen.Layer  # noqa: E402
 import NXOpen.UF  # noqa: E402
 
 import tsg_nx as nx  # noqa: E402
+import block_set  # noqa: E402
 import PointComponent as merlin  # noqa: E402
 import DrawDie as drawdie  # noqa: E402
 from CastTrimPad import _import_cast_text  # noqa: E402
@@ -220,7 +221,7 @@ class FlangeUp(object):
         if not accepted:
             return
 
-        options = FlangeUpOptions(dialog.station, dialog.lower, dialog.upper, dialog.lower_rows, dialog.flange,
+        options = FlangeUpOptions(dialog.station, dialog.lower, dialog.upper, dialog.lower_cols, dialog.flange,
                                   dialog.upper_rows, dialog.upper_cols)
 
         refsets = _resolve_reference_sets(_components_of(dialog.bodies), options)
@@ -235,12 +236,12 @@ class FlangeUpOptions(object):
     """What the dialog picked."""
 
     def __init__(self, station: str = drawdie.DefaultStation, lower: bool = True, upper: bool = True,
-                 lower_rows: int = 2, flange: str = FlangeBoth, upper_rows: int = 2, upper_cols: int = 1) -> None:
+                 lower_cols: int = 2, flange: str = FlangeBoth, upper_rows: int = 2, upper_cols: int = 1) -> None:
         self.station = station
         self.lower = lower
         self.upper = upper
         # Lower steels along Y on each flange side.
-        self.lower_rows = max(1, lower_rows)
+        self.lower_cols = max(1, lower_cols)
         self.flange = flange
         # Upper steels: rows along X by cols along Y (Dead Hit's Rows (x) / Cols (y)).
         self.upper_rows = max(1, upper_rows)
@@ -712,7 +713,7 @@ def _build_lower_steels(job: DrawDieJob, options: FlangeUpOptions, refsets: Dict
     """LOWER FLANGE UP STEELS - see the module docstring. One key job copy for all of them."""
     min_point, xlength, ywidth, height = _lower_steel_size(job.part_box)
 
-    rows = options.lower_rows
+    rows = options.lower_cols
     column_width = (xlength - merlin.SplitGap) / 2
     row_length = (ywidth - (rows - 1) * merlin.SplitGap) / rows
     if column_width <= 0 or row_length <= 0:
@@ -722,6 +723,8 @@ def _build_lower_steels(job: DrawDieJob, options: FlangeUpOptions, refsets: Dict
     columns = {FlangeBoth: [0, 1], FlangeLeft: [0], FlangeRight: [1]}.get(options.flange, [0, 1])
     colors = random.sample(merlin.SplitComponentColors, len(merlin.SplitComponentColors))
     keys: List[NXOpen.Assemblies.Component] = []
+    # The steels made, for the MerlinBlockSet record after the loop (block_set.record).
+    members: List[NXOpen.Assemblies.Component] = []
     index = 0
     for column in columns:
         for row in range(rows):
@@ -729,20 +732,23 @@ def _build_lower_steels(job: DrawDieJob, options: FlangeUpOptions, refsets: Dict
                                        min_point.Y + row * (row_length + merlin.SplitGap), min_point.Z)
             try:
                 _build_one_lower_steel(job, block_min, column, row, column_width, row_length, height,
-                                       colors[index % len(colors)], refsets, keys)
+                                       colors[index % len(colors)], refsets, keys, members)
             except Exception as ex:
                 nx.print_("Flange Up: lower flange up steel {} of {} failed.".format(index + 1, len(columns) * rows))
                 nx.print_exception(ex)
             index += 1
 
+    # Rows (x): the flange sides built (1 or 2); cols (y): the steels along Y a side.
+    block_set.record(members, "Flange Up", "lower flange up steels", rows=len(columns), cols=rows)
     drawdie._save_as_draw_die_part(keys, job, "flange-up-lower-steel-key")
 
 
 @nx.traced("Flange Up")
 def _build_one_lower_steel(job: DrawDieJob, block_min: NXOpen.Point3d, column: int, row: int, width: float,
                            length: float, height: float, color: int, refsets: Dict[str, Optional[str]],
-                           keys: List[NXOpen.Assemblies.Component]) -> None:
-    """One lower steel: column 0 is the -X (left) flange side, 1 the +X (right)."""
+                           keys: List[NXOpen.Assemblies.Component],
+                           members: Optional[List[NXOpen.Assemblies.Component]] = None) -> None:
+    """One lower steel: column 0 is the -X (left) flange side, 1 the +X (right). Its component goes in members."""
     outer = _VectorXN if column == 0 else _VectorX
     outer_x = 0.0 if column == 0 else width
     label = "lower flange up steel {}{}".format("L" if column == 0 else "R", row + 1)
@@ -757,6 +763,8 @@ def _build_one_lower_steel(job: DrawDieJob, block_min: NXOpen.Point3d, column: i
         fixed_description=False,
         # The bottom is yellow already (the mounting face); the side the SHCS come in from too.
         joint_normals=[outer])
+    if members is not None:
+        members.append(component)
 
     body_refset = nx.find_or_create_reference_set(new_part, "BODY")
     shift = drawdie.KeyShiftStep * row
@@ -802,6 +810,8 @@ def _build_upper_steels(job: DrawDieJob, options: FlangeUpOptions, refsets: Dict
 
     colors = random.sample(merlin.SplitComponentColors, len(merlin.SplitComponentColors))
     keys: List[NXOpen.Assemblies.Component] = []
+    # The steels made, for the MerlinBlockSet record after the loop (block_set.record).
+    members: List[NXOpen.Assemblies.Component] = []
     index = 0
     for column in range(columns):
         for row in range(rows):
@@ -809,19 +819,21 @@ def _build_upper_steels(job: DrawDieJob, options: FlangeUpOptions, refsets: Dict
                                        min_point.Y + row * (row_length + merlin.SplitGap), min_point.Z)
             try:
                 _build_one_upper_steel(job, block_min, column, row, columns, column_width, row_length, height,
-                                       colors[index % len(colors)], refsets, keys)
+                                       colors[index % len(colors)], refsets, keys, members)
             except Exception as ex:
                 nx.print_("Flange Up: upper flange up steel {} of {} failed.".format(index + 1, columns * rows))
                 nx.print_exception(ex)
             index += 1
 
+    block_set.record(members, "Flange Up", "upper flange up steels", rows=columns, cols=rows)
     drawdie._save_as_draw_die_part(keys, job, "flange-up-upper-steel-key")
 
 
 @nx.traced("Flange Up")
 def _build_one_upper_steel(job: DrawDieJob, block_min: NXOpen.Point3d, column: int, row: int, columns: int,
                            width: float, length: float, height: float, color: int,
-                           refsets: Dict[str, Optional[str]], keys: List[NXOpen.Assemblies.Component]) -> None:
+                           refsets: Dict[str, Optional[str]], keys: List[NXOpen.Assemblies.Component],
+                           members: Optional[List[NXOpen.Assemblies.Component]] = None) -> None:
     label = "upper flange up steel {}".format(row * columns + column + 1)
     new_part, component = drawdie._promote_draw_die_block(
         job, block_min, width, length, height,
@@ -831,6 +843,8 @@ def _build_one_upper_steel(job: DrawDieJob, block_min: NXOpen.Point3d, column: i
         material=SteelMaterial,
         detail_name="UPPER FLANGE UP STEELS",
         fixed_description=False)
+    if members is not None:
+        members.append(component)
 
     body_refset = nx.find_or_create_reference_set(new_part, "BODY")
     mount_z, into, out_of, _top_z, _up = _faces(True, height)
@@ -954,15 +968,15 @@ def draw_steels(bodies: Sequence[NXOpen.Body], stations: Dict[str, NXOpen.Assemb
         station = stations["lad"]
         # Both X halves, one after the other; the flange side keeps one of them.
         boxes = drawdie._form_steel_boxes(_lower_steel_size(drawdie._box_in_station(station, box)), 2,
-                                          options.lower_rows)
+                                          options.lower_cols)
         if options.flange == FlangeLeft:
-            boxes = boxes[:options.lower_rows]
+            boxes = boxes[:options.lower_cols]
         elif options.flange == FlangeRight:
-            boxes = boxes[options.lower_rows:]
+            boxes = boxes[options.lower_cols:]
         for origin, x, y, z in boxes:
             drawdie._draw_box(station, origin, x, y, z, drawdie.PreviewLowerColor)
         nx.syslog("Flange Up preview: lower {}, {} along Y - {} box(es) drawn in {}.".format(
-            options.flange, options.lower_rows, len(boxes), station.DisplayName))
+            options.flange, options.lower_cols, len(boxes), station.DisplayName))
 
     if options.upper:
         station = stations["uad"]
@@ -975,7 +989,7 @@ def draw_steels(bodies: Sequence[NXOpen.Body], stations: Dict[str, NXOpen.Assemb
 
 
 class _FlangeUpDialog(Dialog):
-    """FlangeUp.dlx: Customer, the bodies, the op, Lower (Rows (y), flange side), Upper (Rows (x), Cols (y)).
+    """FlangeUp.dlx: Customer, the bodies, the op, Lower (Cols (y), flange side), Upper (Rows (x), Cols (y)).
     GM keys and guided retainers are placed from DrawDie's preset parts, so no spreadsheet is opened. While it is
     open, the steels of the checked sides are outlined with preview lines over the picked bodies."""
 
@@ -992,7 +1006,7 @@ class _FlangeUpDialog(Dialog):
         self.station = self.numbers[0]
         self.lower = True
         self.upper = True
-        self.lower_rows = 2
+        self.lower_cols = 2
         self.flange = FlangeBoth
         self.upper_rows = 2
         self.upper_cols = 1
@@ -1023,7 +1037,7 @@ class _FlangeUpDialog(Dialog):
         try:
             station = str(self.block("station").ValueAsString)
             options = FlangeUpOptions(station, bool(self.block("lower").Value), bool(self.block("upper").Value),
-                                      int(self.block("lower_rows").Value), str(self.block("flange").ValueAsString),
+                                      int(self.block("lower_cols").Value), str(self.block("flange").ValueAsString),
                                       int(self.block("upper_rows").Value), int(self.block("upper_cols").Value))
             drawdie._erase_preview()
             draw_steels(self._picked_bodies(), self.stations[station], options)
@@ -1033,7 +1047,7 @@ class _FlangeUpDialog(Dialog):
     def _enable_sides(self) -> None:
         lower = bool(self.block("lower").Value)
         upper = bool(self.block("upper").Value)
-        self.block("lower_rows").Enable = lower
+        self.block("lower_cols").Enable = lower
         self.block("flange").Enable = lower
         self.block("upper_rows").Enable = upper
         self.block("upper_cols").Enable = upper
@@ -1058,7 +1072,7 @@ class _FlangeUpDialog(Dialog):
             return False
         self.customer_choice = self.customer()
         self.station = str(self.block("station").ValueAsString)
-        self.lower_rows = int(self.block("lower_rows").Value)
+        self.lower_cols = int(self.block("lower_cols").Value)
         self.flange = str(self.block("flange").ValueAsString)
         self.upper_rows = int(self.block("upper_rows").Value)
         self.upper_cols = int(self.block("upper_cols").Value)
@@ -1071,9 +1085,7 @@ class _FlangeUpDialog(Dialog):
 
 def main() -> None:
     """The flange-up UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
-
-    with usage_db.run(ufunc_name):
+    with nx.merlin_run(ufunc_name):
         try:
             # The Flange Up dialog asks for the customer and stands in for the "Are you sure" box.
             FlangeUp.execute(True)

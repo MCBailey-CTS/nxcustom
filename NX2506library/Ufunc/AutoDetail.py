@@ -203,21 +203,6 @@ def is_name_valid(component: NXOpen.Assemblies.Component) -> bool:
     return re.match(RegexDetail, component.DisplayName) is not None
 
 
-def _ensure_loaded_quietly(component: NXOpen.Assemblies.Component) -> bool:
-    """Component.__EnsureLoadedQuietly"""
-    instance = _ufs.Assem.AskInstOfPartOcc(component.Tag)
-    if not instance:
-        return False
-    result = _ufs.Assem.AskPartNameOfChild(instance)
-    part_name = result if isinstance(result, str) else result[0]
-    if _ufs.Part.IsLoaded(part_name) == 1:
-        return True
-    if _ufs.Cfi.AskFileExist(part_name) != 0:
-        return False
-    part_open, _status = _ufs.Part.OpenQuiet(part_name)
-    return bool(part_open)
-
-
 def get_child_components(assembly: NXOpen.Assemblies.Component,
                          into: List[NXOpen.Assemblies.Component]) -> None:
     """Static.AutoDetailGetChildComponents (Component.__LoadedDescendants with IsNameValid): every unsuppressed detail
@@ -231,7 +216,7 @@ def get_child_components(assembly: NXOpen.Assemblies.Component,
         if not is_name_valid(child):
             get_child_components(child, into)
             continue
-        if not _ensure_loaded_quietly(child):
+        if not nx.ensure_loaded_quietly(child):
             continue
         into.append(child)
         get_child_components(child, into)
@@ -827,14 +812,11 @@ def _dimension_view(drf_view: Any, drf_view_position: Sequence[float], view_scal
     on 4-VIEW-RIGHT, between the extreme visible edges / lines."""
     drf_view.Update()
     view_matrix = drf_view.Matrix
-    obj_in_view: List[Any] = []
-    vis_obj: Any = 0
-
-    while True:
-        vis_obj = _ufs.View.CycleObjects(drf_view.Tag, _UF.View.CycleObjects.VISIBLE_OBJECTS, vis_obj)
-        if not vis_obj:
-            break
-        obj_in_view.append(nx.tagged_object(vis_obj))
+    # UF_VIEW_cycle_objects can't be called from NX Python: UFView.CycleObjects is the enum class there (calling it
+    # throws "instances of NX enums can not be created"). AskVisibleObjects returns the same set: the entirely
+    # visible objects plus the clipped ones.
+    _n_visible, visible, _n_clipped, clipped = _ufs.View.AskVisibleObjects(drf_view.Tag)
+    obj_in_view: List[Any] = [nx.tagged_object(tag) for tag in list(visible or []) + list(clipped or [])]
 
     dim_data: List[DimensionData] = []
     for disp_obj in obj_in_view:
@@ -999,7 +981,8 @@ def _create_detail_sheet(drill_chart_text: Optional[List[str]], is_drill_chart: 
 
         # (height, width) in the C#'s order.
         four_view_sheet = disp.DraftingDrawingSheets.InsertSheet(
-            "4-VIEW", sheet_units, sheet_height, sheet_width, 1, 1,
+            # numerator / denominator must be floats: NX Python has no int -> double overload.
+            "4-VIEW", sheet_units, float(sheet_height), float(sheet_width), 1.0, 1.0,
             NXOpen.Drawings.DrawingSheet.ProjectionAngleType.ThirdAngle)
 
         _set_drafting_preferences(units, scale, is_dual_dimensions)

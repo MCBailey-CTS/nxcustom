@@ -201,6 +201,13 @@ def build_gm_cast_posts(is_gm: bool, is_upper: bool, bodies: List[NXOpen.Body], 
         return
     z_boxes = {c.Tag: nx.reference_set_box(c, reference_set, "Cast Post") for c in components}
 
+    # Measured in the assembly; mapped into the station before it is displayed (nx.WorkFrame), or a station off the
+    # assembly's origin gets its posts that far off.
+    frame = nx.WorkFrame()
+    frame.warn_if_turned("Cast Post")
+    picked = [(frame.box(box), comp) for box, comp in picked]
+    z_boxes = {tag: (frame.box(b) if b is not None else None) for tag, b in z_boxes.items()}
+
     nx.set_display_part(nx.work_part())
 
     start = datetime.datetime.now()
@@ -678,9 +685,7 @@ def _add_x(point: NXOpen.Point3d, x: float) -> NXOpen.Point3d:
 
 def main() -> None:
     """The cast-post UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
-
-    with usage_db.run("cast-post"):
+    with nx.merlin_run("cast-post"):
         try:
             # The Cast Post dialog (customer + bodies) stands in for the "Are you sure" box.
             CastPost.execute(True)

@@ -37,6 +37,7 @@ import NXOpen.Features  # noqa: E402
 import NXOpen.Layer  # noqa: E402
 import NXOpen.UF  # noqa: E402
 
+import block_set  # noqa: E402
 import tsg_nx as nx  # noqa: E402
 
 # Merlin constants.
@@ -67,21 +68,23 @@ class PointComponent(object):
         Session.Execute entry for Merlin.StaticPointComponent. split_axis is "X" or "Y" (Merlin.SplitAxis); the
         other arguments are BuildPointComponent's, flattened so they can cross Session.Execute.
         """
-        try:
-            subtract_component = None
-            if subtract_component_tag:
-                subtract_component = cast(NXOpen.Assemblies.Component, nx.tagged_object(subtract_component_tag))
+        # The C# UFunc has its own usage run, so no merlin_run here: the run record and the error box only.
+        with block_set.recording("point-component"), nx.report_errors(nx.ufunc_rev_name("point-component")):
+            try:
+                subtract_component = None
+                if subtract_component_tag:
+                    subtract_component = cast(NXOpen.Assemblies.Component, nx.tagged_object(subtract_component_tag))
 
-            build_point_component(
-                NXOpen.Point3d(first_x, first_y, first_z),
-                NXOpen.Point3d(second_x, second_y, second_z),
-                height,
-                int(component_count),
-                subtract_component,
-                subtract_refset or None,
-                "X" if str(split_axis).upper() == "X" else "Y")
-        except Exception as ex:
-            nx.print_exception(ex)
+                build_point_component(
+                    NXOpen.Point3d(first_x, first_y, first_z),
+                    NXOpen.Point3d(second_x, second_y, second_z),
+                    height,
+                    int(component_count),
+                    subtract_component,
+                    subtract_refset or None,
+                    "X" if str(split_axis).upper() == "X" else "Y")
+            except Exception as ex:
+                nx.print_exception(ex)
 
 
 @nx.traced("Point Component")
@@ -164,6 +167,8 @@ def build_point_component(first_corner: NXOpen.Point3d, second_corner: NXOpen.Po
             block_corner = nx.add_along(nx.add_along(block_origin, keep_axis, keep_span), stack_axis, component_width)
             blocks.append(nx.create_block_two_points_and_height(wcs_matrix, block_origin, block_corner, height))
 
+        # The components made, for the MerlinBlockSet record after the loop (block_set.record).
+        members: List[NXOpen.Assemblies.Component] = []
         for index, block in enumerate(blocks):
             try:
                 # CreateCtsComponent leaves the new detail as the display/work part, so every iteration after
@@ -173,10 +178,16 @@ def build_point_component(first_corner: NXOpen.Point3d, second_corner: NXOpen.Po
 
                 _build_one_block(block, index, len(blocks), split_colors, wcs_matrix, stack_axis,
                                  block_xlength, block_ywidth, height, starting_display,
-                                 subtract_component, subtract_refset)
+                                 subtract_component, subtract_refset, members)
             # Per-block catch so one bad component does not drop the rest of the batch.
             except Exception as ex:
                 nx.print_exception(ex)
+
+        # Laid out along the WCS split axis: rows (x) along WCS X, cols (y) along WCS Y. One block is no set.
+        nx.set_display_part(starting_display)
+        nx.set_work_part(starting_work)
+        block_set.record(members, "Point Component", "point components",
+                         rows=component_count if stacks_along_x else 1, cols=1 if stacks_along_x else component_count)
     except Exception as ex:
         nx.print_exception(ex)
     finally:
@@ -192,8 +203,9 @@ def _build_one_block(block: NXOpen.Features.Block, index: int, block_count: int,
                      stack_axis: NXOpen.Vector3d, block_xlength: float, block_ywidth: float, height: float,
                      starting_display: NXOpen.Part,
                      subtract_component: Optional[NXOpen.Assemblies.Component],
-                     subtract_refset: Optional[str]) -> None:
-    """The body of BuildPointComponent's per-block loop."""
+                     subtract_refset: Optional[str],
+                     members: Optional[List[NXOpen.Assemblies.Component]] = None) -> None:
+    """The body of BuildPointComponent's per-block loop. The new component goes in members."""
     block_body = block.GetBodies()[0]
 
     # Color the whole body first - it colors every face, so the yellow faces below have to come after.
@@ -201,7 +213,7 @@ def _build_one_block(block: NXOpen.Features.Block, index: int, block_count: int,
 
     bottom_face = nx.planar_face_with_normal_or_null(block_body, nx.negate(nx.axis_z(wcs_matrix)))
     if bottom_face is None:
-        nx.print_("Could not find the block's -Z face to color yellow")
+        nx.error("Could not find the block's -Z face to color yellow")
     else:
         nx.set_color(bottom_face, 42)
 
@@ -216,6 +228,8 @@ def _build_one_block(block: NXOpen.Features.Block, index: int, block_count: int,
             nx.set_color(face, 42)
 
     new_component = _create_cts_component(block, PointComponentName)
+    if members is not None:
+        members.append(new_component)
 
     # Re-base onto the block's own corner and orientation before anything else is built against the geometry.
     # The parent is the component's owning part - the block was built in the work part.

@@ -91,6 +91,7 @@ import NXOpen.Features  # noqa: E402
 import NXOpen.Layer  # noqa: E402
 
 import tsg_nx as nx  # noqa: E402
+import block_set  # noqa: E402
 import PointComponent as merlin  # noqa: E402
 import DrawDie as drawdie  # noqa: E402
 import CastTrimPad as trimpad  # noqa: E402
@@ -188,11 +189,14 @@ def build_gm_split_form(is_gm: bool, is_upper: bool, bodies: Sequence[NXOpen.Bod
     start = datetime.datetime.now()
     top_level = nx.display_part()
     starting_work = nx.work_part()
+    # Captured before the station is displayed: the boxes are measured in the assembly and mapped into the station.
+    frame = nx.WorkFrame()
+    frame.warn_if_turned("Split Form")
     nx.set_display_part(nx.work_part())
 
     with nx.suppress_display():
         _create_split_form(is_upper, top_level, starting_work, list(bodies), SplitFormOffset, splits, reference_set,
-                           is_gm, columns, plate, backside, size_off_bodies, jig_jacks)
+                           is_gm, columns, plate, backside, size_off_bodies, jig_jacks, frame)
 
     nx.info("complete -> {}".format(drawdie._time_span(datetime.datetime.now() - start)))
 
@@ -201,7 +205,8 @@ def build_gm_split_form(is_gm: bool, is_upper: bool, bodies: Sequence[NXOpen.Bod
 def _create_split_form(is_upper: bool, top_level: NXOpen.Part, start_work: NXOpen.Part,
                        selected_bodies: List[NXOpen.Body], offset: float, splits: int, reference_sets: str,
                        is_gm: bool, columns: int = 1, plate: bool = False, backside: bool = False,
-                       size_off_bodies: bool = False, jig_jacks: bool = False) -> None:
+                       size_off_bodies: bool = False, jig_jacks: bool = False,
+                       frame: Optional[nx.WorkFrame] = None) -> None:
     """
     Merlin.CreateSplitForm, changed (2026-10-21): splits rows along Y by columns along X, sized and set in Z off
     UPR-3D / LWR-3D (_compute_refset_block_dimensions), each block a different random split color.
@@ -224,7 +229,7 @@ def _create_split_form(is_upper: bool, top_level: NXOpen.Part, start_work: NXOpe
         # Before the measuring, which kills the picked body occurrences.
         selected_components = _owning_components(selected_bodies)
         dimensions = _compute_refset_block_dimensions("Split Form", selected_bodies, selected_components,
-                                                      is_upper, offset, size_off_bodies)
+                                                      is_upper, offset, size_off_bodies, frame)
         if dimensions is None:
             return
         xlength, ywidth, height, block_origin, block_z = dimensions
@@ -250,6 +255,8 @@ def _create_split_form(is_upper: bool, top_level: NXOpen.Part, start_work: NXOpe
             shcs_path, shcs_refset, inset = (_shcs16mm050Path if plate else _shcs16mm060Path), "CBORE", .750
         shcs_normal = (_VectorZ if is_upper else _VectorZN) if backside else (_VectorZN if is_upper else _VectorZ)
         fastener_orientation = drawdie._z_matrix(shcs_normal)
+        # The blocks made, for the MerlinBlockSet record after the loop (block_set.record).
+        members: List[NXOpen.Assemblies.Component] = []
 
         for block_index, (column, row, block) in enumerate(blocks):
             try:
@@ -264,6 +271,7 @@ def _create_split_form(is_upper: bool, top_level: NXOpen.Part, start_work: NXOpe
                 new_part, new_component = _promote_to_component(block, _description(xlength, ywidth, height),
                                                                 "{}split-form".format(prefix), rebase_to_block=True,
                                                                 opposite_corner=is_upper)
+                members.append(new_component)
                 bottom_face = _find_bottom_face()
                 box = nx.body_box(trimpad._single_solid_body_on_layer1(nx.display_part()))
                 body_reference_set = _find_reference_set(nx.display_part(), "BODY")
@@ -318,6 +326,11 @@ def _create_split_form(is_upper: bool, top_level: NXOpen.Part, start_work: NXOpe
                 nx.set_display_part(start_work)
             except Exception as ex:
                 nx.print_exception(ex)
+
+        # One record of the grid: columns along X are its rows (x), splits along Y its cols (y).
+        block_set.record(members, "Split Form", "{} split form{}".format(
+            "upper" if is_upper else "lower", " with backside plate" if backside else " with plate" if plate else ""),
+            rows=columns, cols=splits)
 
         # With a plate each block's first key was Save As'd in the loop.
         if not plate:
@@ -386,14 +399,16 @@ def _try_menu_index(response: int, item_count: int) -> Optional[int]:
 # Builder helpers
 # ---------------------------------------------------------------------------------------------------
 
-def _compute_block_dimensions(bodies: Sequence[NXOpen.Body],
-                              offset: float) -> Tuple[float, float, float, NXOpen.Point3d]:
+def _compute_block_dimensions(bodies: Sequence[NXOpen.Body], offset: float,
+                              frame: Optional[nx.WorkFrame] = None) -> Tuple[float, float, float, NXOpen.Point3d]:
     """
     Merlin.ComputeBlockDimensions - (xlength, ywidth, height, block_origin): the bodies' combined box, each span
     rounded up to 1/8" plus offset on each side, centred on the box, block Z always -4. height is the bodies' own Z
-    span.
+    span. frame (captured with the assembly displayed) maps the box into the station the block is built in.
     """
     box = nx.combine_boxes(nx.body_box(body) for body in bodies)
+    if frame is not None:
+        box = frame.box(box)
     length = box.MaxX - box.MinX
     width = box.MaxY - box.MinY
     height = box.MaxZ - box.MinZ
@@ -423,7 +438,7 @@ def _begin_from_dialog(label: str, bodies: List[NXOpen.Body]) -> bool:
         return False
 
     if len(bodies) == 0:
-        nx.print_("{}: no body was passed in - nothing built.".format(label))
+        nx.error("{}: no body was passed in - nothing built.".format(label))
         return False
 
     drawdie._set_wcs_to_absolute(nx.display_part())
@@ -433,7 +448,8 @@ def _begin_from_dialog(label: str, bodies: List[NXOpen.Body]) -> bool:
 @nx.traced("Split Form")
 def _compute_refset_block_dimensions(label: str, bodies: Sequence[NXOpen.Body],
                                      components: Sequence[Optional[NXOpen.Assemblies.Component]], is_upper: bool,
-                                     offset: float, size_off_bodies: bool = False
+                                     offset: float, size_off_bodies: bool = False,
+                                     frame: Optional[nx.WorkFrame] = None
                                      ) -> Optional[Tuple[float, float, float, NXOpen.Point3d, float]]:
     """
     (xlength, ywidth, height, block_origin, block_z) for the split forms. Like _compute_block_dimensions (each span
@@ -474,6 +490,11 @@ def _compute_refset_block_dimensions(label: str, bodies: Sequence[NXOpen.Body],
                                                  [refset]):
             return None
         box = nx.combine_boxes(loose + [nx.reference_set_box(c, refset, label) or picked[c.Tag] for c in owners])
+
+    # The boxes are in the assembly's coordinates; frame (captured with the assembly displayed) maps them into the
+    # station's, which is where the blocks are built.
+    if frame is not None:
+        box = frame.box(box)
 
     xlength, ywidth, height, block_origin, block_z = _block_dimensions(
         box, is_upper, offset, DeadStrikeBlockRise if size_off_bodies else 0.0)
@@ -533,8 +554,8 @@ def _create_grid_blocks(block_origin: NXOpen.Point3d, orientation: NXOpen.Matrix
     """
     grid = _grid_cells(block_origin, xlength, ywidth, rows, cols)
     if grid is None:
-        nx.print_("{} x {} is too small to split {} x {}.".format(drawdie._f3(xlength), drawdie._f3(ywidth), cols,
-                                                                 rows))
+        nx.error("{} x {} is too small to split {} x {}.".format(drawdie._f3(xlength), drawdie._f3(ywidth), cols,
+                                                                rows))
         return None
 
     column_width, row_width, cells = grid
@@ -1030,9 +1051,8 @@ def _subtract_linked_body(part: NXOpen.BasePart, target: NXOpen.Body,
 def main() -> None:
     """The split-form UFunc (its menu button runs this file) - the dialog, then execute_with."""
     import SplitFormDialog
-    import usage_db
 
-    with usage_db.run("split-form"):
+    with nx.merlin_run("split-form"):
         try:
             SplitFormDialog.SplitFormDialog.run("Split Form", "SplitForm", "SplitForm", True)
         except Exception as ex:

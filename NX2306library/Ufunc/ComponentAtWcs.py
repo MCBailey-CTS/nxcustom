@@ -109,7 +109,7 @@ def component_at_wcs() -> None:
         # The block is built at the WCS orientation, so its "negative Z" face is the one whose normal is WCS -Z.
         bottom_face = nx.planar_face_with_normal_or_null(block_body, nx.negate(nx.axis_z(wcs_matrix)))
         if bottom_face is None:
-            nx.print_("Could not find the block's -Z face to color yellow")
+            nx.error("Could not find the block's -Z face to color yellow")
         else:
             nx.set_color(bottom_face, 42)
 
@@ -152,9 +152,7 @@ def component_at_wcs() -> None:
 
 def main() -> None:
     """The component-at-wcs UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
-
-    with usage_db.run("component-at-wcs"):
+    with nx.merlin_run("component-at-wcs"):
         try:
             # No dialog of its own: ask before doing anything (a logged Question box).
             if nx.confirm_execute("component-at-wcs"):

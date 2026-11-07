@@ -384,9 +384,7 @@ def execute() -> None:
 
 def main() -> None:
     """The assign-detail-numbers UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
-
-    with usage_db.run(ufunc_name):
+    with nx.merlin_run(ufunc_name):
         try:
             execute()
         except Exception as ex:

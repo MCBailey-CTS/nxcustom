@@ -37,7 +37,7 @@ from __future__ import annotations
 import datetime
 import os
 import sys
-from typing import List, cast
+from typing import List, Optional, cast
 
 # Session.Execute does not put the script's folder on sys.path, so the shared modules would not import.
 _here = os.path.dirname(os.path.abspath(__file__))
@@ -136,11 +136,16 @@ def static_gm_cast_form_pad(is_gm: bool) -> None:
 def build_gm_cast_form_pad(is_gm: bool, is_upper: bool, bodies: List[NXOpen.Body], refset_name: str) -> None:
     """Merlin.BuildGmCastFormPad - the cast form pad over bodies, built into the work part's station."""
     top_level = nx.display_part()
+    # Measured in the assembly and mapped into the station before the station is displayed (nx.WorkFrame), or a
+    # station off the assembly's origin gets its pad that far off.
+    frame = nx.WorkFrame()
+    frame.warn_if_turned("Cast Form Pad")
+    box = frame.box(nx.combine_boxes(nx.body_box(body) for body in bodies)) if bodies else None
     nx.set_display_part(nx.work_part())
 
     start = datetime.datetime.now()
     try:
-        _build(is_gm, is_upper, bodies, refset_name, top_level)
+        _build(is_gm, is_upper, bodies, refset_name, top_level, box)
     except Exception as ex:
         nx.print_exception(ex)
     finally:
@@ -150,13 +155,16 @@ def build_gm_cast_form_pad(is_gm: bool, is_upper: bool, bodies: List[NXOpen.Body
 
 @nx.traced("Cast Form Pad")
 def _build(is_gm: bool, is_upper: bool, bodies: List[NXOpen.Body], refset_name: str,
-           top_level: NXOpen.Part) -> None:
+           top_level: NXOpen.Part, box: Optional[nx.Box3d] = None) -> None:
+    """box is the bodies' box in the station's coordinates (build_gm_cast_form_pad); without it they are measured
+    here, in the assembly's, which is only right for a station at the assembly's origin."""
     if len(bodies) == 0:
         nx.print_("No bodies selected")
         return
 
     current_work = nx.work_part()
-    box = nx.combine_boxes(nx.body_box(body) for body in bodies)
+    if box is None:
+        box = nx.combine_boxes(nx.body_box(body) for body in bodies)
 
     length = box.MaxX - box.MinX
     width = box.MaxY - box.MinY
@@ -316,9 +324,7 @@ def _build(is_gm: bool, is_upper: bool, bodies: List[NXOpen.Body], refset_name: 
 
 def main() -> None:
     """The cast-form-pad UFunc - its menu button runs this file. An escaping exception is printed."""
-    import usage_db
-
-    with usage_db.run("cast-form-pad"):
+    with nx.merlin_run("cast-form-pad"):
         try:
             # The Cast Form Pad dialog (customer + bodies) stands in for the "Are you sure" box.
             CastFormPad.execute(True)

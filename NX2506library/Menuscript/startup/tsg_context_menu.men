@@ -1,0 +1,20 @@
+VERSION 120
+
+! Buttons for TSG's right-click menu entries (SessionRecord.dll's TsgContextMenu adds them by name).
+! /HIDE keeps them off the Tools menu; NX's context menu callback can only add a menuscript button.
+
+EDIT UG_GATEWAY_MAIN_MENUBAR
+
+AFTER UG_TOOLS_CUSTOMIZE
+    BUTTON/HIDE TSG_SELECT_BLOCK_SET
+    LABEL Select Set
+    BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CycleComponents.bmp
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\SelectBlockSet.py
+    BUTTON/HIDE TSG_STRETCH_BLOCK
+    LABEL Stretch
+    BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\ComponentBuilder.bmp
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\stretch-block.dll
+    BUTTON/HIDE TSG_STRETCH_BLOCK_X
+    LABEL Stretch +X 1 in
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\StretchBlockX.py
+END_OF_AFTER
