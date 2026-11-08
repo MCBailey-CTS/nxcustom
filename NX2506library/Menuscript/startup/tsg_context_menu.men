@@ -2,6 +2,7 @@ VERSION 120
 
 ! Buttons for TSG's right-click menu entries (SessionRecord.dll's TsgContextMenu adds them by name).
 ! /HIDE keeps them off the Tools menu; NX's context menu callback can only add a menuscript button.
+! context-menu.dll reads the button's name (TSG_STRETCH_XPOS_100, TSG_CHAMFER_1_8) to know what to do.
 
 EDIT UG_GATEWAY_MAIN_MENUBAR
 
@@ -11,10 +12,70 @@ AFTER UG_TOOLS_CUSTOMIZE
     BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\CycleComponents.bmp
     ACTIONS ${NXCUSTOM_LIB}\ufunc\SelectBlockSet.py
     BUTTON/HIDE TSG_STRETCH_BLOCK
-    LABEL Stretch
+    LABEL Stretch...
     BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\ComponentBuilder.bmp
     ACTIONS ${NXCUSTOM_LIB}\ufunc\stretch-block.dll
-    BUTTON/HIDE TSG_STRETCH_BLOCK_X
-    LABEL Stretch +X 1 in
-    ACTIONS ${NXCUSTOM_LIB}\ufunc\StretchBlockX.py
+    BUTTON/HIDE TSG_STRETCH_XPOS_100
+    LABEL +X
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
+    BUTTON/HIDE TSG_STRETCH_XNEG_100
+    LABEL -X
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
+    BUTTON/HIDE TSG_STRETCH_YPOS_100
+    LABEL +Y
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
+    BUTTON/HIDE TSG_STRETCH_YNEG_100
+    LABEL -Y
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
+    BUTTON/HIDE TSG_STRETCH_ZPOS_100
+    LABEL +Z
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
+    BUTTON/HIDE TSG_STRETCH_ZNEG_100
+    LABEL -Z
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
+    BUTTON/HIDE TSG_STRETCH_XPOS_050
+    LABEL +X
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
+    BUTTON/HIDE TSG_STRETCH_XNEG_050
+    LABEL -X
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
+    BUTTON/HIDE TSG_STRETCH_YPOS_050
+    LABEL +Y
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
+    BUTTON/HIDE TSG_STRETCH_YNEG_050
+    LABEL -Y
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
+    BUTTON/HIDE TSG_STRETCH_ZPOS_050
+    LABEL +Z
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
+    BUTTON/HIDE TSG_STRETCH_ZNEG_050
+    LABEL -Z
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
+    BUTTON/HIDE TSG_STRETCH_XPOS_025
+    LABEL +X
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
+    BUTTON/HIDE TSG_STRETCH_XNEG_025
+    LABEL -X
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
+    BUTTON/HIDE TSG_STRETCH_YPOS_025
+    LABEL +Y
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
+    BUTTON/HIDE TSG_STRETCH_YNEG_025
+    LABEL -Y
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
+    BUTTON/HIDE TSG_STRETCH_ZPOS_025
+    LABEL +Z
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
+    BUTTON/HIDE TSG_STRETCH_ZNEG_025
+    LABEL -Z
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
+    BUTTON/HIDE TSG_CHAMFER_1_16
+    LABEL 1/16 x 45
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
+    BUTTON/HIDE TSG_CHAMFER_1_8
+    LABEL 1/8 x 45
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
+    BUTTON/HIDE TSG_CHAMFER_1_4
+    LABEL 1/4 x 45
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
 END_OF_AFTER
