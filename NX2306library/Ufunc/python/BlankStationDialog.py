@@ -9,14 +9,17 @@ from git at 41f2a7b). The differences:
   - The material is a plain radio enum; the SNAP form's bordered radio box stood in for a group box.
   - Accepted is the OK callback's own verdict, not a flag set in OnApply.
 
-BlankStation.BlankStation.execute(is3d) runs the gates and then ask(title); ask returns (bodies, material) or None.
+BlankStation.BlankStation.execute(is3d) runs the gates and then ask(title); ask returns (bodies, material, is_gm) or
+None. The right-click menu's Merlin > Blank Station (BlankStation.execute_on_bodies, 2026-11-08) calls
+ask_with_station(title, bodies, stations): the right-clicked bodies already picked and the "station" radio ("Build in",
+hidden otherwise) filled with the -000's station sets; it returns (bodies, material, is_gm, station) or None.
 """
 
 from __future__ import annotations
 
 import os
 import sys
-from typing import List, Optional, Tuple, cast
+from typing import Callable, List, Optional, Sequence, Tuple, cast
 
 # Session.Execute does not put the script's folder on sys.path, so the shared modules would not import.
 _here = os.path.dirname(os.path.abspath(__file__))
@@ -42,8 +45,28 @@ def ask(title: str) -> Optional[Tuple[List[NXOpen.Body], str, bool]]:
     build the same, except that GM adds the 15 / 30 mm offset lines round the lower trim steel's LWR-PROFILE cut
     (BlankStation._create_gm_profile_offsets).
     """
+    dialog = _show(title, lambda: _BlankStationDialog(title))
+    if dialog is None:
+        return None
+    return dialog.bodies, dialog.material, is_gm_customer(dialog.customer_choice)
+
+
+def ask_with_station(title: str, bodies: Sequence[NXOpen.Body],
+                     stations: Sequence[str]) -> Optional[Tuple[List[NXOpen.Body], str, bool, str]]:
+    """
+    ask with bodies already picked and the "Build in" radio showing stations (the NN of each uadNN / updNN / ladNN
+    set; 01 checked when it is one): (bodies, material, is_gm, station) once accepted, None otherwise.
+    """
+    dialog = _show(title, lambda: _BlankStationDialog(title, bodies, stations))
+    if dialog is None:
+        return None
+    return dialog.bodies, dialog.material, is_gm_customer(dialog.customer_choice), dialog.station
+
+
+def _show(title: str, make: Callable[[], "_BlankStationDialog"]) -> Optional["_BlankStationDialog"]:
+    """Builds the dialog with make and runs it; the dialog once accepted with a body picked, None otherwise."""
     try:
-        dialog = _BlankStationDialog(title)
+        dialog = make()
         accepted = dialog.run()
     except NXOpen.NXException as ex:
         if ex.ErrorCode != _ErrorCannotLaunchDialog:
@@ -58,29 +81,43 @@ def ask(title: str) -> Optional[Tuple[List[NXOpen.Body], str, bool]]:
     if not accepted or not dialog.bodies:
         return None
 
-    return dialog.bodies, dialog.material, is_gm_customer(dialog.customer_choice)
+    return dialog
 
 
 class _BlankStationDialog(Dialog):
-    """BlankStationDialog.dlx: the bodies pick and the material radio."""
+    """
+    BlankStationDialog.dlx: the bodies pick and the material radio, and the "station" radio ("Build in") when stations
+    are given (the .dlx holds a placeholder member; hidden otherwise). preselected bodies start out picked.
+    """
 
     dlx_name = "BlankStationDialog.dlx"
 
-    def __init__(self, title: str) -> None:
+    def __init__(self, title: str, preselected: Sequence[NXOpen.Body] = (), stations: Sequence[str] = ()) -> None:
         self.title = title
+        self.preselected = list(preselected)
+        self.stations = list(stations)
         super().__init__()
         # Captured in ok(): the blocks are gone once Launch returns.
         self.bodies: List[NXOpen.Body] = []
         self.material = "D2"
         self.customer_choice = CustomerNone
+        self.station = self.stations[0] if self.stations else ""
 
     def initialize(self) -> None:
         mask = NXOpen.Selection.MaskTriple(NXOpen.UF.UFConstants.UF_solid_type, 0, _SolidBodyDetail)
         self.block("bodies").SetSelectionFilter(NXOpen.Selection.SelectionAction.ClearAndEnableSpecific, [mask])
         self.assembly_scope(self.block("bodies"))
+        if self.stations:
+            self.block("station").SetEnumMembers(self.stations)
 
     def shown(self) -> None:
         self.reset_customer()
+        station = self.block("station")
+        station.Show = bool(self.stations)
+        if self.stations:
+            station.ValueAsString = "01" if "01" in self.stations else self.stations[0]
+        if self.preselected:
+            self.block("bodies").SetSelectedObjects(self.preselected)
 
     def enable_ok(self) -> bool:
         return self.customer_picked() and len(self._picked_bodies()) > 0
@@ -96,6 +133,8 @@ class _BlankStationDialog(Dialog):
             return False
         self.material = str(self.block("material").ValueAsString)
         self.customer_choice = self.customer()
+        if self.stations:
+            self.station = str(self.block("station").ValueAsString)
         return True
 
     def _picked_bodies(self) -> List[NXOpen.Body]:

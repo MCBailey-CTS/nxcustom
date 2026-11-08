@@ -92,6 +92,7 @@ copied.
 from __future__ import annotations
 
 import math
+import re
 import os
 import sys
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple, cast
@@ -200,17 +201,18 @@ class BlankStation(object):
 
     @staticmethod
     def build(is3d: bool, material: str, bodies: Sequence[NXOpen.Body], quiet: bool = False,
-              is_gm: bool = False) -> None:
+              is_gm: bool = False, station: Optional[str] = None) -> None:
         """
         Session.Execute entry for the blank-station (is3d False) / secondary-trim-station (is3d True) UFuncs:
         Merlin.BuildBlankStations(is3d, bodies, material) with the arguments in the order the C# passes them.
         bodies are the picked slug solid bodies (occurrences, so OwningComponent is the slug component); material is
         "D2" or "S7". quiet leaves out the "Created reference set" lines (AutoDesign). is_gm (the dialog's GM
-        customer) adds the Blank Station's GM profile offset lines (_create_gm_profile_offsets).
+        customer) adds the Blank Station's GM profile offset lines (_create_gm_profile_offsets). station ("01", "03",
+        ...) builds into that uadNN / updNN / ladNN set in place of 01 (02 for is3d).
         """
         try:
             with nx.quiet_listing(quiet):
-                build_blank_stations(bool(is3d), [body for body in bodies], str(material), bool(is_gm))
+                build_blank_stations(bool(is3d), [body for body in bodies], str(material), bool(is_gm), station)
         except Exception as ex:
             nx.print_exception(ex)
 
@@ -246,6 +248,70 @@ class BlankStation(object):
             return
 
         BlankStation.build(bool(is3d), material, bodies, is_gm=is_gm)
+
+    @staticmethod
+    def execute_on_bodies(bodies: Sequence[NXOpen.Body]) -> None:
+        """
+        The right-click menu's Merlin > Blank Station (BlankStationContextMenu.py, 2026-11-08): the Blank Station on
+        the right-clicked solid bodies. The same gates as execute(False), then the dialog with those bodies already
+        picked and a "Build in" radio of the -000's station sets (station_sets: every NN with a uadNN, updNN and
+        ladNN), 01 checked when there is one; then build into the picked set.
+        """
+        try:
+            ok, message = drawdie._check_info_units()
+            if not ok:
+                nx.show_error(message)
+                return
+
+            if not nx.display_part().Leaf.endswith("-000"):
+                nx.show_error("This must be ran at the 000")
+                return
+
+            sets = station_sets()
+            if not sets:
+                nx.show_error("No station set (a uadNN, updNN and ladNN with the same NN) was found under {}.".format(
+                    nx.display_part().Leaf))
+                return
+
+            # Slug bodies in the -000 itself have no component for the build to work in.
+            occurrences = [b for b in bodies if b.IsOccurrence and b.OwningComponent is not None]
+            if len(occurrences) < len(bodies):
+                nx.warn("Blank Station: {} picked bod{} not in a component left out.".format(
+                    len(bodies) - len(occurrences), "y" if len(bodies) - len(occurrences) == 1 else "ies"))
+
+            from BlankStationDialog import ask_with_station
+            from tsg_dialog import title_with_version
+
+            result = ask_with_station(title_with_version(BlankStationTitle), occurrences, sets)
+            if result is None:
+                return
+            picked, material, is_gm, station = result
+        except Exception as ex:
+            nx.print_exception(ex)
+            return
+
+        BlankStation.build(False, material, picked, is_gm=is_gm, station=station)
+
+
+# A station assembly's leaf (or display name): {job}-{op}-uad01, ...; the NN is group 2.
+_StationSetLeaf = re.compile(r"(uad|upd|lad)(\d{2})(?!\d)", re.IGNORECASE)
+
+
+def station_sets() -> List[str]:
+    """
+    The NN of every uadNN / updNN / ladNN trio under the display part (loaded components, by part leaf or display
+    name), sorted - the right-click Blank Station's "Build in" choices.
+    """
+    root = nx.root_component(nx.display_part())
+    if root is None:
+        return []
+    kinds: Dict[str, Set[str]] = {}
+    for component in nx.descendants(root):
+        for name in (component.DisplayName, getattr(nx.prototype(component), "Leaf", "") or ""):
+            match = _StationSetLeaf.search(name)
+            if match is not None:
+                kinds.setdefault(match.group(2), set()).add(match.group(1).lower())
+    return sorted(nn for nn, found in kinds.items() if found >= {"uad", "upd", "lad"})
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -286,7 +352,8 @@ class _TempGeometry(object):
 
 
 @nx.traced("Blank Station")
-def build_blank_stations(is3d: bool, bodies1: Sequence[NXOpen.Body], material: str, is_gm: bool = False) -> None:
+def build_blank_stations(is3d: bool, bodies1: Sequence[NXOpen.Body], material: str, is_gm: bool = False,
+                         station: Optional[str] = None) -> None:
     """
     Merlin.BuildBlankStations - one blank station per slug body, with material (D2 / S7) stamped on every punch and
     lower trim steel. Gates on the units, the -000 and the stations like the dialog front end.
@@ -300,7 +367,7 @@ def build_blank_stations(is3d: bool, bodies1: Sequence[NXOpen.Body], material: s
         nx.show_error("This must be ran at the 000")
         return
 
-    stations = try_find_blank_stations(is3d)
+    stations = try_find_blank_stations(is3d, station)
     if stations is None:
         return
 
@@ -383,13 +450,13 @@ def _save_as_unikix_pins(pins: Sequence[NXOpen.Assemblies.Component], directory:
 
 
 @nx.traced("Blank Station")
-def try_find_blank_stations(is3d: bool) -> Optional[_Stations]:
+def try_find_blank_stations(is3d: bool, station: Optional[str] = None) -> Optional[_Stations]:
     """
     Merlin.TryFindBlankStations - the uad/upd/lad station assemblies under the display part (-01 for the Blank
     Station, -02 for the Secondary Trim Station; usp/lsp are the legacy fallbacks). Shows an error naming every
-    missing one and returns None when any is missing.
+    missing one and returns None when any is missing. station ("03", ...) looks for that set instead.
     """
-    station = "02" if is3d else "01"
+    station = station or ("02" if is3d else "01")
 
     root = nx.root_component(nx.display_part())
     descendants: List[NXOpen.Assemblies.Component] = list(nx.descendants(root)) if root is not None else []

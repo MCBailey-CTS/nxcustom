@@ -78,4 +78,14 @@ AFTER UG_TOOLS_CUSTOMIZE
     BUTTON/HIDE TSG_CHAMFER_1_4
     LABEL 1/4 x 45
     ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
+    BUTTON/HIDE TSG_OBJECT_ATTRIBUTES
+    LABEL Attributes
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\ObjectAttributes.py
+    BUTTON/HIDE TSG_MERLIN_BLANK_STATION
+    LABEL Blank Station
+    BITMAP ${NXCUSTOM_LIB}\toolbars\bitmaps\SimulationDataBuilder.bmp
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\BlankStationContextMenu.py
+    BUTTON/HIDE TSG_FASTENER_REFERENCE_SET
+    LABEL Change Reference Set
+    ACTIONS ${NXCUSTOM_LIB}\ufunc\context-menu.dll
 END_OF_AFTER
